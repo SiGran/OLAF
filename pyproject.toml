@@ -12,6 +12,7 @@ keywords = ["freezing", "data acquisition", "spectrometer"]
 python = "^3.11"
 openpyxl = "^3.1.5"
 pathlib2 = "^2.3.7.post1"
+pandas = "^2.2.2"
 
 [tool.poetry.dev-dependencies]
 pytest = "^8.3.2"
