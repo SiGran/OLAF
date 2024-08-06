@@ -1,12 +1,15 @@
 import tkinter as tk
-from pathlib2 import Path
+
 import pandas as pd
+from pathlib2 import Path
 
 from olaf.utils.path_utils import natural_sort_key
 
+NUM_SAMPLES = 6
+
 
 class FreezingReviewer:
-    def __init__(self, root: tk.Tk, folder_path: Path):
+    def __init__(self, root: tk.Tk, folder_path: Path) -> None:
         """
         Create a GUI for reviewing well freezing images and
         updating the number of frozen wells.
@@ -16,22 +19,21 @@ class FreezingReviewer:
         self.root = root
         # TODO: make more robust for checking for at most one folder with images in name
         self.folder_path = folder_path
-
         self.data_file, self.data = self._get_data_file()
 
+        # Set up the window
         self.root.title("Well Freezing Reviewer")
-
         self.label = tk.Label(root)
         self.label.pack()
 
+        # Set up the buttons
         self.button_frame = tk.Frame(root)
         self.button_frame.pack()
-
         self.sample_buttons = self._create_buttons()
 
+        # Set up the photo viewer
         self.current_photo_index = 0
         self.photos = self._load_photos()
-
         self._show_photo()
         return
 
@@ -43,11 +45,17 @@ class FreezingReviewer:
         data_file, data = Path(), pd.DataFrame()
         for file in self.folder_path.iterdir():
             if file.suffix == ".dat" and "reviewed" not in file.name:
-                dat_file = file
-                data = pd.read_csv(dat_file, sep="\t", parse_dates=['Time'])
+                data_file = file
+                # TODO: Why is there a tab between the date and time in the date/time column?
+                data = pd.read_csv(data_file, sep="\t", parse_dates=["Time"])
+                # Give both date and time proper column names
+                data.rename(columns={"Time": "Date", "Unnamed: 1": "Time"}, inplace=True)
+                # Add a column to capture changes to the number of frozen wells
+                data["changes"] = [[0] * NUM_SAMPLES for _ in range(len(data))]
                 break
-        if data.empty:
+        if data.empty or not data_file.is_file:
             raise FileNotFoundError("No .dat file found in the folder")
+
         return data_file, data
 
     def _create_buttons(self) -> list:
@@ -56,22 +64,32 @@ class FreezingReviewer:
         :return:
         """
         sample_buttons = []
-        for i in range(6):
+        for i in range(NUM_SAMPLES):
             sample_frame = tk.LabelFrame(self.button_frame, text=f"sample_{i}")
             sample_frame.pack(side=tk.LEFT, padx=5, pady=5)
-
-            min_button = tk.Button(sample_frame, text="-1",
-                                   command=lambda j=i: self._update_frozen_wells(j, -1))
+            # lambda functions are used to pass the current value of i to the function
+            min_button = tk.Button(
+                sample_frame,
+                text="-1",
+                command=lambda j=i: self._update_frozen_wells(j, -1),  # type: ignore
+            )
             min_button.pack(side=tk.LEFT)
             sample_buttons.append(min_button)
 
-            plus_button = tk.Button(sample_frame, text="+1",
-                                    command=lambda j=i: self._update_frozen_wells(j, 1))
+            plus_button = tk.Button(
+                sample_frame,
+                text="+1",
+                command=lambda j=i: self._update_frozen_wells(j, 1),  # type: ignore
+            )
             plus_button.pack(side=tk.LEFT)
             sample_buttons.append(plus_button)
-            if i == 2:
-                good_button = tk.Button(self.button_frame, text="Good",
-                                        command=lambda: self._update_frozen_wells(-1, 0))
+            # Add a "Good" button in the middle
+            if i == (NUM_SAMPLES // 2) - 1:
+                good_button = tk.Button(
+                    self.button_frame,
+                    text="Good",
+                    command=lambda: self._update_frozen_wells(-1, 0),
+                )
                 good_button.pack(side=tk.LEFT)
                 sample_buttons.append(good_button)
         return sample_buttons
@@ -84,8 +102,11 @@ class FreezingReviewer:
         images_folder = self.folder_path / "dat_Images"
         photos = []
         if images_folder.exists():
-            files = [file for file in images_folder.iterdir() if
-                     file.suffix.lower() in ('.png', '.jpg', '.jpeg', '.gif', '.bmp')]
+            files = [
+                file
+                for file in images_folder.iterdir()
+                if file.suffix.lower() in (".png", ".jpg", ".jpeg", ".gif", ".bmp")
+            ]
             photos = sorted(files, key=lambda x: natural_sort_key(str(x)))
         return photos
 
@@ -116,9 +137,9 @@ class FreezingReviewer:
         :return:
         """
         # Find the row in the data frame corresponding to the current image
-        row = self.data[self.data['Picture'] == pic_file_name]
+        row = self.data[self.data["Picture"] == pic_file_name]
         if not row.empty:
-            for i in range(6):
+            for i in range(NUM_SAMPLES):
                 value = row[f"Sample_{i}"].values[0]
                 sample_frame = tk.LabelFrame(self.root, text=f"sample {i}")
                 x_coord = (i + 1.2) * 100
@@ -146,13 +167,23 @@ class FreezingReviewer:
                 self.root.quit()
             else:
                 self._show_photo()
-        else: # Update the number of frozen wells for the clicked sample
+        else:  # Update the number of frozen wells for the clicked sample
             picture_name = self.photos[self.current_photo_index].name
-            current_index = self.data.index[self.data['Picture'] == picture_name].tolist()[0]
+
+            # Get the index of the current image in the data frame
+            current_index = self.data.index[self.data["Picture"] == picture_name].tolist()[0]
+
+            # Apply change to current and later, but keep the value between 0 and 32
             self.data.loc[current_index:, f"Sample_{sample}"] += change
-            # Add check to ensure values don't exceed 32
-            self.data.loc[current_index:, f"Sample_{sample}"] = self.data.loc[current_index:, f"Sample_{sample}"].clip(0, 32)
-            # Refresh the displayed sample values
+            self.data.loc[current_index:, f"Sample_{sample}"] = self.data.loc[
+                current_index:, f"Sample_{sample}"
+            ].clip(0, 32)
+
+            # Update the changes column with the change
+            self.data.loc[current_index:, "changes"] = self.data.loc[
+                current_index:, "changes"
+            ].apply(lambda x: [y + change if i == sample else y for i, y in enumerate(x)])
+            # TODO: above line doesn't correct for the clipping (0, 32)
             self._display_num_frozen(picture_name)
         return
 
@@ -162,7 +193,14 @@ class FreezingReviewer:
         :return:
         """
         new_save_name = self.data_file.parent / f"reviewed_{self.data_file.name}"
+        counter = 0
+        # If the file already exists, add a number to the name
+        while new_save_name.exists():
+            counter += 1
+            if counter > 1:  # need to remove previous counter added to name
+                new_file_name = f"{new_save_name.stem[0:-3]}({counter}).dat"
+            else:
+                new_file_name = f"{new_save_name.stem}({counter}).dat"
+            new_save_name = new_save_name.parent / new_file_name
         self.data.to_csv(new_save_name, sep="\t", index=False)
         return
-
-

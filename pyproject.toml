@@ -14,19 +14,20 @@ openpyxl = "^3.1.5"
 pathlib2 = "^2.3.7.post1"
 pandas = "^2.2.2"
 
-[tool.poetry.dev-dependencies]
+[tool.poetry.group.dev.dependencies]
+ruff = "^0.5.6"
+pre-commit = "^3.8.0"
 pytest = "^8.3.2"
-pre-commit = "^3.7.1"
-black = "^24.4.2"
-isort = "^5.13.2"
 mypy = "^1.11.0"
-flake518 = "^1.6.0"
-flake8 = "^7.1.0"
+bandit = "^1.7.9"
 
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
 
-[tool.flake8]
-max-line-length = 88
-extend-ignore = ["E203", "W503"]
+[tool.ruff]
+line-length = 100
+
+[tool.ruff.lint]
+extend-select = ["I", "F", "E", "W"]
+
