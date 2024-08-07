@@ -9,6 +9,8 @@ NUM_SAMPLES = 6
 
 
 class FreezingReviewer:
+    # TODO: how would you create going back button?
+    # TODO: Full screen makes it become weird. Why? And fix?
     def __init__(self, root: tk.Tk, folder_path: Path) -> None:
         """
         Create a GUI for reviewing well freezing images and
@@ -17,7 +19,6 @@ class FreezingReviewer:
         :param folder_path: Path to the folder containing the images and .dat file.
         """
         self.root = root
-        # TODO: make more robust for checking for at most one folder with images in name
         self.folder_path = folder_path
         self.data_file, self.data = self._get_data_file()
 
@@ -99,15 +100,30 @@ class FreezingReviewer:
         Load all images in the "dat_Images" folder into a list.
         :return:
         """
-        images_folder = self.folder_path / "dat_Images"
+        # TODO: add error if images not found
+        images_folder = next(
+            (
+                folder
+                for folder in self.folder_path.iterdir()
+                if folder.is_dir() and folder.name.endswith("Images")
+            ),
+            None,
+        )
         photos = []
-        if images_folder.exists():
+        if images_folder:
+            # Errors for multiple folders, no folder, or folder not found
+            if len(list(self.folder_path.iterdir())) > 1:
+                raise FileNotFoundError("Multiple image directory; ambigous which one to use")
+            if not images_folder.is_dir():
+                raise NotADirectoryError("Images folder not found")
             files = [
                 file
                 for file in images_folder.iterdir()
                 if file.suffix.lower() in (".png", ".jpg", ".jpeg", ".gif", ".bmp")
             ]
             photos = sorted(files, key=lambda x: natural_sort_key(str(x)))
+        else:
+            raise FileNotFoundError("No images folder found in the directory")
         return photos
 
     def _show_photo(self) -> None:
