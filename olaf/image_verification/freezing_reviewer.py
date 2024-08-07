@@ -1,7 +1,7 @@
 import tkinter as tk
+from pathlib import Path
 
 import pandas as pd
-from pathlib2 import Path
 
 from olaf.utils.path_utils import natural_sort_key
 
@@ -53,7 +53,7 @@ class FreezingReviewer:
                 # Add a column to capture changes to the number of frozen wells
                 data["changes"] = [[0] * NUM_SAMPLES for _ in range(len(data))]
                 break
-        if data.empty or not data_file.is_file:
+        if data.empty or data_file.name == "":
             raise FileNotFoundError("No .dat file found in the folder")
 
         return data_file, data

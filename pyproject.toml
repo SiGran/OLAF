@@ -11,7 +11,6 @@ keywords = ["freezing", "data acquisition", "spectrometer"]
 [tool.poetry.dependencies]
 python = "^3.11"
 openpyxl = "^3.1.5"
-pathlib2 = "^2.3.7.post1"
 pandas = "^2.2.2"
 
 [tool.poetry.group.dev.dependencies]
@@ -20,6 +19,7 @@ pre-commit = "^3.8.0"
 pytest = "^8.3.2"
 mypy = "^1.11.0"
 bandit = "^1.7.9"
+pandas-stubs = "^2.2.2.240603"
 
 [build-system]
 requires = ["poetry-core"]

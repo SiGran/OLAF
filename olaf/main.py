@@ -1,6 +1,5 @@
 import tkinter as tk
-
-from pathlib2 import Path
+from pathlib import Path
 
 from olaf.image_verification.freezing_reviewer import FreezingReviewer
 
