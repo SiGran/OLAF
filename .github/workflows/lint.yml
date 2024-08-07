@@ -24,4 +24,4 @@ jobs:
           poetry install
 
       - name: Run ruff
-        run: poetry run ruff .
+        run: poetry run ruff check --output-format=github .
