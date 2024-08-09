@@ -109,21 +109,19 @@ class FreezingReviewer:
             ),
             None,
         )
-        photos = []
         if images_folder:
-            # Errors for multiple folders, no folder, or folder not found
-            if len(list(self.folder_path.iterdir())) > 1:
-                raise FileNotFoundError("Multiple image directory; ambigous which one to use")
-            if not images_folder.is_dir():
-                raise NotADirectoryError("Images folder not found")
-            files = [
-                file
-                for file in images_folder.iterdir()
-                if file.suffix.lower() in (".png", ".jpg", ".jpeg", ".gif", ".bmp")
-            ]
-            photos = sorted(files, key=lambda x: natural_sort_key(str(x)))
+            if images_folder.is_dir():
+                files = [
+                    file
+                    for file in images_folder.iterdir()
+                    if file.suffix.lower() in (".png", ".jpg", ".jpeg", ".gif", ".bmp")
+                ]
+                # lambda function to sort pathlib paths naturally
+                photos = sorted(files, key=lambda x: natural_sort_key(str(x)))
+            else:
+                raise NotADirectoryError(f"images folder ({images_folder}) is not a directory")
         else:
-            raise FileNotFoundError("No images folder found in the directory")
+            raise FileNotFoundError("No images folder found in the folder")
         return photos
 
     def _show_photo(self) -> None:
