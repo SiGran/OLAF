@@ -9,8 +9,7 @@ NUM_SAMPLES = 6
 
 
 class FreezingReviewer:
-    # TODO: how would you create going back button?
-    # TODO: Full screen makes it become weird. Why? And fix?
+    # TODO: Full screen makes it become weird ---> mainly location of the "Sample x" on top
     def __init__(self, root: tk.Tk, folder_path: Path) -> None:
         """
         Create a GUI for reviewing well freezing images and
@@ -30,7 +29,7 @@ class FreezingReviewer:
         # Set up the buttons
         self.button_frame = tk.Frame(root)
         self.button_frame.pack()
-        self.sample_buttons = self._create_buttons()
+        self._create_buttons()
 
         # Set up the photo viewer
         self.current_photo_index = 0
@@ -47,7 +46,6 @@ class FreezingReviewer:
         for file in self.folder_path.iterdir():
             if file.suffix == ".dat" and "reviewed" not in file.name:
                 data_file = file
-                # TODO: Why is there a tab between the date and time in the date/time column?
                 data = pd.read_csv(data_file, sep="\t", parse_dates=["Time"])
                 # Give both date and time proper column names
                 data.rename(columns={"Time": "Date", "Unnamed: 1": "Time"}, inplace=True)
@@ -59,15 +57,14 @@ class FreezingReviewer:
 
         return data_file, data
 
-    def _create_buttons(self) -> list:
+    def _create_buttons(self) -> None:
         """
         Create buttons for each sample to increase or decrease the number of frozen wells
         :return:
         """
-        sample_buttons = []
         for i in range(NUM_SAMPLES):
             sample_frame = tk.LabelFrame(self.button_frame, text=f"sample_{i}")
-            sample_frame.pack(side=tk.LEFT, padx=5, pady=5)
+            sample_frame.pack(side=tk.LEFT, padx=5)
             # lambda functions are used to pass the current value of i to the function
             min_button = tk.Button(
                 sample_frame,
@@ -75,7 +72,6 @@ class FreezingReviewer:
                 command=lambda j=i: self._update_frozen_wells(j, -1),  # type: ignore
             )
             min_button.pack(side=tk.LEFT)
-            sample_buttons.append(min_button)
 
             plus_button = tk.Button(
                 sample_frame,
@@ -83,17 +79,32 @@ class FreezingReviewer:
                 command=lambda j=i: self._update_frozen_wells(j, 1),  # type: ignore
             )
             plus_button.pack(side=tk.LEFT)
-            sample_buttons.append(plus_button)
-            # Add a "Good" button in the middle
+            # Add navigation buttons in the middle
             if i == (NUM_SAMPLES // 2) - 1:
-                good_button = tk.Button(
-                    self.button_frame,
-                    text="Good",
-                    command=lambda: self._update_frozen_wells(-1, 0),
+                nav_frame = tk.Frame(self.button_frame)
+                nav_frame.pack(side=tk.LEFT, padx=2)
+
+                self.back_button = tk.Button(
+                    nav_frame, text="Back", command=lambda: self._update_frozen_wells("b", 0)
                 )
-                good_button.pack(side=tk.LEFT)
-                sample_buttons.append(good_button)
-        return sample_buttons
+                self.back_button.pack(side=tk.BOTTOM)
+                self.back_button.config(state=tk.DISABLED)  # Initially disabled
+
+                good_button = tk.Button(
+                    nav_frame,
+                    text="Good",
+                    command=lambda: self._update_frozen_wells("f", 0),
+                )
+                good_button.pack(side=tk.TOP)
+        return
+
+    def _go_back(self) -> None:
+        """
+        Go back to the previous photo in the list.
+        """
+        if self.current_photo_index > 0:
+            self.current_photo_index -= 1
+            self._show_photo()
 
     def _load_photos(self) -> list:
         """
@@ -130,6 +141,11 @@ class FreezingReviewer:
         :return:
         """
         if self.photos:
+            # Enable or disable the "Back" button based on the current photo index
+            if self.current_photo_index == 0:
+                self.back_button.config(state=tk.DISABLED)
+            else:
+                self.back_button.config(state=tk.NORMAL)
             photo_path = self.photos[self.current_photo_index]
             self.photo_image_ref = tk.PhotoImage(file=str(photo_path))
             self.photo_image_ref = self.photo_image_ref.subsample(2)
@@ -166,7 +182,7 @@ class FreezingReviewer:
             print(f"Error: No data found for {pic_file_name}")
         return
 
-    def _update_frozen_wells(self, sample: int, change: int) -> None:
+    def _update_frozen_wells(self, sample: int | str, change: int) -> None:
         """
         Update the number of frozen wells for the current image
         :param sample: which sample (column) to update, -1 for "Good"
@@ -174,13 +190,15 @@ class FreezingReviewer:
          increase.
         :return:
         """
-        if sample == -1 and change == 0:  # All good -> next image
+        if sample == "f" and change == 0:  # All good -> next image
             self.current_photo_index += 1
             if self.current_photo_index >= len(self.photos):
                 self._save_data()
                 self.root.quit()
             else:
                 self._show_photo()
+        elif sample == "b" and change == 0:  # Go back to previous image
+            self._go_back()
         else:  # Update the number of frozen wells for the clicked sample
             picture_name = self.photos[self.current_photo_index].name
 
@@ -199,6 +217,7 @@ class FreezingReviewer:
             ].apply(lambda x: [y + change if i == sample else y for i, y in enumerate(x)])
             # TODO: above line doesn't correct for the clipping (0, 32)
             self._display_num_frozen(picture_name)
+
         return
 
     def _save_data(self) -> None:
