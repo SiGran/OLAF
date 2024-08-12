@@ -1,14 +1,11 @@
 import tkinter as tk
 from pathlib import Path
 
-import pandas as pd
-
-from olaf.utils.path_utils import natural_sort_key
-
-NUM_SAMPLES = 6
+from ..CONSTANTS import NUM_SAMPLES
+from .button_handler import ButtonHandler
 
 
-class FreezingReviewer:
+class FreezingReviewer(ButtonHandler):
     # TODO: Full screen makes it become weird ---> mainly location of the "Sample x" on top
     def __init__(self, root: tk.Tk, folder_path: Path) -> None:
         """
@@ -17,147 +14,34 @@ class FreezingReviewer:
         :param root: is the tkinter root object
         :param folder_path: Path to the folder containing the images and .dat file.
         """
-        self.root = root
-        self.folder_path = folder_path
-        self.data_file, self.data = self._get_data_file()
-
-        # Set up the window
-        self.root.title("Well Freezing Reviewer")
-        self.label = tk.Label(root)
-        self.label.pack()
-
-        # Set up the buttons
-        self.button_frame = tk.Frame(root)
-        self.button_frame.pack()
-        self._create_buttons()
-
-        # Set up the photo viewer
-        self.current_photo_index = 0
-        self.photos = self._load_photos()
-        self._show_photo()
+        super().__init__(root, folder_path)
         return
 
-    def _get_data_file(self) -> tuple[Path, pd.DataFrame]:
+    def _update_image(self, sample: int, change: int) -> None:
         """
-        Find the .dat file in the folder and load it into a pandas DataFrame
+        Update the number of frozen wells for the current image
+        :param sample: which sample (column) to update, -1 for "Good"
+        :param change: which direction to change the value, -1 for decrease, 1 for
+         increase.
         :return:
         """
-        data_file, data = Path(), pd.DataFrame()
-        for file in self.folder_path.iterdir():
-            if file.suffix == ".dat" and "reviewed" not in file.name:
-                data_file = file
-                data = pd.read_csv(data_file, sep="\t", parse_dates=["Time"])
-                # Give both date and time proper column names
-                data.rename(columns={"Time": "Date", "Unnamed: 1": "Time"}, inplace=True)
-                # Add a column to capture changes to the number of frozen wells
-                data["changes"] = [[0] * NUM_SAMPLES for _ in range(len(data))]
-                break
-        if data.empty or data_file.name == "":
-            raise FileNotFoundError("No .dat file found in the folder")
+        picture_name = self.photos[self.current_photo_index].name
 
-        return data_file, data
+        # Get the index of the current image in the data frame
+        current_index = self.data.index[self.data["Picture"] == picture_name].tolist()[0]
 
-    def _create_buttons(self) -> None:
-        """
-        Create buttons for each sample to increase or decrease the number of frozen wells
-        :return:
-        """
-        for i in range(NUM_SAMPLES):
-            sample_frame = tk.LabelFrame(self.button_frame, text=f"sample_{i}")
-            sample_frame.pack(side=tk.LEFT, padx=5)
-            # lambda functions are used to pass the current value of i to the function
-            min_button = tk.Button(
-                sample_frame,
-                text="-1",
-                command=lambda j=i: self._update_frozen_wells(j, -1),  # type: ignore
-            )
-            min_button.pack(side=tk.LEFT)
+        # Apply change to current and later, but keep the value between 0 and 32
+        self.data.loc[current_index:, f"Sample_{sample}"] += change
+        self.data.loc[current_index:, f"Sample_{sample}"] = self.data.loc[
+            current_index:, f"Sample_{sample}"
+        ].clip(0, 32)
 
-            plus_button = tk.Button(
-                sample_frame,
-                text="+1",
-                command=lambda j=i: self._update_frozen_wells(j, 1),  # type: ignore
-            )
-            plus_button.pack(side=tk.LEFT)
-            # Add navigation buttons in the middle
-            if i == (NUM_SAMPLES // 2) - 1:
-                nav_frame = tk.Frame(self.button_frame)
-                nav_frame.pack(side=tk.LEFT, padx=2)
-
-                self.back_button = tk.Button(
-                    nav_frame, text="Back", command=lambda: self._update_frozen_wells("b", 0)
-                )
-                self.back_button.pack(side=tk.BOTTOM)
-                self.back_button.config(state=tk.DISABLED)  # Initially disabled
-
-                good_button = tk.Button(
-                    nav_frame,
-                    text="Good",
-                    command=lambda: self._update_frozen_wells("f", 0),
-                )
-                good_button.pack(side=tk.TOP)
-        return
-
-    def _go_back(self) -> None:
-        """
-        Go back to the previous photo in the list.
-        """
-        if self.current_photo_index > 0:
-            self.current_photo_index -= 1
-            self._show_photo()
-
-    def _load_photos(self) -> list:
-        """
-        Load all images in the "dat_Images" folder into a list.
-        :return:
-        """
-        # TODO: add error if images not found
-        images_folder = next(
-            (
-                folder
-                for folder in self.folder_path.iterdir()
-                if folder.is_dir() and folder.name.endswith("Images")
-            ),
-            None,
+        # Update the changes column with the change
+        self.data.loc[current_index:, "changes"] = self.data.loc[current_index:, "changes"].apply(
+            lambda x: [y + change if i == sample else y for i, y in enumerate(x)]
         )
-        if images_folder:
-            if images_folder.is_dir():
-                files = [
-                    file
-                    for file in images_folder.iterdir()
-                    if file.suffix.lower() in (".png", ".jpg", ".jpeg", ".gif", ".bmp")
-                ]
-                # lambda function to sort pathlib paths naturally
-                photos = sorted(files, key=lambda x: natural_sort_key(str(x)))
-            else:
-                raise NotADirectoryError(f"images folder ({images_folder}) is not a directory")
-        else:
-            raise FileNotFoundError("No images folder found in the folder")
-        return photos
-
-    def _show_photo(self) -> None:
-        """
-        Display the current photo in the window and update the title with image name.
-        :return:
-        """
-        if self.photos:
-            # Enable or disable the "Back" button based on the current photo index
-            if self.current_photo_index == 0:
-                self.back_button.config(state=tk.DISABLED)
-            else:
-                self.back_button.config(state=tk.NORMAL)
-            photo_path = self.photos[self.current_photo_index]
-            self.photo_image_ref = tk.PhotoImage(file=str(photo_path))
-            self.photo_image_ref = self.photo_image_ref.subsample(2)
-            self.label.config(image=self.photo_image_ref)
-
-            # Update the window title with the current image name
-            self.root.title(f"Well Freezing Reviewer - {photo_path.name}")
-
-            # Display sample values
-            self._display_num_frozen(photo_path.name)
-        else:
-            self.label.config(text="No images found")
+        # NOTE: above line/column isn't corrected for clipping to (0, 32)
+        self._display_num_frozen(picture_name)
         return
 
     def _display_num_frozen(self, pic_file_name: str) -> None:
@@ -180,60 +64,4 @@ class FreezingReviewer:
                 label.pack()
         else:
             print(f"Error: No data found for {pic_file_name}")
-        return
-
-    def _update_frozen_wells(self, sample: int | str, change: int) -> None:
-        """
-        Update the number of frozen wells for the current image
-        :param sample: which sample (column) to update, -1 for "Good"
-        :param change: which direction to change the value, -1 for decrease, 1 for
-         increase.
-        :return:
-        """
-        if sample == "f" and change == 0:  # All good -> next image
-            self.current_photo_index += 1
-            if self.current_photo_index >= len(self.photos):
-                self._save_data()
-                self.root.quit()
-            else:
-                self._show_photo()
-        elif sample == "b" and change == 0:  # Go back to previous image
-            self._go_back()
-        else:  # Update the number of frozen wells for the clicked sample
-            picture_name = self.photos[self.current_photo_index].name
-
-            # Get the index of the current image in the data frame
-            current_index = self.data.index[self.data["Picture"] == picture_name].tolist()[0]
-
-            # Apply change to current and later, but keep the value between 0 and 32
-            self.data.loc[current_index:, f"Sample_{sample}"] += change
-            self.data.loc[current_index:, f"Sample_{sample}"] = self.data.loc[
-                current_index:, f"Sample_{sample}"
-            ].clip(0, 32)
-
-            # Update the changes column with the change
-            self.data.loc[current_index:, "changes"] = self.data.loc[
-                current_index:, "changes"
-            ].apply(lambda x: [y + change if i == sample else y for i, y in enumerate(x)])
-            # TODO: above line doesn't correct for the clipping (0, 32)
-            self._display_num_frozen(picture_name)
-
-        return
-
-    def _save_data(self) -> None:
-        """
-        Save the reviewed data to a new file with the prefix "reviewed_"
-        :return:
-        """
-        new_save_name = self.data_file.parent / f"reviewed_{self.data_file.name}"
-        counter = 0
-        # If the file already exists, add a number to the name
-        while new_save_name.exists():
-            counter += 1
-            if counter > 1:  # need to remove previous counter added to name
-                new_file_name = f"{new_save_name.stem[0:-3]}({counter}).dat"
-            else:
-                new_file_name = f"{new_save_name.stem}({counter}).dat"
-            new_save_name = new_save_name.parent / new_file_name
-        self.data.to_csv(new_save_name, sep="\t", index=False)
         return
