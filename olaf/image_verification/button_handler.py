@@ -9,8 +9,9 @@ class ButtonHandler(DataLoader):
     def __init__(self, root: tk.Tk, folder_path: Path) -> None:
         """
         Class to handle the buttons for the gui to review well freezing images.
-        :param root: is the tkinter root object
-        :param folder_path: Path to the folder containing the images and .dat file.
+        Args:
+            root: tkinter root object
+            folder_path: folder path to the project folder containing the images and .dat file
         """
         super().__init__(root, folder_path)
         self.photo_image_ref, self.back_button = tk.PhotoImage(), tk.Button()
@@ -21,7 +22,8 @@ class ButtonHandler(DataLoader):
     def create_buttons(self) -> None:
         """
         Create buttons for each sample to increase or decrease the number of frozen wells
-        :return:
+        Returns:
+            None
         """
         for i in range(NUM_SAMPLES):
             sample_frame = tk.LabelFrame(self.button_frame, text=f"sample_{i}")
@@ -61,8 +63,11 @@ class ButtonHandler(DataLoader):
 
     def show_photo(self) -> None:
         """
-        Display the current photo in the window and update the title with image name.
-        :return:
+        Function to display the current photo in the window and update the title with
+        image name. This function is called when the window is first created and when
+        the user navigates to the next or previous image.
+        Returns:
+            None
         """
         if self.photos:
             # Enable or disable the "Back" button based on the current photo index
@@ -85,14 +90,28 @@ class ButtonHandler(DataLoader):
 
     def _update_image(self, sample: int, change: int) -> None:
         """
-        Placeholder for updating the number of frozen wells for the current image
+        (Placeholder to) Update the number of frozen wells for the current image
+        Args:
+            sample: which sample (column) to update, -1 for "Good"
+            change: by what amount to change the sample frozen well value,
+            -1 for decrease, 1 for increase.
+
+        Returns:
+            None
         """
+        pass
         return
 
     def _next_image(self):
+        """
+        Go to the next photo in the list. If there are no more photos, call the closing
+        sequence. Otherwise, show the next photo.
+        Returns:
+            None
+        """
         self.current_photo_index += 1
         if self.current_photo_index >= len(self.photos):
-            self.save_data()
+            self.closing_sequence()
             self.root.quit()
         else:
             self.show_photo()
@@ -100,7 +119,10 @@ class ButtonHandler(DataLoader):
 
     def _prev_image(self) -> None:
         """
-        Go back to the previous photo in the list.
+        Go to the previous photo in the list. If there are no photos to go back to,
+        do nothing.
+        Returns:
+            None
         """
         if self.current_photo_index > 0:
             self.current_photo_index -= 1
@@ -109,6 +131,23 @@ class ButtonHandler(DataLoader):
 
     def _display_num_frozen(self, pic_file_name: str) -> None:
         """
-        Placeholder for displaying the number of frozen wells for each sample in the current image.
+        (Placeholder to) Display the number of frozen wells for each sample in the
+        current image.
+        Args:
+            pic_file_name: name of the current image being rendered.
+
+        Returns:
+            None
         """
+        return
+
+    def closing_sequence(self) -> None:
+        """
+        This function is automatically ran after the last image is reviewed and the
+        GUI closes.
+        Currently, it calls the save_data function from the DataLoader class.
+        Returns:
+            None
+        """
+        self.save_data()
         return

@@ -3,17 +3,17 @@ from pathlib import Path
 
 import pandas as pd
 
+from olaf.CONSTANTS import NUM_SAMPLES
 from olaf.utils.path_utils import natural_sort_key
-
-from ..CONSTANTS import NUM_SAMPLES
 
 
 class DataLoader:
     def __init__(self, root: tk.Tk, folder_path: Path) -> None:
         """
         Class to initialize the gui and load data and images for button handling.
-        :param root: is the tkinter root object
-        :param folder_path: Path to the folder containing the images and .dat file.
+        Args:
+            root: tkinter root object
+            folder_path: path to the project folder containing the images and .dat file
         """
         self.root = root
         self.folder_path = folder_path
@@ -33,18 +33,34 @@ class DataLoader:
         self.button_frame.pack()
         return
 
-    def get_data_file(self) -> tuple[Path, pd.DataFrame]:
+    def get_data_file(
+        self, suffix: str = ".dat", excludes: list[str] = None
+    ) -> tuple[Path, pd.DataFrame]:
         """
-        Find the .dat file in the folder and load it into a pandas DataFrame
-        :return:
+        Load a file with a given suffix (default: .dat) from the Project folder.
+        Arguments to exclude files can be passed as a list to the "excludes" parameter.
+        Because of pandas loading, the Date and Time in column "Time" are split in two
+        Different columns and renamed to Date and Time respectively.
+        It also adds a column to capture changes to the number of frozen wells.
+        The function returns the file path and the data as a pandas DataFrame.
+        Args:
+            suffix: suffix of the file to load (default: .dat)
+            excludes: combination of strings to exclude from the file name (default: "reviewed")
+
+        Returns:
+            tuple with the file path and the data as a pandas DataFrame
         """
+
+        if excludes is None:
+            excludes = ["reviewed"]
         data_file, data = Path(), pd.DataFrame()
         for file in self.folder_path.iterdir():
-            if file.suffix == ".dat" and "reviewed" not in file.name:
+            if file.suffix == suffix and not any(excl in file.name for excl in excludes):
                 data_file = file
                 data = pd.read_csv(data_file, sep="\t", parse_dates=["Time"])
-                # Give both date and time proper column names
-                data.rename(columns={"Time": "Date", "Unnamed: 1": "Time"}, inplace=True)
+                # Give both date and time proper column names if they are split
+                if "Time" in data.columns and "Unnamed: 1" in data.columns:
+                    data.rename(columns={"Time": "Date", "Unnamed: 1": "Time"}, inplace=True)
                 # Add a column to capture changes to the number of frozen wells
                 data["changes"] = [[0] * NUM_SAMPLES for _ in range(len(data))]
                 break
@@ -55,8 +71,9 @@ class DataLoader:
 
     def load_photos(self) -> list:
         """
-        Load all images in the "dat_Images" folder into a list.
-        :return:
+        Load the images from the folder and sort them naturally and returns them in a list.
+        Returns:
+            list of pathlib.Path objects of the images
         """
         images_folder = next(
             (
@@ -83,18 +100,16 @@ class DataLoader:
 
     def save_data(self) -> None:
         """
-        Save the reviewed data to a new file with the prefix "reviewed_"
-        :return:
+        Save the data to a new file with the prefix "reviewed_" added to the name.
+        Returns:
+            None, saves the data to a new  file
         """
         new_save_name = self.data_file.parent / f"reviewed_{self.data_file.name}"
-        counter = 0
+        counter = 1
         # If the file already exists, add a number to the name
         while new_save_name.exists():
+            new_file_name = f"reviewed_{self.data_file.stem}({counter}){self.data_file.suffix}"
+            new_save_name = self.data_file.parent / new_file_name
             counter += 1
-            if counter > 1:  # need to remove previous counter added to name
-                new_file_name = f"{new_save_name.stem[0:-3]}({counter}).dat"
-            else:
-                new_file_name = f"{new_save_name.stem}({counter}).dat"
-            new_save_name = new_save_name.parent / new_file_name
         self.data.to_csv(new_save_name, sep="\t", index=False)
         return

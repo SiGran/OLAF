@@ -20,6 +20,7 @@ pytest = "^8.3.2"
 mypy = "^1.11.0"
 bandit = "^1.7.9"
 pandas-stubs = "^2.2.2.240603"
+sphinx-autoapi = "^3.2.1"
 
 [build-system]
 requires = ["poetry-core"]
@@ -30,4 +31,7 @@ line-length = 100
 
 [tool.ruff.lint]
 extend-select = ["I", "F", "E", "W"]
+
+[tool.pytest.ini_options]
+testpaths = "tests"
 

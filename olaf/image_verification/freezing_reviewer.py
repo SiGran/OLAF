@@ -9,21 +9,25 @@ class FreezingReviewer(ButtonHandler):
     # TODO: Full screen makes it become weird ---> mainly location of the "Sample x" on top
     def __init__(self, root: tk.Tk, folder_path: Path) -> None:
         """
-        Create a GUI for reviewing well freezing images and
+        Class that creates a GUI for reviewing well freezing images and
         updating the number of frozen wells.
-        :param root: is the tkinter root object
-        :param folder_path: Path to the folder containing the images and .dat file.
+        Class inherits from ButtonHandler and DataLoader.
+        Args:
+            root: tkinter root object
+            folder_path: path to the project folder containing the images and .dat file
         """
         super().__init__(root, folder_path)
         return
 
     def _update_image(self, sample: int, change: int) -> None:
         """
-        Update the number of frozen wells for the current image
-        :param sample: which sample (column) to update, -1 for "Good"
-        :param change: which direction to change the value, -1 for decrease, 1 for
-         increase.
-        :return:
+        Update the number of frozen wells for the given sample in the current image.
+        Args:
+            sample: sample number to update
+            change: change in the number of frozen wells
+
+        Returns:
+            None
         """
         picture_name = self.photos[self.current_photo_index].name
 
@@ -31,6 +35,7 @@ class FreezingReviewer(ButtonHandler):
         current_index = self.data.index[self.data["Picture"] == picture_name].tolist()[0]
 
         # Apply change to current and later, but keep the value between 0 and 32
+        # TODO: increment only until a pre-existing increment is reached?
         self.data.loc[current_index:, f"Sample_{sample}"] += change
         self.data.loc[current_index:, f"Sample_{sample}"] = self.data.loc[
             current_index:, f"Sample_{sample}"
@@ -47,8 +52,11 @@ class FreezingReviewer(ButtonHandler):
     def _display_num_frozen(self, pic_file_name: str) -> None:
         """
         Display the number of frozen wells for each sample in the current image.
-        :param pic_file_name: name of the current image being rendered.
-        :return:
+        Args:
+            pic_file_name: name of the current image
+
+        Returns:
+            None
         """
         # Find the row in the data frame corresponding to the current image
         row = self.data[self.data["Picture"] == pic_file_name]
