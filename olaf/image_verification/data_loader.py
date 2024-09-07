@@ -2,9 +2,9 @@ import tkinter as tk
 from pathlib import Path
 
 import pandas as pd
+from utils.path_utils import natural_sort_key, save_to_new_file
 
 from olaf.CONSTANTS import NUM_SAMPLES
-from olaf.utils.path_utils import natural_sort_key
 
 
 class DataLoader:
@@ -104,12 +104,6 @@ class DataLoader:
         Returns:
             None, saves the data to a new  file
         """
-        new_save_name = self.data_file.parent / f"reviewed_{self.data_file.name}"
-        counter = 1
-        # If the file already exists, add a number to the name
-        while new_save_name.exists():
-            new_file_name = f"reviewed_{self.data_file.stem}({counter}){self.data_file.suffix}"
-            new_save_name = self.data_file.parent / new_file_name
-            counter += 1
-        self.data.to_csv(new_save_name, sep="\t", index=False)
+        new_save_name = self.data_file.parent / self.data_file.name
+        save_to_new_file(self.data, new_save_name, "reviewed")
         return
