@@ -8,15 +8,18 @@ from olaf.utils.path_utils import natural_sort_key, save_to_new_file
 
 
 class SpacedTempCSV:
-    def __init__(self, folder_path: Path, rev_name: list[str] = None):
+    def __init__(self, folder_path: Path, rev_name: list[str] = None) -> None:
         """
         Class that has functionality to read a (processed ("verified")) well experiments
-         .dat file from a experiment folder and process it into a .csv.
-         This .csv contains temperature ranges with
-        ex
+         .dat file from an experiment folder and process it into a .csv.
+         This .csv contains temperature ranges with the number of frozen wells per sample.
+
         Args:
-            folder_path: Loc
-            rev_name:
+            folder_path: location of the experiment folder
+            rev_name: list of strings to identify the revision name in the .dat file
+
+        Returns:
+            The data file and the data as a pandas DataFrame
         """
         self.folder_path = folder_path
         if rev_name is None:
@@ -24,7 +27,18 @@ class SpacedTempCSV:
         self.data_file, self.data = self._read_dat_file(rev_name)
         return
 
-    def _read_dat_file(self, rev_name):
+    def _read_dat_file(self, rev_name) -> tuple[Path, pd.DataFrame]:
+        """
+        Read the .dat file with the given revision name in the file name from the
+        experiment folder.
+        The function returns the file path and the data as a pandas DataFrame.
+        Args:
+            rev_name: name of the revision to find in the file name, as a list of strings
+
+        Returns:
+            tuple with the file path and the data as a pandas DataFrame
+
+        """
         # Find all the .dat files with the given revision name in the file name
         files = [
             file
@@ -64,8 +78,7 @@ class SpacedTempCSV:
             temp_col: The column in the data file that contains the temperature values
             save: Whether to save the data to a .csv file (default: True)
         Returns:
-            Dataframe, and saves the data in a .csv file
-            :param save:
+            Dataframe, and saves the data in a .csv file if save is True
         """
         # initialize the temp_frozen_df with temperature column and sample columns
         # step 1 and 2: find first frozen row
