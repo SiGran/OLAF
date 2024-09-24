@@ -1,6 +1,12 @@
-# OLAF
-OpenSource Library for Automating Freezing data acquisition from Ice Nucleation Spectrometer (OLAF DaQ INS)
 
+
+
+ 
+
+
+
+# OLAF
+OpenSource Library for Automating Freezing data acquisition from Ice Nucleation Spectrometer (OLAF DaQ INS).
 
 ## Getting Started
  This projects (packages versions) dependencies are managed by [Poetry](https://python-poetry.org/docs/). 
@@ -19,7 +25,99 @@ There are multiple options to manage multiple versions of python and packages, b
 
 If you're on windows and want some more information: [some background](https://endjin.com/blog/2023/03/how-to-setup-python-pyenv-poetry-on-windows)
 
-### Installation steps
+### Installation on windows
+Some pre-requisites are needed to install the project on windows. 
+Using Powershell inside pycharm:
+1. Install pyenv-win 
+2. Close pycharm and redo 
+3. Install new environment: `pyenv install 3.11.0`
+4. pip install poetry 
+5. poetry install 
+6. select interpreter in pycharm (bottom right, select interpreter --> existing interpreter --> select poetry)
+
+#### Pre-requisites
+Find and follow instructions online for installing the following:
+1. [Python](https://www.python.org/downloads/)
+2. [Git](https://git-scm.com/downloads)
+3. Optional:[Pycharm](https://www.jetbrains.com/pycharm/download/)
+
+Please note that pycharm is not required to use this project. Feel free to use your favorite IDE or text editor.
+To make installation as beginner-friendly as possible, we use pycharm to simplify the installation process. If you are
+more familiar with installing software packages and setting up your environment, you should be able to find the parts
+in these instructions to install it without pycharm.
+
+#### Installation steps
+##### Pyenv
+Install pyenv-win:
+    1. Open a powershell terminal in pycharm <add image>.
+    2. Run the following command:
+        ```bash
+        Invoke-WebRequest -UseBasicParsing -Uri "https://raw.githubusercontent.com/pyenv-win/pyenv-win/master/pyenv-win/install-pyenv-win.ps1" -OutFile "./install-pyenv-win.ps1"; &"./install-pyenv-win.ps1"
+        ```
+    3. Close the terminal and open a new one.
+    4. Run the following command to verify the installation:
+        ```bash
+        pyenv --version
+        ```
+        The output should say `pyenv-win` and a version number.
+##### Setting up the virtual environment
+Install virtual environment and set it locally.
+    5. Run the following command to install python 3.11.0:
+        ```bash
+        pyenv install 3.11.0
+        ```
+       Note: if you get an error like `command not found`: restart pycharm and try again.
+            If it still doesn't work, you need to add the path to python and/or pyenv to your [system environment variables](https://phoenixnap.com/kb/add-python-to-path).
+    6. Set the local python version to newly installed 3.11.0:
+        ```bash
+        pyenv local 3.11.0
+        ```
+    7. Run the following command to verify the python version:
+        ```bash
+        python --version
+        ```
+        The output should be `Python 3.11.0`.
+##### Poetry
+Install poetry:
+    8. Run the following command to install poetry:
+        ```bash
+        pip install poetry
+        ```
+    9. Run the following command to verify the installation:
+        ```bash
+        poetry --version
+        ```
+        The output should be a version number.
+##### Install the project
+Install the project dependencies:
+    10. Navigate to the project directory where `pyproject.toml` is located. 
+Note: skip this step when using pycharm; it should already be in this directory.
+        ```bash
+        cd ~/path/to/olaf
+        ```
+        `Replace ~/path/to/ with the path to the project directory.`
+    11. Run the following command to install the project dependencies:
+        ```bash
+        poetry install
+        ```
+    12. Run the following command to verify the installation:
+        ```bash
+        poetry show
+        ```
+        The output should list the project dependencies.
+##### Activate the Poetry virtual environment
+select interpreter in pycharm: 
+bottom right, select interpreter --> existing interpreter --> select poetry.
+<add images>
+
+
+
+
+
+
+
+
+## Old instructions (update these to just be linux/mac instructions)
  1. [Install Poetry](https://python-poetry.org/docs/#installing-with-the-official-installer)
     Use the following command in a terminal to install Poetry:
     For Linux, macOS
