@@ -12,10 +12,6 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: List repository contents
-        run: |
-          ls -R
-
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
@@ -33,14 +29,14 @@ jobs:
         run: |
           mkdir gh-pages
           touch gh-pages/.nojekyll
-          poetry run sphinx-build -b html docs _build
-          cp -r _build/* gh-pages/
+          sphinx-build -b html docs _build
+          cp -r _build/* gh-pages/   
 
       - name: Deploy documentation
+        uses: peaceiris/actions-gh-pages@v3
         if: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
-        uses: JamesIves/github-pages-deploy-action@4.1.4
         with:
           publish_branch: gh-pages
           github_token: ${{ secrets.GITHUB_TOKEN }}
-          publish_dir: gh-pages/
+          publish_dir: _build/
           force_orphan: true
