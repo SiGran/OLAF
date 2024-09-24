@@ -7,7 +7,7 @@
 
 # OLAF
 OpenSource Library for Automating Freezing data acquisition from Ice Nucleation Spectrometer (OLAF DaQ INS).
-
+Documentation can be found [here](https://sigran.github.io/OLAF/).
 ## Getting Started
  This projects (packages versions) dependencies are managed by [Poetry](https://python-poetry.org/docs/). 
  It's recommended to create a virtual environment (in order to maintain a usable system Python), 
