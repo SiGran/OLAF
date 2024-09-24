@@ -49,62 +49,66 @@ in these instructions to install it without pycharm.
 #### Installation steps
 ##### Pyenv
 Install pyenv-win:
-    1. Open a powershell terminal in pycharm <add image>.
-    2. Run the following command:
-        ```bash
-        Invoke-WebRequest -UseBasicParsing -Uri "https://raw.githubusercontent.com/pyenv-win/pyenv-win/master/pyenv-win/install-pyenv-win.ps1" -OutFile "./install-pyenv-win.ps1"; &"./install-pyenv-win.ps1"
-        ```
-    3. Close the terminal and open a new one.
-    4. Run the following command to verify the installation:
-        ```bash
-        pyenv --version
-        ```
-        The output should say `pyenv-win` and a version number.
+1. Open a powershell terminal in pycharm <add image>.
+2. Run the following command:
+```bash
+Invoke-WebRequest -UseBasicParsing -Uri "https://raw.githubusercontent.com/pyenv-win/pyenv-win/master/pyenv-win/install-pyenv-win.ps1" -OutFile "./install-pyenv-win.ps1"; &"./install-pyenv-win.ps1"
+```
+3. Close the terminal and open a new one.
+4. Run the following command to verify the installation:
+```bash
+pyenv --version
+```
+The output should say `pyenv-win` and a version number.
+
 ##### Setting up the virtual environment
 Install virtual environment and set it locally.
-    5. Run the following command to install python 3.11.0:
-        ```bash
-        pyenv install 3.11.0
-        ```
-       Note: if you get an error like `command not found`: restart pycharm and try again.
-            If it still doesn't work, you need to add the path to python and/or pyenv to your [system environment variables](https://phoenixnap.com/kb/add-python-to-path).
-    6. Set the local python version to newly installed 3.11.0:
-        ```bash
-        pyenv local 3.11.0
-        ```
-    7. Run the following command to verify the python version:
-        ```bash
-        python --version
-        ```
-        The output should be `Python 3.11.0`.
+5. Run the following command to install python 3.11.0:
+```bash
+pyenv install 3.11.0
+```
+Note: if you get an error like `command not found`: restart pycharm and try again.
+    If it still doesn't work, you need to add the path to python and/or pyenv to your [system environment variables](https://phoenixnap.com/kb/add-python-to-path).
+6. Set the local python version to newly installed 3.11.0:
+```bash
+pyenv local 3.11.0
+```
+7. Run the following command to verify the python version:
+```bash
+python --version
+```
+The output should be `Python 3.11.0`.
+
 ##### Poetry
 Install poetry:
-    8. Run the following command to install poetry:
-        ```bash
-        pip install poetry
-        ```
-    9. Run the following command to verify the installation:
-        ```bash
-        poetry --version
-        ```
-        The output should be a version number.
+8. Run the following command to install poetry:
+```bash
+pip install poetry
+```
+9. Run the following command to verify the installation:
+```bash
+poetry --version
+```
+The output should be a version number.
+
 ##### Install the project
 Install the project dependencies:
-    10. Navigate to the project directory where `pyproject.toml` is located. 
+10. Navigate to the project directory where `pyproject.toml` is located. 
 Note: skip this step when using pycharm; it should already be in this directory.
-        ```bash
-        cd ~/path/to/olaf
-        ```
-        `Replace ~/path/to/ with the path to the project directory.`
-    11. Run the following command to install the project dependencies:
-        ```bash
-        poetry install
-        ```
-    12. Run the following command to verify the installation:
-        ```bash
-        poetry show
-        ```
-        The output should list the project dependencies.
+```bash
+cd ~/path/to/olaf
+```
+Replace `~/path/to/` with the path to the project directory.
+11. Run the following command to install the project dependencies:
+```bash
+poetry install
+```
+12. Run the following command to verify the installation:
+```bash
+poetry show
+```
+The output should list the project dependencies.
+
 ##### Activate the Poetry virtual environment
 select interpreter in pycharm: 
 bottom right, select interpreter --> existing interpreter --> select poetry.
