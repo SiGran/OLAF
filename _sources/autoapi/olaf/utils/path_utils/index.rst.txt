@@ -1,0 +1,39 @@
+olaf.utils.path_utils
+=====================
+
+.. py:module:: olaf.utils.path_utils
+
+
+Functions
+---------
+
+.. autoapisummary::
+
+   olaf.utils.path_utils.natural_sort_key
+   olaf.utils.path_utils.save_to_new_file
+
+
+Module Contents
+---------------
+
+.. py:function:: natural_sort_key(s)
+
+   Key function for sorting strings in "natural" order.
+   :param s:
+
+   Returns:
+
+
+
+.. py:function:: save_to_new_file(save_data, save_name, prefix = '', sep='\t')
+
+   Save a DataFrame to a new file with a unique name.
+   :param save_data: Pandas DataFrame to save
+   :param save_name: pathlib.Path to save the file to
+   :param prefix: string to add to the start of the file name
+   :param sep: separator for csv file to save too. Default is tab-separated
+
+   :returns: Path to the saved file
+   :rtype: pathlib.Path
+
+

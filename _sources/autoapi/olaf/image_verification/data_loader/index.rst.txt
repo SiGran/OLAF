@@ -1,0 +1,68 @@
+olaf.image_verification.data_loader
+===================================
+
+.. py:module:: olaf.image_verification.data_loader
+
+
+Classes
+-------
+
+.. autoapisummary::
+
+   olaf.image_verification.data_loader.DataLoader
+
+
+Module Contents
+---------------
+
+.. py:class:: DataLoader(root, folder_path)
+
+   .. py:attribute:: root
+
+
+   .. py:attribute:: folder_path
+
+
+   .. py:attribute:: label
+
+
+   .. py:attribute:: current_photo_index
+      :value: 0
+
+
+
+   .. py:attribute:: photos
+
+
+   .. py:attribute:: button_frame
+
+
+   .. py:method:: get_data_file(suffix = '.dat', excludes = None)
+
+      Load a file with a given suffix (default: .dat) from the Project folder.
+      Arguments to exclude files can be passed as a list to the "excludes" parameter.
+      Because of pandas loading, the Date and Time in column "Time" are split in two
+      Different columns and renamed to Date and Time respectively.
+      It also adds a column to capture changes to the number of frozen wells.
+      The function returns the file path and the data as a pandas DataFrame.
+      :param suffix: suffix of the file to load (default: .dat)
+      :param excludes: combination of strings to exclude from the file name (default: "reviewed")
+
+      :returns: tuple with the file path and the data as a pandas DataFrame
+
+
+
+   .. py:method:: load_photos()
+
+      Load the images from the folder and sort them naturally and returns them in a list.
+      :returns: list of pathlib.Path objects of the images
+
+
+
+   .. py:method:: save_data()
+
+      Save the data to a new file with the prefix "reviewed_" added to the name.
+      :returns: None, saves the data to a new  file
+
+
+
