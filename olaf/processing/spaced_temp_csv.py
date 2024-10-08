@@ -48,7 +48,7 @@ class SpacedTempCSV:
         if not files:
             raise FileNotFoundError("No files found with the given revision name")
         elif len(files) > 1:  # if more than one, pick the one with the highest counter
-            data_file = natural_sort_key(files)[-1]
+            data_file = sorted(files, key=lambda x: natural_sort_key(str(x)))[-1]
         else:  # if only one, pick that one
             data_file = files[0]
         data = pd.read_csv(data_file, sep="\t", parse_dates=["Date"])
@@ -117,7 +117,7 @@ class SpacedTempCSV:
                         & (self.data[temp_col] < round_temp_frozen_upper)
                     ][f"Sample_{i}"].max()
                 )
-                else self.data[self.data[temp_col] < round_temp_frozen_lower][f"Sample_{i}"].max()
+                else self.data[self.data[temp_col] > round_temp_frozen_upper][f"Sample_{i}"].max()
                 for i in range(NUM_SAMPLES)
             ]
 
