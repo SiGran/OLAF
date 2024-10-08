@@ -103,13 +103,24 @@ class SpacedTempCSV:
             # Step 7: find the frozen wells for each temp
             round_temp_frozen_upper = round_temp_frozen + 0.01
             round_temp_frozen_lower = round_temp_frozen - 0.01
+            # If no line is found within this range, it puts in NaN values. If there's
+            # a NaN value, we want it to take the first temperature  below the range.
+
             new_row = [round_temp_frozen] + [
                 self.data[
                     (self.data[temp_col] > round_temp_frozen_lower)
                     & (self.data[temp_col] < round_temp_frozen_upper)
                 ][f"Sample_{i}"].max()
+                if not pd.isna(
+                    self.data[
+                        (self.data[temp_col] > round_temp_frozen_lower)
+                        & (self.data[temp_col] < round_temp_frozen_upper)
+                    ][f"Sample_{i}"].max()
+                )
+                else self.data[self.data[temp_col] < round_temp_frozen_lower][f"Sample_{i}"].max()
                 for i in range(NUM_SAMPLES)
             ]
+
             temp_frozen_df.loc[len(temp_frozen_df)] = new_row
 
         # Change temperature column to standard name of °C
