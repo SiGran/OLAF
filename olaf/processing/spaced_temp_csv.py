@@ -83,7 +83,7 @@ class SpacedTempCSV:
         # initialize the temp_frozen_df with temperature column and sample columns
         # step 1 and 2: find first frozen row
         first_frozen_id_col = [self.data[f"Sample_{i}"].ne(0).idxmax() for i in range(NUM_SAMPLES)]
-        first_frozen_id = min(first_frozen_id_col)
+        first_frozen_id = min([id for id in first_frozen_id_col if id != 0])
         temp_frozen = round(self.data.loc[first_frozen_id, temp_col], 1)
         # step 3: round down to nearest 0.5
         round_temp_frozen = ceil((temp_frozen * 2)) / 2
