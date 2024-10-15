@@ -4,11 +4,13 @@ from pathlib import Path
 import pandas as pd
 
 from olaf.CONSTANTS import NUM_SAMPLES
-from olaf.image_verification.data_loader import DataLoader
+from olaf.utils.data_handler import DataHandler
 
 
-class SpacedTempCSV(DataLoader):
-    def __init__(self, folder_path: Path, includes: list[str] = None) -> None:
+class SpacedTempCSV(DataHandler):
+    def __init__(
+        self, folder_path: Path, includes: list[str] = None, date_col: str = "Date"
+    ) -> None:
         """
         Class that has functionality to read a (processed ("verified")) well experiments
          .dat file from an experiment folder and process it into a .csv.
@@ -21,10 +23,9 @@ class SpacedTempCSV(DataLoader):
         Returns:
             The data file and the data as a pandas DataFrame
         """
-        self.folder_path = folder_path
         if includes is None:
             includes = ["base", "reviewed"]
-        self.data_file, self.data = self.get_data_file(includes=includes)
+        super().__init__(folder_path, includes=includes, date_col=date_col)
         return
 
     def create_temp_csv(
