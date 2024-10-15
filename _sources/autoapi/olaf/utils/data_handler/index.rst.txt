@@ -1,0 +1,54 @@
+olaf.utils.data_handler
+=======================
+
+.. py:module:: olaf.utils.data_handler
+
+
+Classes
+-------
+
+.. autoapisummary::
+
+   olaf.utils.data_handler.DataHandler
+
+
+Module Contents
+---------------
+
+.. py:class:: DataHandler(folder_path, **kwargs)
+
+   .. py:attribute:: folder_path
+
+
+   .. py:method:: get_data_file(includes, excludes, suffix = '.dat', date_col = 'Time', sep = '\t')
+
+      Load a file with a given suffix (default: .dat) from the Project folder.
+      Arguments to exclude files can be passed as a list to the "excludes" parameter.
+      Because of pandas loading, the Date and Time in column "Time" are split in two
+      Different columns and renamed to Date and Time respectively.
+      It also adds a column to capture changes to the number of frozen wells.
+      The function returns the file path and the data as a pandas DataFrame.
+      :param suffix: suffix of the file to load (default: .dat)
+      :param includes: combination of strings to include in the file name (default: None)
+      :param excludes: combination of strings to exclude from the file name (default: None)
+      :param date_col: column name for the date (or time) column (default: "Time")
+      :param sep: separator for the file to load (default: tab-separated)
+
+      :returns: tuple with the file path and the data as a pandas DataFrame
+
+
+
+   .. py:method:: save_to_new_file(save_data = None, save_path = None, prefix = 'reviewed', sep='\t')
+
+              Save the data to a new file with the prefix "reviewed_" added to the name.
+      Save a DataFrame to a new file with a unique name.
+      :param save_data: Pandas DataFrame to save
+      :param save_path: pathlib.Path to save the file to (including directory)
+      :param prefix: string to add to the start of the file name
+      :param sep: separator for csv file to save too. Default is tab-separated
+
+      :returns: Path to the saved file
+      :rtype: pathlib.Path
+
+
+

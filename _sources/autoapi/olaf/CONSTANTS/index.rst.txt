@@ -1,0 +1,21 @@
+olaf.CONSTANTS
+==============
+
+.. py:module:: olaf.CONSTANTS
+
+
+Attributes
+----------
+
+.. autoapisummary::
+
+   olaf.CONSTANTS.NUM_SAMPLES
+
+
+Module Contents
+---------------
+
+.. py:data:: NUM_SAMPLES
+   :value: 6
+
+
