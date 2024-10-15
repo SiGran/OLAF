@@ -4,11 +4,11 @@ from pathlib import Path
 import pandas as pd
 
 from olaf.CONSTANTS import NUM_SAMPLES
-from olaf.utils.path_utils import natural_sort_key, save_to_new_file
+from olaf.image_verification.data_loader import DataLoader
 
 
-class SpacedTempCSV:
-    def __init__(self, folder_path: Path, rev_name: list[str] = None) -> None:
+class SpacedTempCSV(DataLoader):
+    def __init__(self, folder_path: Path, includes: list[str] = None) -> None:
         """
         Class that has functionality to read a (processed ("verified")) well experiments
          .dat file from an experiment folder and process it into a .csv.
@@ -22,37 +22,10 @@ class SpacedTempCSV:
             The data file and the data as a pandas DataFrame
         """
         self.folder_path = folder_path
-        if rev_name is None:
-            rev_name = ["reviewed"]
-        self.data_file, self.data = self._read_dat_file(rev_name)
+        if includes is None:
+            includes = ["base", "reviewed"]
+        self.data_file, self.data = self.get_data_file(includes=includes)
         return
-
-    def _read_dat_file(self, rev_name) -> tuple[Path, pd.DataFrame]:
-        """
-        Read the .dat file with the given revision name in the file name from the
-        experiment folder.
-        The function returns the file path and the data as a pandas DataFrame.
-        Args:
-            rev_name: name of the revision to find in the file name, as a list of strings
-
-        Returns:
-            tuple with the file path and the data as a pandas DataFrame
-
-        """
-        # Find all the .dat files with the given revision name in the file name
-        files = [
-            file
-            for file in self.folder_path.iterdir()
-            if file.suffix == ".dat" and all(name in file.name for name in rev_name)
-        ]
-        if not files:
-            raise FileNotFoundError("No files found with the given revision name")
-        elif len(files) > 1:  # if more than one, pick the one with the highest counter
-            data_file = sorted(files, key=lambda x: natural_sort_key(str(x)))[-1]
-        else:  # if only one, pick that one
-            data_file = files[0]
-        data = pd.read_csv(data_file, sep="\t", parse_dates=["Date"])
-        return data_file, data
 
     def create_temp_csv(
         self, temp_step: float = 0.5, temp_col: str = "Avg_Temp", save: bool = True
@@ -130,7 +103,7 @@ class SpacedTempCSV:
             temp_frozen_df[f"Sample_{i}"] = temp_frozen_df[f"Sample_{i}"].astype("int64")
         # step 8
         if save:
-            save_to_new_file(
+            self.save_to_new_file(
                 temp_frozen_df, self.folder_path / f"{self.data_file.stem}.csv", "frozen_at_temp"
             )
 

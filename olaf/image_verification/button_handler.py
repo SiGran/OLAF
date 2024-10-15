@@ -149,5 +149,5 @@ class ButtonHandler(DataLoader):
         Returns:
             None
         """
-        self.save_data()
+        self.save_to_new_file()
         return
