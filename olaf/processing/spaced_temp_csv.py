@@ -3,13 +3,12 @@ from pathlib import Path
 
 import pandas as pd
 
-from olaf.CONSTANTS import NUM_SAMPLES
 from olaf.utils.data_handler import DataHandler
 
 
 class SpacedTempCSV(DataHandler):
     def __init__(
-        self, folder_path: Path, includes: list[str] = None, date_col: str = "Date"
+        self, folder_path: Path, num_samples, includes: list[str] = None, date_col: str = "Date"
     ) -> None:
         """
         Class that has functionality to read a (processed ("verified")) well experiments
@@ -25,7 +24,7 @@ class SpacedTempCSV(DataHandler):
         """
         if includes is None:
             includes = ["base", "reviewed"]
-        super().__init__(folder_path, includes=includes, date_col=date_col)
+        super().__init__(folder_path, num_samples, includes=includes, date_col=date_col)
         return
 
     def create_temp_csv(
@@ -56,7 +55,9 @@ class SpacedTempCSV(DataHandler):
         """
         # initialize the temp_frozen_df with temperature column and sample columns
         # step 1 and 2: find first frozen row
-        first_frozen_id_col = [self.data[f"Sample_{i}"].ne(0).idxmax() for i in range(NUM_SAMPLES)]
+        first_frozen_id_col = [
+            self.data[f"Sample_{i}"].ne(0).idxmax() for i in range(self.num_samples)
+        ]
         first_frozen_id = min([id for id in first_frozen_id_col if id != 0])
         temp_frozen = round(self.data.loc[first_frozen_id, temp_col], 1)
         # step 3: round down to nearest 0.5
@@ -64,11 +65,11 @@ class SpacedTempCSV(DataHandler):
         # step 5: Initialize with three rows for the first two and zeros for the samples
         # TODO: maybe not requid, could be prettier without
         temp_first_frozen_row = [temp_frozen] + [
-            self.data.loc[first_frozen_id, f"Sample_{i}"] for i in range(NUM_SAMPLES)
+            self.data.loc[first_frozen_id, f"Sample_{i}"] for i in range(self.num_samples)
         ]
         temp_frozen_df = pd.DataFrame(
-            data=[[round_temp_frozen + j * 0.5] + [0] * NUM_SAMPLES for j in range(4, 0, -1)],
-            columns=[temp_col] + [f"Sample_{i}" for i in range(NUM_SAMPLES)],
+            data=[[round_temp_frozen + j * 0.5] + [0] * self.num_samples for j in range(4, 0, -1)],
+            columns=[temp_col] + [f"Sample_{i}" for i in range(self.num_samples)],
         )
         temp_frozen_df.loc[len(temp_frozen_df)] = temp_first_frozen_row
         while round_temp_frozen - temp_step > min(self.data[temp_col]):
@@ -92,7 +93,7 @@ class SpacedTempCSV(DataHandler):
                     ][f"Sample_{i}"].max()
                 )
                 else self.data[self.data[temp_col] > round_temp_frozen_upper][f"Sample_{i}"].max()
-                for i in range(NUM_SAMPLES)
+                for i in range(self.num_samples)
             ]
 
             temp_frozen_df.loc[len(temp_frozen_df)] = new_row
@@ -100,7 +101,7 @@ class SpacedTempCSV(DataHandler):
         # Change temperature column to standard name of °C
         temp_frozen_df.rename(columns={temp_col: "°C"}, inplace=True)
         # Set sample columns to ints
-        for i in range(NUM_SAMPLES):
+        for i in range(self.num_samples):
             temp_frozen_df[f"Sample_{i}"] = temp_frozen_df[f"Sample_{i}"].astype("int64")
         # step 8
         if save:

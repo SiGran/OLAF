@@ -2,19 +2,19 @@ from pathlib import Path
 
 import pandas as pd
 
-from olaf.CONSTANTS import NUM_SAMPLES
 from olaf.utils.path_utils import natural_sort_key
 
 
 class DataHandler:
-    def __init__(self, folder_path: Path, **kwargs) -> None:
+    def __init__(self, folder_path: Path, num_samples: int, **kwargs) -> None:
         kwargs.setdefault("suffix", ".dat")
         kwargs.setdefault("includes", [""])
         kwargs.setdefault("excludes", None)
         kwargs.setdefault("date_col", "Time")
         kwargs.setdefault("sep", "\t")
-        self.folder_path = folder_path
 
+        self.folder_path = folder_path
+        self.num_samples = num_samples
         self.data_file, self.data = self.get_data_file(
             suffix=kwargs["suffix"],
             includes=kwargs["includes"],
@@ -22,6 +22,8 @@ class DataHandler:
             date_col=kwargs["date_col"],
             sep=kwargs["sep"],
         )
+
+        return
 
     def get_data_file(
         self,
@@ -68,14 +70,16 @@ class DataHandler:
         else:  # if only one, pick that one
             data_file = files[0]
 
-        data = pd.read_csv(data_file, sep=sep, parse_dates=[date_col])
-
+        if date_col:
+            data = pd.read_csv(data_file, sep=sep, parse_dates=[date_col])
+        else:
+            data = pd.read_csv(data_file, sep=sep)
         # If original .dat file, some changes are needed in this if statement
         if "Time" in data.columns and "Unnamed: 1" in data.columns and date_col == "Time":
             # rename automatically split datetime column
             data.rename(columns={"Time": "Date", "Unnamed: 1": "Time"}, inplace=True)
             # Add a column to capture changes to the number of frozen wells
-            data["changes"] = [[0] * NUM_SAMPLES for _ in range(len(data))]
+            data["changes"] = [[0] * self.num_samples for _ in range(len(data))]
         if data.empty or data_file.name == "":
             raise FileNotFoundError("No .dat file found in the folder")
 

@@ -1,19 +1,19 @@
 import tkinter as tk
 from pathlib import Path
 
-from ..CONSTANTS import NUM_SAMPLES
 from .data_loader import DataLoader
 
 
 class ButtonHandler(DataLoader):
-    def __init__(self, root: tk.Tk, folder_path: Path) -> None:
+    def __init__(self, root: tk.Tk, folder_path: Path, num_samples: int) -> None:
         """
         Class to handle the buttons for the gui to review well freezing images.
         Args:
             root: tkinter root object
             folder_path: folder path to the project folder containing the images and .dat file
         """
-        super().__init__(root, folder_path)
+        super().__init__(root, folder_path, num_samples)
+        self.num_samples = num_samples
         self.photo_image_ref, self.back_button = tk.PhotoImage(), tk.Button()
         self.create_buttons()
         self.show_photo()
@@ -25,7 +25,7 @@ class ButtonHandler(DataLoader):
         Returns:
             None
         """
-        for i in range(NUM_SAMPLES):
+        for i in range(self.num_samples):
             sample_frame = tk.LabelFrame(self.button_frame, text=f"sample_{i}")
             sample_frame.pack(side=tk.LEFT, padx=5)
             # lambda functions are used to pass the current value of i to the function
@@ -43,7 +43,7 @@ class ButtonHandler(DataLoader):
             )
             plus_button.pack(side=tk.LEFT)
             # Add navigation buttons in the middle
-            if i == (NUM_SAMPLES // 2) - 1:
+            if i == (self.num_samples // 2) - 1:
                 nav_frame = tk.Frame(self.button_frame)
                 nav_frame.pack(side=tk.LEFT, padx=2)
 

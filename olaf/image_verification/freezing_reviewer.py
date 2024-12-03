@@ -1,13 +1,12 @@
 import tkinter as tk
 from pathlib import Path
 
-from ..CONSTANTS import NUM_SAMPLES
 from .button_handler import ButtonHandler
 
 
 class FreezingReviewer(ButtonHandler):
     # TODO: Full screen makes it become weird ---> mainly location of the "Sample x" on top
-    def __init__(self, root: tk.Tk, folder_path: Path) -> None:
+    def __init__(self, root: tk.Tk, folder_path: Path, num_samples: int) -> None:
         """
         Class that creates a GUI for reviewing well freezing images and
         updating the number of frozen wells.
@@ -16,7 +15,8 @@ class FreezingReviewer(ButtonHandler):
             root: tkinter root object
             folder_path: path to the project folder containing the images and .dat file
         """
-        super().__init__(root, folder_path)
+        super().__init__(root, folder_path, num_samples)
+
         return
 
     def _update_image(self, sample: int, change: int) -> None:
@@ -61,7 +61,7 @@ class FreezingReviewer(ButtonHandler):
         # Find the row in the data frame corresponding to the current image
         row = self.data[self.data["Picture"] == pic_file_name]
         if not row.empty:
-            for i in range(NUM_SAMPLES):
+            for i in range(self.num_samples):
                 value = row[f"Sample_{i}"].values[0]
                 sample_frame = tk.LabelFrame(self.root, text=f"sample {i}")
                 x_coord = (i + 1.2) * 100
