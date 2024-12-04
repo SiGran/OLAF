@@ -1,0 +1,31 @@
+olaf.CONSTANTS
+==============
+
+.. py:module:: olaf.CONSTANTS
+
+
+Attributes
+----------
+
+.. autoapisummary::
+
+   olaf.CONSTANTS.VOL_WELL
+   olaf.CONSTANTS.NUM_TO_REPLACE_D1
+   olaf.CONSTANTS.Z
+
+
+Module Contents
+---------------
+
+.. py:data:: VOL_WELL
+   :value: 50
+
+
+.. py:data:: NUM_TO_REPLACE_D1
+   :value: 10
+
+
+.. py:data:: Z
+   :value: 1.96
+
+
