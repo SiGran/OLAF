@@ -4,11 +4,19 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from olaf.CONSTANTS import NUM_TO_REPLACE_D1, VOL_WELL
+from olaf.CONSTANTS import NUM_TO_REPLACE_D1, VOL_WELL, Z
 from olaf.utils.data_handler import DataHandler
 
 
 class GraphDataCSV(DataHandler):
+    """
+    This class is called after the last image is reviewed in the GUI closes,
+    and after the .csv file with the temperature ranges and frozen wells is created.
+    It has a function that reads in in above-mentioned .csv file and calculates the
+    INPs/L to use per temperature over all the dilutions for the experiment.
+
+    """
+
     def __init__(
         self,
         folder_path: Path,
@@ -20,12 +28,20 @@ class GraphDataCSV(DataHandler):
         dict_samples_to_dilution: dict,
         suffix: str = ".csv",
         includes: list[str] = None,
+        excludes: list[str] = None,
         date_col=False,
     ) -> None:
-        if includes is None:
+        if includes is None:  # standard terms to search to find correct file
             includes = ["frozen_at_temp", "reviewed", "base"]
+        if excludes is None:
+            excludes = ["INPs_L"]  # exclude the files this class creates
         super().__init__(
-            folder_path, num_samples, suffix=suffix, includes=includes, date_col=date_col
+            folder_path,
+            num_samples,
+            suffix=suffix,
+            includes=includes,
+            excludes=excludes,
+            date_col=date_col,
         )
         self.vol_air_filt = vol_air_filt
         self.wells_per_sample = wells_per_sample
@@ -35,53 +51,111 @@ class GraphDataCSV(DataHandler):
         self.data.rename(columns=dict_samples_to_dilution, inplace=True)
         return
 
-    def convert_INPs_L(self):
+    def convert_INPs_L(self, save=True):
         """
-        convert from frozen wells at temperature for certain dilution to INPs/L.
-        1. Take frozen wells at temperature for certain dilution up to 29 wells,
-        then go to next dilution.
-        2. Calculate INPs/L with the formula:
-        INPs/L =(Gx*$F$6)/($F$4*$F$5)
-        with F4 = volume of air filtered
-        F5 = proportion of filter used
-        F6 = volume used for suspension
-
-        With Gx being INP in test water (INP/mL) = =(-LN((Dx-Ex)/Dx)/(Cx/1000))*Fx
+        Convert from # frozen wells at temperature for certain dilution to INPs/L.
+        The stepls involved in this function are:
+        1. Seperate the temperature and # frozen well values.
+        2. Create a column with the total number of wells per temperature
+        as affected by the background.
+        3. Calculate the INPs/L and the confidence intervals. It does this by using the
+        number of wells frozen compared to the possible total number of wells.
+        With the formula from <insert reference>:
+        (INP/mL) = =(-LN((Dx-Ex)/Dx)/(Cx/1000))*Fx
         Dx = total number of wells minus the background
         Ex = number of frozen wells
         Cx = vol/well (microLiter)
         Fx = dilution factor
+        4. Prune the data by removing the INF's and values that correspond with frozen wells
+        This will allow for the logic in step 5 to function properly.
+        5. Combine the data into one dataframe, using logic that makes decisions comparing
+        the last 4 values of a dilution before it has more than 29/32 wells frozen.
+        The logic for this is:
+            <insert logic>
+        6. Save and return the data.
+        The result is a dataframe with the temperature, dilution factor, INPs/L, and the
+        lower and upper confidence intervals.
 
+        args:
+            save: whether to save the data to a .csv file (default: True)
 
-        Returns:
-
-
-        New plan after meeting 2024-10-28:
-        1. Background correction first on the dataframe (take lowest dilution or DI)
-        2. See Miro
-        3. "" ""
-        4. Take last four for next dilution
-        5. It's accumulative, so if dilution drops, it's more likely a stochastic annomoly
-        6. Profit
-
-        if both options are smaller:
-          throw them out/error, no value for that temperature, whtever
-        elif both are bigger:
-           check if both/either one are within certain statistical range of previous and next value
-           if yes:
-                take the one with least amount of error window
-            if no:
-                avg them together
-        else:
-            take the biggest one
+        Returns: the data as a pandas DataFrame
 
         """
+
+        # Internal logic function for later use
+        def error_logic_selecting_values(i, col_name, next_dilution_INP):
+            """
+            Logic for selecting the values to keep in the result_df when both current
+            and next dilution are bigger than the previous temperature value.
+            The logic is as follows:
+            1. Check if the potential next temperature values are within the error range of
+            the current temperature value
+            2. If both are within the error range of the previous value, pick the one with
+            the lowest (upper) error
+            3. if only one is within the error range of the previous value, pick that one
+            4. if both are outside of the error range, average them together
+
+            Args:
+                i: index of the df corresponding to a certain temperature
+                col_name: col_name indicating the dilution factor
+                next_dilution_INP: pandas series with the INPs/L for the next dilution
+                specified with col_name
+
+            Returns: none
+
+            """
+            current_upper_err = upper_INPS_p_L[col_name][i - 1]
+            next_upper_err = upper_INPS_p_L[col_name][i]
+            next_dil_upper_err = upper_INPS_p_L[col_name][i]
+            # check if both/either one are within certain statistical range of
+            # previous and next value
+            if (result_df["INPS_L"][i - 1] + current_upper_err) > result_df["INPS_L"][i] and (
+                result_df["INPS_L"][i - 1] + current_upper_err
+            ) > next_dilution_INP[i]:
+                # Both are within the error range of the previous value
+                # Pick one with lowest error
+                if next_upper_err < next_dil_upper_err:
+                    return  # current one already selected
+                else:
+                    result_df[i] = (
+                        col_name,
+                        next_dilution_INP[i],
+                        lower_INPS_p_L[col_name][i],
+                        upper_INPS_p_L[col_name][i],
+                    )
+            # if one is within the error range of the previous value other isn't
+            elif (result_df["INPS_L"][i - 1] + current_upper_err) > result_df["INPS_L"][i]:
+                return  # current one already selected
+            elif (result_df["INPS_L"][i - 1] + current_upper_err) > next_dilution_INP[i]:
+                result_df[i] = (
+                    col_name,
+                    next_dilution_INP[i],
+                    lower_INPS_p_L[col_name][i],
+                    upper_INPS_p_L[col_name][i],
+                )
+            # both outside of error range
+            else:
+                # Average them together
+                result_df["dilution"][i] = col_name
+                result_df["INPS_L"][i] = (result_df["INPS_L"][i] + next_dilution_INP[i]) / 2
+                # error propagation: sqrt(a^2 + b^2) / 2
+                result_df["lower_CI"][i] = (
+                    np.sqrt(result_df["lower_CI"][i] ** 2 + lower_INPS_p_L[col_name][i] ** 2) / 2
+                )
+                result_df["upper_CI"][i] = (
+                    np.sqrt(result_df["upper_CI"][i] ** 2 + upper_INPS_p_L[col_name][i] ** 2) / 2
+                )
+            return
+
+        "----------- Step 1: Seperate temperature and # frozen well values -------------"
+
         # Take out temperature
         temps = self.data.pop("°C")
         # Sort the columns by dilution
         samples = self.data.reindex(sorted(self.data.columns), axis=1)
 
-        # --------------- Step 2: Background column creation: N_total ------------------
+        "--------------- Step 2: Background column creation: N_total ------------------"
         # check if any dilution is less than the background and take that instead
         dilution_v_background_df = samples[float("inf")] > samples[14641.0]
         # if more than NUM_TO_REPLACE_D1 samples in the highest dilutions are smaller
@@ -91,8 +165,9 @@ class GraphDataCSV(DataHandler):
             N_total_series = self.wells_per_sample - samples[14641.0]
         else:  # use the background
             N_total_series = self.wells_per_sample - samples[float("inf")]
-        # -------------------------- Step 3: INP/L calc --------------------------------
-        """ With the samples columns and the N_total column, we can calculate the INPs/L"""
+
+        "--------------- Step 3: INP/L calc + Confidence Intervals ----------------------"
+        # With the samples columns and the N_total column, we can calculate the INPs/L
         INPs_p_mL_test_water = samples.apply(
             lambda col: (-np.log((N_total_series - col) / N_total_series) / (VOL_WELL / 1000))
             * float(col.name)
@@ -101,16 +176,19 @@ class GraphDataCSV(DataHandler):
         lower_INPS_p_L, upper_INPS_p_L = self._error_calc(
             samples, N_total_series, VOL_WELL, samples.columns
         )
-        # -------------------------- Step 4: Pruning the data --------------------------
+
+        "-------------------------- Step 4: Pruning the data --------------------------"
         # Turn the INF's into NaN's
         all_INPs_p_L.replace(np.inf, np.nan, inplace=True)
         # Turn the values that correspond with frozen wells (in samples) of 30 or higher into NaN's
+        # TODO: this assumes all samples have 32 wells, which is not the case for lower temperatures
+        # TODO: How to adjust for this?
         all_INPs_p_L[samples >= 30] = np.nan
         lower_INPS_p_L[samples >= 30] = np.nan
         upper_INPS_p_L[samples >= 30] = np.nan
-        # -------------------------- Step 5: Combining into one --------------------------
 
-        # Combine the three Series into one DataFrame
+        " -------------------------- Step 5: Combining into one -------------------------- "
+        # initialize the results df with the first dilution
         result_df = pd.concat(
             [
                 pd.Series([all_INPs_p_L.columns[0]] * len(all_INPs_p_L)),
@@ -121,7 +199,9 @@ class GraphDataCSV(DataHandler):
             axis=1,
         )  # Rename the columns
         result_df.columns = ["dilution", "INPS_L", "lower_CI", "upper_CI"]
-        for col_name, next_dilution_INP in all_INPs_p_L.iloc[:, 1:].items():
+
+        # iterate over all consequent dilutions | skip the background | apply the logics
+        for col_name, next_dilution_INP in all_INPs_p_L.iloc[:, 1:-1].items():
             # Take last 4 real values of current result_df["INPS_L"]
             last_4_i = result_df["INPS_L"].dropna().tail(4).index
 
@@ -138,53 +218,8 @@ class GraphDataCSV(DataHandler):
                     result_df["INPS_L"][i] >= result_df["INPS_L"][i - 1]
                     and next_dilution_INP[i] >= result_df["INPS_L"].iloc[-1]
                 ):
-                    current_upper_err = upper_INPS_p_L[col_name][i - 1]
-                    next_upper_err = upper_INPS_p_L[col_name][i]
-                    next_dil_upper_err = upper_INPS_p_L[col_name][i]
-                    # check if both/either one are within certain statistical range of
-                    # previous and next value
-                    if (result_df["INPS_L"][i - 1] + current_upper_err) > result_df["INPS_L"][
-                        i
-                    ] and (result_df["INPS_L"][i - 1] + current_upper_err) > next_dilution_INP[i]:
-                        # Both are within the error range of the previous value
-                        # Pick one with lowest error
-                        if next_upper_err < next_dil_upper_err:
-                            continue  # current one already selected
-                        else:
-                            result_df[i] = (
-                                col_name,
-                                next_dilution_INP[i],
-                                lower_INPS_p_L[col_name][i],
-                                upper_INPS_p_L[col_name][i],
-                            )
-                    # if one is within the error range of the previous value other isn't
-                    elif (result_df["INPS_L"][i - 1] + current_upper_err) > result_df["INPS_L"][i]:
-                        continue  # current one already selected
-                    elif (result_df["INPS_L"][i - 1] + current_upper_err) > next_dilution_INP[i]:
-                        result_df[i] = (
-                            col_name,
-                            next_dilution_INP[i],
-                            lower_INPS_p_L[col_name][i],
-                            upper_INPS_p_L[col_name][i],
-                        )
-                    # both outside of range
-                    else:
-                        # Average them together
-                        result_df["dilution"][i] = col_name
-                        result_df["INPS_L"][i] = (result_df["INPS_L"][i] + next_dilution_INP[i]) / 2
-                        # error propagation: sqrt(a^2 + b^2) / 2
-                        result_df["lower_CI"][i] = (
-                            np.sqrt(
-                                result_df["lower_CI"][i] ** 2 + lower_INPS_p_L[col_name][i] ** 2
-                            )
-                            / 2
-                        )
-                        result_df["upper_CI"][i] = (
-                            np.sqrt(
-                                result_df["upper_CI"][i] ** 2 + upper_INPS_p_L[col_name][i] ** 2
-                            )
-                            / 2
-                        )
+                    # Logic moved to function at top of this function for readability
+                    error_logic_selecting_values(i, col_name, next_dilution_INP)
 
                 # If only current dilution is bigger, take that one
                 elif result_df["INPS_L"][i] >= result_df["INPS_L"][i - 1]:
@@ -197,29 +232,45 @@ class GraphDataCSV(DataHandler):
                         lower_INPS_p_L[col_name][i],
                         upper_INPS_p_L[col_name][i],
                     )
-
-            # add the rest of the next dilution to the result_df
+            # After checking the 4 overlapping values, we need to add the rest of the next dilution
             result_df.iloc[i + 1 :, 0] = col_name
             result_df.iloc[i + 1 :, 1] = next_dilution_INP[i + 1 :]
             result_df.iloc[i + 1 :, 2] = lower_INPS_p_L[col_name][i + 1 :]
             result_df.iloc[i + 1 :, 3] = upper_INPS_p_L[col_name][i + 1 :]
         # Add the temperature back as first column
         result_df.insert(0, "°C", temps)
+
+        "---------------------- Step 6: Save and return the data ----------------------"
+        if save:
+            self.save_to_new_file(
+                result_df, self.folder_path / f"{self.data_file.stem}.csv", prefix="INPs_L_"
+            )
+
         return result_df
 
-    def _error_calc(self, n_frozen, n_total, vol_well, dilution, z=1.96):
+    def _error_calc(self, n_frozen, n_total, vol_well: int | float, dilution, z: float = Z):
         """
         Calculate the error of the INP/L
+        The formula used is in (2) from: Agresti, A., & Coull, B. A. (1998). Approximate is
+        better than "exact" for interval estimation of binomial proportions.
+        The American Statistician, 52(2), 119–126. https://doi.org/10.2307/2685469
+        The formula is split up in three segments
+        1. The plus/minus part to differentiate between the upper and lower confidence interval
+        2. The remaining part of the numenator formula
+        3. The denominator of the remaining part
+
+        this calculates the values in INPs/mL and the typical conversion from mL to L
+        applies for the errors too.
         Args:
-            z: z-value of the normal distribution
-            no_frozen: number of frozen wells measured
-            n_total: total number of wells
-            vol_well: volume of each well
-            dilution: dilution (-fold)
+            n_frozen: number of frozen wells measured; single value or pandas df
+            n_total: total number of wells; single value or pandas series
+            vol_well: volume of each well; single value
+            dilution: dilution (-fold); single value or pandas series
+            z: z-value of the normal distribution, float
         Returns:
             error of the INP/L
         """
-        if isinstance(n_frozen, pd.DataFrame):
+        if isinstance(n_frozen, pd.DataFrame):  # dealing with a dataframes
             plus_min_part = n_frozen.apply(
                 lambda col: z
                 * np.sqrt((col / n_total * (1 - col / n_total) + z**2 / (4 * n_total)) / n_total)
@@ -234,7 +285,7 @@ class GraphDataCSV(DataHandler):
             denom = 1 + z**2 / n_total
         conf_intervals = []
         for op in [operator.sub, operator.add]:
-            if isinstance(dilution, int or float):
+            if isinstance(dilution, int or float):  # dealing with a single value
                 limit_wells = (op(rem_num, plus_min_part) / denom) * n_total
                 limit_INPS_ml = (
                     dilution / (vol_well / 1000) * (n_frozen - limit_wells) / (n_total - n_frozen)
@@ -255,4 +306,17 @@ class GraphDataCSV(DataHandler):
         return conf_intervals
 
     def _INP_ml_to_L(self, ml_df):
+        """
+        Convert the INPs/mL to INPs/L, using the formula::
+        INPs/L = (INPs/mL * vol_susp) / (vol_air_filt * filter_used)
+        with vol_susp = volume used for suspension
+        vol_air_filt = volume of air filtered
+        filter_used = proportion of filter used
+        Args:
+            ml_df: dataframe containing the INPs/mL values. Could also be a single
+            value or series
+
+        Returns: same format as input, but with INPs/L values
+
+        """
         return (ml_df * self.vol_susp) / (self.vol_air_filt * self.filter_used)
