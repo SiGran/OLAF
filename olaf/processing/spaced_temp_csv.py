@@ -8,7 +8,11 @@ from olaf.utils.data_handler import DataHandler
 
 class SpacedTempCSV(DataHandler):
     def __init__(
-        self, folder_path: Path, num_samples, includes: list[str] = None, date_col: str = "Date"
+        self,
+        folder_path: Path,
+        num_samples,
+        includes: tuple = ("base", "reviewed"),
+        date_col: str = "Date",
     ) -> None:
         """
         Class that has functionality to read a (processed ("verified")) well experiments
@@ -22,8 +26,6 @@ class SpacedTempCSV(DataHandler):
         Returns:
             The data file and the data as a pandas DataFrame
         """
-        if includes is None:
-            includes = ["base", "reviewed"]
         super().__init__(folder_path, num_samples, includes=includes, date_col=date_col)
         return
 

@@ -8,8 +8,8 @@ from olaf.utils.path_utils import natural_sort_key
 class DataHandler:
     def __init__(self, folder_path: Path, num_samples: int, **kwargs) -> None:
         kwargs.setdefault("suffix", ".dat")
-        kwargs.setdefault("includes", [""])
-        kwargs.setdefault("excludes", None)
+        kwargs.setdefault("includes", {})
+        kwargs.setdefault("excludes", {})
         kwargs.setdefault("date_col", "Time")
         kwargs.setdefault("sep", "\t")
 
@@ -27,8 +27,8 @@ class DataHandler:
 
     def get_data_file(
         self,
-        includes: list[str],
-        excludes: list[str],
+        includes: tuple,
+        excludes: tuple,
         suffix: str = ".dat",
         date_col: str = "Time",
         sep: str = "\t",
@@ -49,7 +49,7 @@ class DataHandler:
         Returns:
             tuple with the file path and the data as a pandas DataFrame
         """
-        if excludes:
+        if excludes or includes:
             files = [
                 file
                 for file in self.folder_path.iterdir()

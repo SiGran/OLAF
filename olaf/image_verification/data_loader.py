@@ -11,8 +11,8 @@ class DataLoader(DataHandler):
         root: tk.Tk,
         folder_path: Path,
         num_samples: int,
-        includes: list[str] = None,
-        excludes: list[str] = None,
+        includes: tuple = ("base",),
+        excludes: tuple = ("reviewed",),
     ) -> None:
         """
         Class to initialize the gui and load data and images for button handling.
@@ -20,10 +20,6 @@ class DataLoader(DataHandler):
             root: tkinter root object
             folder_path: path to the project folder containing the images and .dat file
         """
-        if excludes is None:
-            excludes = ["reviewed"]
-        if includes is None:
-            includes = ["base"]
         super().__init__(folder_path, num_samples, includes=includes, excludes=excludes)
         self.root = root
 

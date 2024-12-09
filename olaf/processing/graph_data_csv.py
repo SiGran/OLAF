@@ -27,14 +27,10 @@ class GraphDataCSV(DataHandler):
         vol_susp: float,
         dict_samples_to_dilution: dict,
         suffix: str = ".csv",
-        includes: list[str] = None,
-        excludes: list[str] = None,
+        includes: tuple = ("frozen_at_temp", "reviewed", "base"),
+        excludes: tuple = ("INPs_L",),
         date_col=False,
     ) -> None:
-        if includes is None:  # standard terms to search to find correct file
-            includes = ["frozen_at_temp", "reviewed", "base"]
-        if excludes is None:
-            excludes = ["INPs_L"]  # exclude the files this class creates
         super().__init__(
             folder_path,
             num_samples,
