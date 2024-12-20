@@ -1,0 +1,26 @@
+olaf.utils.path_utils
+=====================
+
+.. py:module:: olaf.utils.path_utils
+
+
+Functions
+---------
+
+.. autoapisummary::
+
+   olaf.utils.path_utils.natural_sort_key
+
+
+Module Contents
+---------------
+
+.. py:function:: natural_sort_key(s)
+
+   Key function for sorting strings in "natural" order.
+   :param s: string to sort
+
+   :returns: list of strings and numbers to sort
+   :rtype: list
+
+
