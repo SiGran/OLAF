@@ -159,8 +159,10 @@ class GraphDataCSV(DataHandler):
         # to create N_total df --> one column
         if dilution_v_background_df.sum() > NUM_TO_REPLACE_D1:
             N_total_series = self.wells_per_sample - samples[14641.0]
+            samples = samples.apply(lambda col: col - samples[14641.0])
         else:  # use the background
             N_total_series = self.wells_per_sample - samples[float("inf")]
+            samples = samples.apply(lambda col: col - samples[float("inf")])
 
         "--------------- Step 3: INP/L calc + Confidence Intervals ----------------------"
         # With the samples columns and the N_total column, we can calculate the INPs/L
