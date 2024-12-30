@@ -240,9 +240,7 @@ class GraphDataCSV(DataHandler):
 
         "---------------------- Step 6: Save and return the data ----------------------"
         if save:
-            self.save_to_new_file(
-                result_df, self.folder_path / f"{self.data_file.stem}.csv", prefix="INPs_L_"
-            )
+            self.save_to_new_file(result_df, prefix="INPs_L")
 
         return result_df
 

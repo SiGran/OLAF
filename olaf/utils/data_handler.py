@@ -89,8 +89,8 @@ class DataHandler:
         self,
         save_data: pd.DataFrame = None,
         save_path: Path = None,
-        prefix: str = "reviewed",
-        sep="\t",
+        prefix: str = "_",
+        sep=",",
     ) -> Path:
         """
                 Save the data to a new file with the prefix "reviewed_" added to the name.
@@ -107,7 +107,7 @@ class DataHandler:
         if save_data is None:
             save_data = self.data
         if save_path is None:
-            save_path = self.data_file.parent / self.data_file.name
+            save_path = self.data_file
         counter = 1
         # If the file already exists, add a number to the name
         save_path = save_path.parent / f"{prefix}_{save_path.name}"
