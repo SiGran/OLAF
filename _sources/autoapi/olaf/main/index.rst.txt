@@ -1,0 +1,50 @@
+olaf.main
+=========
+
+.. py:module:: olaf.main
+
+
+Attributes
+----------
+
+.. autoapisummary::
+
+   olaf.main.test_folder
+   olaf.main.num_samples
+   olaf.main.vol_air_filt
+   olaf.main.wells_per_sample
+   olaf.main.filter_used
+   olaf.main.vol_susp
+   olaf.main.dict_samples_to_dilution
+   olaf.main.window
+
+
+Module Contents
+---------------
+
+.. py:data:: test_folder
+
+.. py:data:: num_samples
+   :value: 6
+
+
+.. py:data:: vol_air_filt
+   :value: 10754
+
+
+.. py:data:: wells_per_sample
+   :value: 32
+
+
+.. py:data:: filter_used
+   :value: 1.0
+
+
+.. py:data:: vol_susp
+   :value: 10
+
+
+.. py:data:: dict_samples_to_dilution
+
+.. py:data:: window
+
