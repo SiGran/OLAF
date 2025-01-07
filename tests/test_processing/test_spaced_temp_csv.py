@@ -23,9 +23,13 @@ class TestSpacedTempCSV:
         input_path = Path.cwd().parent / "test_data" / "SGP 2.21.24 base"
         if not expected_output_file.exists():
             expected_output_file = (
-                Path.cwd() / "test_data" / "SGP 2.21.24 base" / "test1_changed_frozen"
+                Path.cwd().parent
+                / "tests"
+                / "test_data"
+                / "SGP 2.21.24 base"
+                / "test1_changed_frozen"
             )
-            input_path = Path.cwd() / "test_data" / "SGP 2.21.24 base"
+            input_path = Path.cwd().parent / "tests" / "test_data" / "SGP 2.21.24 base"
 
         expected_output_data = pd.read_csv(expected_output_file)
 
