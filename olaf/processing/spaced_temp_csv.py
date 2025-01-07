@@ -64,7 +64,7 @@ class SpacedTempCSV(DataHandler):
             self.data[f"Sample_{i}"].ne(0).idxmax() for i in range(self.num_samples)
         ]
         first_frozen_id = min([id for id in first_frozen_id_col if id != 0])
-        temp_frozen = round(self.data.loc[first_frozen_id, temp_col], 1)
+        temp_frozen = round(float(self.data.loc[first_frozen_id, temp_col]), 1)
         # step 3: round down to nearest 0.5
         round_temp_frozen = ceil((temp_frozen * 2)) / 2
         # step 5: Initialize with three rows for the first two and zeros for the samples

@@ -298,7 +298,7 @@ class GraphDataCSV(DataHandler):
             denom = 1 + z**2 / n_total
         conf_intervals = []
         for op in [operator.sub, operator.add]:
-            if isinstance(dilution, int or float):  # dealing with a single value
+            if isinstance(dilution, (int, float)):  # dealing with a single value
                 limit_wells = (op(rem_num, plus_min_part) / denom) * n_total
                 limit_INPS_ml = (
                     dilution / (vol_well / 1000) * (n_frozen - limit_wells) / (n_total - n_frozen)

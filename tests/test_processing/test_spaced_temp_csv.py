@@ -14,13 +14,18 @@ class TestSpacedTempCSV:
     @pytest.fixture
     def setup_files(self):
         # Load the input and expected output files
-        input_path = Path.cwd().parent / "test_data" / "SGP 2.21.24 base"
         expected_output_file = (
             Path.cwd().parent
             / "test_data"
             / "SGP 2.21.24 base"
             / "test1_changed_frozen_at_temp_sgp men 02.21.24 a base.csv"
         )
+        input_path = Path.cwd().parent / "test_data" / "SGP 2.21.24 base"
+        if not expected_output_file.exists():
+            expected_output_file = (
+                Path.cwd() / "test_data" / "SGP 2.21.24 base" / "test1_changed_frozen"
+            )
+            input_path = Path.cwd() / "test_data" / "SGP 2.21.24 base"
 
         expected_output_data = pd.read_csv(expected_output_file)
 
