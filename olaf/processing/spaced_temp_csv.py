@@ -57,6 +57,9 @@ class SpacedTempCSV(DataHandler):
         """
         # initialize the temp_frozen_df with temperature column and sample columns
         # step 1 and 2: find first frozen row
+        # TODO: add in information on samples, and then modify below to only take the
+        #  first frozen for least diluted sample
+
         first_frozen_id_col = [
             self.data[f"Sample_{i}"].ne(0).idxmax() for i in range(self.num_samples)
         ]
@@ -65,7 +68,7 @@ class SpacedTempCSV(DataHandler):
         # step 3: round down to nearest 0.5
         round_temp_frozen = ceil((temp_frozen * 2)) / 2
         # step 5: Initialize with three rows for the first two and zeros for the samples
-        # TODO: maybe not requid, could be prettier without
+        # TODO: maybe not required, could be prettier without
         temp_first_frozen_row = [temp_frozen] + [
             self.data.loc[first_frozen_id, f"Sample_{i}"] for i in range(self.num_samples)
         ]

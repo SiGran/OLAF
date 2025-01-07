@@ -38,13 +38,30 @@ class GraphDataCSV(DataHandler):
             includes=includes,
             excludes=excludes,
             date_col=date_col,
+            sep=",",
         )
         self.vol_air_filt = vol_air_filt
         self.wells_per_sample = wells_per_sample
         self.filter_used = filter_used
         self.vol_susp = vol_susp
         # change the headers of the data from samples to dilution factor
-        self.data.rename(columns=dict_samples_to_dilution, inplace=True)
+        try:
+            # Store original column names for verification
+            original_columns = set(self.data.columns)
+
+            # Attempt to rename
+            self.data.rename(columns=dict_samples_to_dilution, inplace=True)
+
+            # Verify the renaming
+            expected_new_columns = set(
+                original_columns - set(dict_samples_to_dilution.keys())
+                | set(dict_samples_to_dilution.values())
+            )
+            if set(self.data.columns) != expected_new_columns:
+                raise ValueError("Column renaming did not produce expected results")
+
+        except Exception as e:
+            raise ValueError(f"Failed to rename columns: {str(e)}")
         return
 
     def convert_INPs_L(self, save=True):

@@ -14,10 +14,9 @@ class TestSpacedTempCSV:
     @pytest.fixture
     def setup_files(self):
         # Load the input and expected output files
-        input_path = Path.cwd().parent / "tests" / "test_data" / "SGP 2.21.24 base"
+        input_path = Path.cwd().parent / "test_data" / "SGP 2.21.24 base"
         expected_output_file = (
             Path.cwd().parent
-            / "tests"
             / "test_data"
             / "SGP 2.21.24 base"
             / "test1_changed_frozen_at_temp_sgp men 02.21.24 a base.csv"
@@ -31,7 +30,7 @@ class TestSpacedTempCSV:
         input_path, expected_output_data = setup_files
 
         # Create an instance of the class
-        processor = SpacedTempCSV(input_path, rev_name=["test1", "reviewed"])
+        processor = SpacedTempCSV(input_path, num_samples=6, includes=("test1", "reviewed"))
 
         # Call the create_temp_csv function
         generated_output_file = processor.create_temp_csv(save=False)

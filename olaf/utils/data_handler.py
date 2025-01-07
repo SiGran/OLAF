@@ -87,33 +87,62 @@ class DataHandler:
 
     def save_to_new_file(
         self,
-        save_data: pd.DataFrame = None,
-        save_path: Path = None,
+        save_data: pd.DataFrame | None = None,
+        save_path: Path | None = None,
         prefix: str = "_",
-        sep=",",
+        sep: str = ",",
     ) -> Path:
         """
-                Save the data to a new file with the prefix "reviewed_" added to the name.
         Save a DataFrame to a new file with a unique name.
+
+        If the target file already exists, automatically adds a number suffix
+        to create a unique filename.
+
         Args:
-            save_data: Pandas DataFrame to save
-            save_path: pathlib.Path to save the file to (including directory)
-            prefix: string to add to the start of the file name
-            sep: separator for csv file to save too. Default is tab-separated
+            save_data: Pandas DataFrame to save. If None, uses self.data
+            save_path: Path to save the file to. If None, uses self.data_file
+            prefix: String to add to the start of the file name
+            sep: Separator for CSV file (default: comma)
 
         Returns:
-            pathlib.Path: Path to the saved file
+            Path: Path to the saved file
+
+        Raises:
+            ValueError: If save_data is None and self.data is not available
+            TypeError: If save_path is not a Path object
+            OSError: If there are file system related errors
         """
+        # Validate inputs
         if save_data is None:
+            if not hasattr(self, "data"):
+                raise ValueError("No data provided and self.data not available")
             save_data = self.data
+
         if save_path is None:
+            if not hasattr(self, "data_file"):
+                raise ValueError("No save_path provided and self.data_file not available")
             save_path = self.data_file
-        counter = 1
-        # If the file already exists, add a number to the name
+
+        if not isinstance(save_path, Path):
+            raise TypeError("save_path must be a Path object")
+
+        # Create the initial save path with prefix
         save_path = save_path.parent / f"{prefix}_{save_path.name}"
-        save_name_stem = save_path.stem  # get the stem of the file name to add number to
+        save_name_stem = save_path.stem  # Get the stem of the file before numbers are added to it
+
+        # Find a unique filename
+        counter = 1
         while save_path.exists():
             save_path = save_path.parent / f"{save_name_stem}({counter}){save_path.suffix}"
             counter += 1
-        save_data.to_csv(save_path, sep=sep, index=False)
-        return save_path
+
+        try:
+            # Ensure the parent directory exists
+            save_path.parent.mkdir(parents=True, exist_ok=True)
+
+            # Save the data
+            save_data.to_csv(save_path, sep=sep, index=False)
+            return save_path
+
+        except OSError as e:
+            raise OSError(f"Error saving file to {save_path}: {str(e)}")
