@@ -31,7 +31,7 @@ class TestSpacedTempCSV:
                 / "SGP 2.21.24 base"
                 / "test1_changed_frozen_at_temp_sgp men 02.21.24 a base.csv"
             )
-            input_path = Path.cwd().parent / "tests" / "test_data" / "SGP 2.21.24 base"
+            input_path = Path.cwd() / "tests" / "test_data" / "SGP 2.21.24 base"
 
         expected_output_data = pd.read_csv(expected_output_file)
         print(f"Looking for file at: {expected_output_file}")
