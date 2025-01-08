@@ -27,7 +27,7 @@ class TestSpacedTempCSV:
                 / "tests"
                 / "test_data"
                 / "SGP 2.21.24 base"
-                / "test1_changed_frozen"
+                / "test1_changed_frozen_at_temp_sgp men 02.21.24 a base.csv"
             )
             input_path = Path.cwd().parent / "tests" / "test_data" / "SGP 2.21.24 base"
 
