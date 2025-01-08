@@ -11,7 +11,7 @@ from olaf.processing.spaced_temp_csv import SpacedTempCSV
 
 
 class TestSpacedTempCSV:
-    @pytest.fixture
+    @pytest.fixture(scope="session")
     def setup_files(self):
         print(f"Current working directory: {Path.cwd()}")
         print(f"Parent directory: {Path.cwd().parent}")
@@ -25,7 +25,7 @@ class TestSpacedTempCSV:
         input_path = Path.cwd().parent / "test_data" / "SGP 2.21.24 base"
         if not expected_output_file.exists():
             expected_output_file = (
-                Path.cwd().parent.parent
+                Path.cwd()
                 / "tests"
                 / "test_data"
                 / "SGP 2.21.24 base"
