@@ -13,8 +13,6 @@ from olaf.processing.spaced_temp_csv import SpacedTempCSV
 class TestSpacedTempCSV:
     @pytest.fixture(scope="session")
     def setup_files(self):
-        print(f"Current working directory: {Path.cwd()}")
-        print(f"Parent directory: {Path.cwd().parent}")
         # Load the input and expected output files
         expected_output_file = (
             Path.cwd().parent
@@ -34,18 +32,24 @@ class TestSpacedTempCSV:
             input_path = Path.cwd() / "tests" / "test_data" / "SGP 2.21.24 base"
 
         expected_output_data = pd.read_csv(expected_output_file)
-        print(f"Looking for file at: {expected_output_file}")
-        print(f"File exists: {expected_output_file.exists()}")
         return input_path, expected_output_data
 
     def test_create_temp_csv(self, setup_files):
+        dict_samples_to_dilution = {
+            "Sample_5": 1,
+            "Sample_4": 11,
+            "Sample_3": 121,
+            "Sample_2": 1331,
+            "Sample_1": 14641,
+            "Sample_0": float("inf"),
+        }
         input_path, expected_output_data = setup_files
 
         # Create an instance of the class
         processor = SpacedTempCSV(input_path, num_samples=6, includes=("test1", "reviewed"))
 
         # Call the create_temp_csv function
-        generated_output_file = processor.create_temp_csv(save=False)
+        generated_output_file = processor.create_temp_csv(dict_samples_to_dilution, save=False)
 
         # Compare the generated output with the expected output
         pd.testing.assert_frame_equal(generated_output_file, expected_output_data)

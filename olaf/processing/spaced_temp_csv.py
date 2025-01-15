@@ -12,6 +12,7 @@ class SpacedTempCSV(DataHandler):
         folder_path: Path,
         num_samples,
         includes: tuple = ("base", "reviewed"),
+        excludes: tuple = ("frozen",),
         date_col: str = "Date",
     ) -> None:
         """
@@ -26,11 +27,17 @@ class SpacedTempCSV(DataHandler):
         Returns:
             The data file and the data as a pandas DataFrame
         """
-        super().__init__(folder_path, num_samples, includes=includes, date_col=date_col)
+        super().__init__(
+            folder_path, num_samples, includes=includes, excludes=excludes, date_col=date_col
+        )
         return
 
     def create_temp_csv(
-        self, temp_step: float = 0.5, temp_col: str = "Avg_Temp", save: bool = True
+        self,
+        dict_to_sample_dilution: dict,
+        temp_step: float = 0.5,
+        temp_col: str = "Avg_Temp",
+        save: bool = True,
     ) -> pd.DataFrame:
         """
         Creates a .csv file that contains the number of frozen wells per sample at
