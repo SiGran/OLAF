@@ -25,9 +25,11 @@ if __name__ == "__main__":
     window = tk.Tk()
     app = FreezingReviewer(window, test_folder, num_samples)
     window.mainloop()
-    # Processing to create .csv file
+
+    # # Processing to create .csv file
     spaced_temp_csv = SpacedTempCSV(test_folder, num_samples)
-    spaced_temp_csv.create_temp_csv()
+    spaced_temp_csv.create_temp_csv(dict_samples_to_dilution)
+
     # Processing to create INPs/L
     graph_data_csv = GraphDataCSV(
         test_folder,
