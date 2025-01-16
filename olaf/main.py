@@ -19,6 +19,15 @@ dict_samples_to_dilution = {
     "Sample_1": 14641,
     "Sample_0": float("inf"),
 }
+# dict_samples_to_dilution = {
+#     "Sample_0": 1,
+#     "Sample_1": 11,
+#     "Sample_2": 121,
+#     "Sample_3": 1331,
+#     "Sample_4": 14641,
+#     "Sample_5": float("inf"),
+# }
+
 
 if __name__ == "__main__":
     # GUI
