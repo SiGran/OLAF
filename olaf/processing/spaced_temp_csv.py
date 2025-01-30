@@ -45,7 +45,7 @@ class SpacedTempCSV(DataHandler):
         folder (...). This function is automatically ran after the last image is
         reviewed and the GUI closes. It uses the data file to find the first frozen well.
         The logic is as follows:
-        1. find the first row with a non-zero value for any sample.
+        1. find the first row with a non-zero value for least diluted sample.
         2. Round this value to 1 decimal (first_frozen)
         3. Floor this value to the nearest 0.5 (round_temp_frozen)
         4. subtract temp_step from that value (start_temp)
@@ -63,14 +63,11 @@ class SpacedTempCSV(DataHandler):
             Dataframe, and saves the data in a .csv file if save is True
         """
         # initialize the temp_frozen_df with temperature column and sample columns
-        # step 1 and 2: find first frozen row
-        # TODO: add in information on samples, and then modify below to only take the
-        #  first frozen for least diluted sample
-
-        first_frozen_id_col = [
-            self.data[f"Sample_{i}"].ne(0).idxmax() for i in range(self.num_samples)
-        ]
-        first_frozen_id = min([id for id in first_frozen_id_col if id != 0])
+        # step 1 and 2: Find least diluted sample from dict_to_sample_dilution
+        least_diluted_sample = min(
+            dict_to_sample_dilution, key=lambda k: dict_to_sample_dilution[k]
+        )
+        first_frozen_id = self.data[least_diluted_sample].ne(0).idxmax()
         temp_frozen = round(pd.to_numeric(self.data.loc[first_frozen_id, temp_col]), 1)
         # step 3: round down to nearest 0.5
         round_temp_frozen = ceil((temp_frozen * 2)) / 2
