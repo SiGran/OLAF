@@ -46,6 +46,7 @@ class GraphDataCSV(DataHandler):
         self.wells_per_sample = wells_per_sample
         self.filter_used = filter_used
         self.vol_susp = vol_susp
+        self.dict_to_samples_dilution = dict_samples_to_dilution
         # change the headers of the data from samples to dilution factor
         try:
             # Store original column names for verification
@@ -171,14 +172,17 @@ class GraphDataCSV(DataHandler):
         samples = self.data.reindex(sorted(self.data.columns), axis=1)
 
         "--------------- Step 2: Background column creation: N_total ------------------"
+        most_diluted_value = max(
+            v for v in self.dict_to_samples_dilution.values() if v != float("inf")
+        )
         # check if any dilution is less than the background and take that instead
-        dilution_v_background_df = samples[float("inf")] > samples[14641.0]
+        dilution_v_background_df = samples[float("inf")] > samples[most_diluted_value]
         # if more than NUM_TO_REPLACE_D1 samples in the highest dilutions are smaller
         # than the background
         # to create N_total df --> one column
         if dilution_v_background_df.sum() > NUM_TO_REPLACE_D1:
-            N_total_series = self.wells_per_sample - samples[14641.0]
-            samples = samples.apply(lambda col: col - samples[14641.0])
+            N_total_series = self.wells_per_sample - samples[most_diluted_value]
+            samples = samples.apply(lambda col: col - samples[most_diluted_value])
         else:  # use the background
             N_total_series = self.wells_per_sample - samples[float("inf")]
             samples = samples.apply(lambda col: col - samples[float("inf")])
