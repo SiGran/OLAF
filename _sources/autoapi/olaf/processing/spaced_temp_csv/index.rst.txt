@@ -1,0 +1,47 @@
+olaf.processing.spaced_temp_csv
+===============================
+
+.. py:module:: olaf.processing.spaced_temp_csv
+
+
+Classes
+-------
+
+.. autoapisummary::
+
+   olaf.processing.spaced_temp_csv.SpacedTempCSV
+
+
+Module Contents
+---------------
+
+.. py:class:: SpacedTempCSV(folder_path, num_samples, includes = ('base', ), excludes = ('frozen', ), date_col = 'Date')
+
+   Bases: :py:obj:`olaf.utils.data_handler.DataHandler`
+
+
+   .. py:method:: create_temp_csv(dict_to_sample_dilution, temp_step = 0.5, temp_col = 'Avg_Temp', save = True)
+
+      Creates a .csv file that contains the number of frozen wells per sample at
+      temperatures with intervals off "temp_steps" (default: 0.5 C).
+      folder (...). This function is automatically ran after the last image is
+      reviewed and the GUI closes. It uses the data file to find the first frozen well.
+      The logic is as follows:
+      1. find the first row with a non-zero value for least diluted sample.
+      2. Round this value to 1 decimal (first_frozen)
+      3. Floor this value to the nearest 0.5 (round_temp_frozen)
+      4. subtract temp_step from that value (start_temp)
+      5. Add (3) and (4) as first rows to df, add (2) in first loop of (7).
+      6. Increment the temperature by temp_step until the end of the data.
+      7. For each temperature, look at the band of temperatures that round to 1 decimal
+         and find the (highest) number of frozen wells for each sample in that band.
+      8. Save the data in a separate .csv file with the same name as the experiment.
+      The data is saved in a separate .csv file with the same name as the experiment
+      :param temp_step: The interval of temperatures to save (default: 0.5)
+      :param temp_col: The column in the data file that contains the temperature values
+      :param save: Whether to save the data to a .csv file (default: True)
+
+      :returns: Dataframe, and saves the data in a .csv file if save is True
+
+
+
