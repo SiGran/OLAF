@@ -11,7 +11,7 @@ class SpacedTempCSV(DataHandler):
         self,
         folder_path: Path,
         num_samples,
-        includes: tuple = ("base", "reviewed"),
+        includes: tuple = ("base",),
         excludes: tuple = ("frozen",),
         date_col: str = "Date",
     ) -> None:
@@ -27,6 +27,7 @@ class SpacedTempCSV(DataHandler):
         Returns:
             The data file and the data as a pandas DataFrame
         """
+        includes = includes + ("reviewed",)
         super().__init__(
             folder_path, num_samples, includes=includes, excludes=excludes, date_col=date_col
         )
