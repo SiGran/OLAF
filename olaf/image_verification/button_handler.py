@@ -5,14 +5,14 @@ from .data_loader import DataLoader
 
 
 class ButtonHandler(DataLoader):
-    def __init__(self, root: tk.Tk, folder_path: Path, num_samples: int) -> None:
+    def __init__(self, root: tk.Tk, folder_path: Path, num_samples: int, includes: tuple) -> None:
         """
         Class to handle the buttons for the gui to review well freezing images.
         Args:
             root: tkinter root object
             folder_path: folder path to the project folder containing the images and .dat file
         """
-        super().__init__(root, folder_path, num_samples)
+        super().__init__(root, folder_path, num_samples, includes)
         self.num_samples = num_samples
         self.photo_image_ref, self.back_button = tk.PhotoImage(), tk.Button()
         self.create_buttons()

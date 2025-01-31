@@ -6,7 +6,7 @@ from .button_handler import ButtonHandler
 
 class FreezingReviewer(ButtonHandler):
     # TODO: Full screen makes it become weird ---> mainly location of the "Sample x" on top
-    def __init__(self, root: tk.Tk, folder_path: Path, num_samples: int) -> None:
+    def __init__(self, root: tk.Tk, folder_path: Path, num_samples: int, includes: tuple) -> None:
         """
         Class that creates a GUI for reviewing well freezing images and
         updating the number of frozen wells.
@@ -15,7 +15,7 @@ class FreezingReviewer(ButtonHandler):
             root: tkinter root object
             folder_path: path to the project folder containing the images and .dat file
         """
-        super().__init__(root, folder_path, num_samples)
+        super().__init__(root, folder_path, num_samples, includes)
 
         return
 

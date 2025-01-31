@@ -11,7 +11,7 @@ class DataLoader(DataHandler):
         root: tk.Tk,
         folder_path: Path,
         num_samples: int,
-        includes: tuple = ("base",),
+        includes: tuple,
     ) -> None:
         """
         Class to initialize the gui and load data and images for button handling.

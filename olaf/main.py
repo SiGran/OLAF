@@ -8,7 +8,8 @@ from olaf.processing.spaced_temp_csv import SpacedTempCSV
 test_folder = Path.cwd().parent / "tests" / "test_data" / "SGP 3.28.24 base"
 start_time = "2021-03-28 15:00:00"
 end_time = "2021-03-28 16:00:00"
-"etc..."
+filter_color = "white"
+"more adding hear?"
 num_samples = 6
 vol_air_filt = 10754  # L
 wells_per_sample = 32
@@ -43,8 +44,9 @@ dict_samples_to_dilution = {
 
 if __name__ == "__main__":
     # GUI
+
     window = tk.Tk()
-    app = FreezingReviewer(window, test_folder, num_samples)
+    app = FreezingReviewer(window, test_folder, num_samples, includes=treatment)
     window.mainloop()
 
     # # Processing to create .csv file
