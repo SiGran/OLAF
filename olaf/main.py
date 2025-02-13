@@ -9,11 +9,11 @@ test_folder = Path.cwd().parent / "tests" / "test_data" / "SGP 3.28.24 base"
 start_time = "2021-03-28 15:00:00"
 end_time = "2021-03-28 16:00:00"
 filter_color = "white"
-"more adding hear?"
-num_samples = 6
+"more adding here?"
+num_samples = 6  # In the file
 vol_air_filt = 10754  # L
 wells_per_sample = 32
-filter_used = 1.0  # between 0 and 1.0
+proportion_filter_used = 1.0  # between 0 and 1.0
 vol_susp = 10  # mL
 treatment = (
     "base",
@@ -41,10 +41,29 @@ dict_samples_to_dilution = {
     "Sample_5": float("inf"),
 }
 
+header = (
+    f"start_time = {start_time}\nend_time = {end_time}\nfilter_color = {filter_color}\n"
+    f"vol_air_filt = {vol_air_filt}\npoprtion_filter_used = {proportion_filter_used}\n"
+    f"vol_susp = {vol_susp}\ntreatment = {treatment[0]}\n"
+)
+
 
 if __name__ == "__main__":
-    # GUI
+    # checks for blank
+    if not all(str(t) in str(test_folder) for t in treatment):
+        print(
+            f"your selection for treatment: {treatment} does not match with the specified "
+            f"folder: {test_folder.name}"
+        )
+    if num_samples * wells_per_sample != 192:
+        print(
+            f"Number of samples * wells per sample ({num_samples}*{wells_per_sample} is "
+            f"not equal to 192"
+        )
+    if "blank" in treatment:
+        vol_air_filt = 1  # Always the case for blank
 
+    # GUI
     window = tk.Tk()
     app = FreezingReviewer(window, test_folder, num_samples, includes=treatment)
     window.mainloop()
@@ -59,9 +78,9 @@ if __name__ == "__main__":
         num_samples,
         vol_air_filt,
         wells_per_sample,
-        filter_used,
+        proportion_filter_used,
         vol_susp,
         dict_samples_to_dilution,
         includes=treatment,
     )
-    graph_data_csv.convert_INPs_L()
+    graph_data_csv.convert_INPs_L(header)

@@ -91,6 +91,7 @@ class DataHandler:
         save_path: Path | None = None,
         prefix: str = "_",
         sep: str = ",",
+        header: str | None = None,
     ) -> Path:
         """
         Save a DataFrame to a new file with a unique name.
@@ -141,7 +142,12 @@ class DataHandler:
             save_path.parent.mkdir(parents=True, exist_ok=True)
 
             # Save the data
-            save_data.to_csv(save_path, sep=sep, index=False)
+            if not header:
+                save_data.to_csv(save_path, sep=sep, index=False)
+            else:
+                with open(save_path, "w") as file:
+                    file.write(header)
+                    save_data.to_csv(file, sep=sep, index=False)
             return save_path
 
         except OSError as e:

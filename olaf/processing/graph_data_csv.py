@@ -67,10 +67,10 @@ class GraphDataCSV(DataHandler):
             raise ValueError(f"Failed to rename columns: {str(e)}")
         return
 
-    def convert_INPs_L(self, save=True):
+    def convert_INPs_L(self, header: str, save=True):
         """
         Convert from # frozen wells at temperature for certain dilution to INPs/L.
-        The stepls involved in this function are:
+        The steps involved in this function are:
         1. Seperate the temperature and # frozen well values.
         2. Create a column with the total number of wells per temperature
         as affected by the background.
@@ -180,15 +180,21 @@ class GraphDataCSV(DataHandler):
         # if more than NUM_TO_REPLACE_D1 samples in the highest dilutions are smaller
         # than the background
         # to create N_total df --> one column
-        print(f"DI background found to be higher than {most_diluted_value} dilution {dilution_v_background_df.sum()} times.")
+        print(
+            f"DI background found to be higher than {most_diluted_value} dilution "
+            f"{dilution_v_background_df.sum()} times."
+        )
         if dilution_v_background_df.sum() < NUM_TO_REPLACE_D1:
             N_total_series = self.wells_per_sample - samples[float("inf")]
             adjusted_samples = samples.apply(lambda col: col - samples[float("inf")])
         else:  # use the background
             N_total_series = self.wells_per_sample - samples[most_diluted_value]
             adjusted_samples = samples.apply(lambda col: col - samples[most_diluted_value])
-            print(f"DI found to be higher than the {most_diluted_value} diltuion on {dilution_v_background_df.sum()} occasions. "
-                  f"{most_diluted_value} dilution used for background in place of DI.")
+            print(
+                f"DI found to be higher than the {most_diluted_value} diltuion on "
+                f"{dilution_v_background_df.sum()} occasions. "
+                f"{most_diluted_value} dilution used for background in place of DI."
+            )
 
         "--------------- Step 3: INP/L calc + Confidence Intervals ----------------------"
         # With the samples columns and the N_total column, we can calculate the INPs/L
@@ -266,7 +272,7 @@ class GraphDataCSV(DataHandler):
 
         "---------------------- Step 6: Save and return the data ----------------------"
         if save:
-            self.save_to_new_file(result_df, prefix="INPs_L")
+            self.save_to_new_file(result_df, prefix="INPs_L", header=header)
 
         return result_df
 
