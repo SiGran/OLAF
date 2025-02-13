@@ -180,12 +180,15 @@ class GraphDataCSV(DataHandler):
         # if more than NUM_TO_REPLACE_D1 samples in the highest dilutions are smaller
         # than the background
         # to create N_total df --> one column
-        if dilution_v_background_df.sum() > NUM_TO_REPLACE_D1:
-            N_total_series = self.wells_per_sample - samples[most_diluted_value]
-            adjusted_samples = samples.apply(lambda col: col - samples[most_diluted_value])
-        else:  # use the background
+        print(f"DI background found to be higher than {most_diluted_value} dilution {dilution_v_background_df.sum()} times.")
+        if dilution_v_background_df.sum() < NUM_TO_REPLACE_D1:
             N_total_series = self.wells_per_sample - samples[float("inf")]
             adjusted_samples = samples.apply(lambda col: col - samples[float("inf")])
+        else:  # use the background
+            N_total_series = self.wells_per_sample - samples[most_diluted_value]
+            adjusted_samples = samples.apply(lambda col: col - samples[most_diluted_value])
+            print(f"DI found to be higher than the {most_diluted_value} diltuion on {dilution_v_background_df.sum()} occasions. "
+                  f"{most_diluted_value} dilution used for background in place of DI.")
 
         "--------------- Step 3: INP/L calc + Confidence Intervals ----------------------"
         # With the samples columns and the N_total column, we can calculate the INPs/L
