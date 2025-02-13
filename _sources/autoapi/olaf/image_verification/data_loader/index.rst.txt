@@ -1,0 +1,46 @@
+olaf.image_verification.data_loader
+===================================
+
+.. py:module:: olaf.image_verification.data_loader
+
+
+Classes
+-------
+
+.. autoapisummary::
+
+   olaf.image_verification.data_loader.DataLoader
+
+
+Module Contents
+---------------
+
+.. py:class:: DataLoader(root, folder_path, num_samples, includes)
+
+   Bases: :py:obj:`olaf.utils.data_handler.DataHandler`
+
+
+   .. py:attribute:: root
+
+
+   .. py:attribute:: label
+
+
+   .. py:attribute:: current_photo_index
+      :value: 0
+
+
+
+   .. py:attribute:: photos
+
+
+   .. py:attribute:: button_frame
+
+
+   .. py:method:: load_photos()
+
+      Load the images from the folder and sort them naturally and returns them in a list.
+      :returns: list of pathlib.Path objects of the images
+
+
+
