@@ -15,8 +15,9 @@ start_time = "2024-06-20 00:00:00"
 end_time = "2024-06-20 00:00:00"
 filter_color = "white"
 "more adding here?"
-num_samples = 6  # In the file
-vol_air_filt = 10754  # L
+# TODO what to do with number of samples for the blanks
+num_samples = 5  # In the file
+vol_air_filt = 1  # L
 wells_per_sample = 32
 proportion_filter_used = 1.0  # between 0 and 1.0
 vol_susp = 8  # mL
@@ -45,12 +46,12 @@ treatment = (
 #     "Sample_4": 14641,
 #     "Sample_5": float("inf"),
 # }
-# dict_samples_to_dilution = {
-#     "Sample_0": float("inf"),
-#     "Sample_1": 11,
-#     "Sample_2": 1,
-# }
-dict_samples_to_dilution = {"Sample_0": float("inf"), "Sample_3": 11, "Sample_4": 1}
+dict_samples_to_dilution = {
+    "Sample_0": float("inf"),
+    "Sample_1": 11,
+    "Sample_2": 1,
+}
+# dict_samples_to_dilution = {"Sample_0": float("inf"), "Sample_3": 11, "Sample_4": 1}
 
 
 header = (
@@ -74,6 +75,8 @@ if __name__ == "__main__":
         )
     if "blank" in treatment:
         vol_air_filt = 1  # Always the case for blank
+
+    # TODO: add check to see if num_samples is same as keys in dict
 
     # GUI
     window = tk.Tk()
