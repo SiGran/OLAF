@@ -9,23 +9,25 @@ from olaf.processing.graph_data_csv import GraphDataCSV
 from olaf.processing.spaced_temp_csv import SpacedTempCSV
 
 test_folder = (
-    Path.cwd().parent / "tests" / "test_data" / "test_project" / "SGP 5.15.24 6.20.24 blanks"
+    Path.cwd() / "data" / "SGP 5.15.24 peroxide"
 )
-start_time = "2024-06-20 00:00:00"
-end_time = "2024-06-20 00:00:00"
+start_time = "2024-05-15 00:00:00"
+end_time = "2024-05-16 00:00:00"
 filter_color = "white"
 "more adding here?"
+notes = "heavy rainstorm night before sampling"
+user = "Carson"
 # TODO what to do with number of samples for the blanks
-num_samples = 5  # In the file
-vol_air_filt = 1  # L
+num_samples = 6  # In the file
+vol_air_filt = 10000  # L
 wells_per_sample = 32
 proportion_filter_used = 1.0  # between 0 and 1.0
-vol_susp = 8  # mL
+vol_susp = 10  # mL
 treatment = (
     # "base",
     # "heat",
-    # "peroxide",
-    "blank",
+     "peroxide",
+    #"blank",
     # "blank heat",
     # "blank peroxide,"
 )  # uncomment the one you want to use
@@ -38,26 +40,27 @@ treatment = (
 #     "Sample_1": 14641,
 #     "Sample_0": float("inf"),
 # }
-# dict_samples_to_dilution = {
-#     "Sample_0": 1,
-#     "Sample_1": 11,
-#     "Sample_2": 121,
-#     "Sample_3": 1331,
-#     "Sample_4": 14641,
-#     "Sample_5": float("inf"),
-# }
 dict_samples_to_dilution = {
-    "Sample_0": float("inf"),
+    "Sample_0": 1,
     "Sample_1": 11,
-    "Sample_2": 1,
+    "Sample_2": 121,
+    "Sample_3": 1331,
+    "Sample_4": 14641,
+    "Sample_5": float("inf"),
 }
+# dict_samples_to_dilution = {
+#     "Sample_0": float("inf"),
+#     "Sample_1": 11,
+#     "Sample_2": 1,
+#}
 # dict_samples_to_dilution = {"Sample_0": float("inf"), "Sample_3": 11, "Sample_4": 1}
 
 
 header = (
     f"start_time = {start_time}\nend_time = {end_time}\nfilter_color = {filter_color}\n"
     f"vol_air_filt = {vol_air_filt}\npoprtion_filter_used = {proportion_filter_used}\n"
-    f"vol_susp = {vol_susp}\ntreatment = {treatment[0]}\n"
+    f"vol_susp = {vol_susp}\ntreatment = {treatment[0]}\nnotes = {notes}\n"
+    f"user = {user}\n"
 )
 
 
@@ -79,9 +82,9 @@ if __name__ == "__main__":
     # TODO: add check to see if num_samples is same as keys in dict
 
     # GUI
-    window = tk.Tk()
-    app = FreezingReviewer(window, test_folder, num_samples, includes=treatment)
-    window.mainloop()
+    #window = tk.Tk()
+    #app = FreezingReviewer(window, test_folder, num_samples, includes=treatment)
+    #window.mainloop()
 
     # # Processing to create .csv file
     spaced_temp_csv = SpacedTempCSV(test_folder, num_samples, includes=treatment)
@@ -93,7 +96,7 @@ if __name__ == "__main__":
     found_dates = re.findall(DATE_PATTERN, test_folder.name)
     for date in found_dates:
         month, day, year = date.split(".")
-        end_year, end_month, end_day = end_time.split(" ")[0].split("-")
+        end_year, end_month, end_day = start_time.split(" ")[0].split("-")
         if int(end_month) < 10:
             end_month = end_month[1]
         if year != end_year[2:] or month != end_month or day != end_day:

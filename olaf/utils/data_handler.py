@@ -143,11 +143,11 @@ class DataHandler:
 
             # Save the data
             if not header:
-                save_data.to_csv(save_path, sep=sep, index=False)
+                save_data.to_csv(save_path, sep=sep, index=False, lineterminator = "\n" )
             else:
                 with open(save_path, "w") as file:
                     file.write(header)
-                    save_data.to_csv(file, sep=sep, index=False)
+                    save_data.to_csv(file, sep=sep, index=False, lineterminator = "\n" )
             return save_path
 
         except OSError as e:
