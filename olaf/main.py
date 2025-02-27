@@ -1,25 +1,30 @@
+import re
 import tkinter as tk
 from pathlib import Path
+
+from CONSTANTS import DATE_PATTERN
 
 from olaf.image_verification.freezing_reviewer import FreezingReviewer
 from olaf.processing.graph_data_csv import GraphDataCSV
 from olaf.processing.spaced_temp_csv import SpacedTempCSV
 
-test_folder = Path.cwd().parent / "tests" / "test_data" / "SGP 3.28.24 base"
-start_time = "2021-03-28 15:00:00"
-end_time = "2021-03-28 16:00:00"
+test_folder = (
+    Path.cwd().parent / "tests" / "test_data" / "test_project" / "SGP 5.15.24 6.20.24 blanks"
+)
+start_time = "2024-06-20 00:00:00"
+end_time = "2024-06-20 00:00:00"
 filter_color = "white"
 "more adding here?"
 num_samples = 6  # In the file
 vol_air_filt = 10754  # L
 wells_per_sample = 32
 proportion_filter_used = 1.0  # between 0 and 1.0
-vol_susp = 10  # mL
+vol_susp = 8  # mL
 treatment = (
-    "base",
+    # "base",
     # "heat",
     # "peroxide",
-    # "blank",
+    "blank",
     # "blank heat",
     # "blank peroxide,"
 )  # uncomment the one you want to use
@@ -32,14 +37,21 @@ treatment = (
 #     "Sample_1": 14641,
 #     "Sample_0": float("inf"),
 # }
-dict_samples_to_dilution = {
-    "Sample_0": 1,
-    "Sample_1": 11,
-    "Sample_2": 121,
-    "Sample_3": 1331,
-    "Sample_4": 14641,
-    "Sample_5": float("inf"),
-}
+# dict_samples_to_dilution = {
+#     "Sample_0": 1,
+#     "Sample_1": 11,
+#     "Sample_2": 121,
+#     "Sample_3": 1331,
+#     "Sample_4": 14641,
+#     "Sample_5": float("inf"),
+# }
+# dict_samples_to_dilution = {
+#     "Sample_0": float("inf"),
+#     "Sample_1": 11,
+#     "Sample_2": 1,
+# }
+dict_samples_to_dilution = {"Sample_0": float("inf"), "Sample_3": 11, "Sample_4": 1}
+
 
 header = (
     f"start_time = {start_time}\nend_time = {end_time}\nfilter_color = {filter_color}\n"
@@ -70,17 +82,30 @@ if __name__ == "__main__":
 
     # # Processing to create .csv file
     spaced_temp_csv = SpacedTempCSV(test_folder, num_samples, includes=treatment)
+    # TODO: how to to deal with least diluted for when it's blanks with two experiments
     spaced_temp_csv.create_temp_csv(dict_samples_to_dilution)
 
     # Processing to create INPs/L
-    graph_data_csv = GraphDataCSV(
-        test_folder,
-        num_samples,
-        vol_air_filt,
-        wells_per_sample,
-        proportion_filter_used,
-        vol_susp,
-        dict_samples_to_dilution,
-        includes=treatment,
-    )
-    graph_data_csv.convert_INPs_L(header)
+    # Use regular expression to check for dates in folder name:
+    found_dates = re.findall(DATE_PATTERN, test_folder.name)
+    for date in found_dates:
+        month, day, year = date.split(".")
+        end_year, end_month, end_day = end_time.split(" ")[0].split("-")
+        if int(end_month) < 10:
+            end_month = end_month[1]
+        if year != end_year[2:] or month != end_month or day != end_day:
+            continue
+        # add date to includes
+        print(f"Processing data for: {date}")
+        includes = (date,) + treatment
+        graph_data_csv = GraphDataCSV(
+            test_folder,
+            num_samples,
+            vol_air_filt,
+            wells_per_sample,
+            proportion_filter_used,
+            vol_susp,
+            dict_samples_to_dilution,
+            includes=includes,
+        )
+        graph_data_csv.convert_INPs_L(header)

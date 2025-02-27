@@ -48,17 +48,24 @@ class GraphDataCSV(DataHandler):
         self.vol_susp = vol_susp
         self.dict_to_samples_dilution = dict_samples_to_dilution
         # change the headers of the data from samples to dilution factor
-        try:
+        try:  # TODO REMOVE COLUMNS NOT IN DICT
             # Store original column names for verification
             original_columns = set(self.data.columns)
+
+            # Drop columns that are not in dict_samples_to_dilution keys, except for '°C'
+            cols_to_keep = {"°C"}.union(dict_samples_to_dilution.keys())
+            self.data = self.data[self.data.columns.intersection(cols_to_keep)]
 
             # Attempt to rename
             self.data.rename(columns=dict_samples_to_dilution, inplace=True)
 
-            # Verify the renaming
-            expected_new_columns = set(
-                original_columns - set(dict_samples_to_dilution.keys())
-                | set(dict_samples_to_dilution.values())
+            # Verify the renaming - modified to match the filtering logic
+            expected_new_columns = {"°C"}.union(
+                set(
+                    value
+                    for key, value in dict_samples_to_dilution.items()
+                    if key in original_columns
+                )
             )
             if set(self.data.columns) != expected_new_columns:
                 raise ValueError("Column renaming did not produce expected results")

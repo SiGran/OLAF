@@ -3,3 +3,4 @@ VOL_WELL = 50  # microL
 # to replace the background
 NUM_TO_REPLACE_D1 = 10
 Z = 1.96  # 95% confidence interval
+DATE_PATTERN = r"(?<!\d)(\d{1,2}\.\d{2}\.\d{2})(?!\d)"
