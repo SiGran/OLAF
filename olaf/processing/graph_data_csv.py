@@ -160,14 +160,16 @@ class GraphDataCSV(DataHandler):
             # both outside of error range
             else:
                 # Average them together
-                result_df["dilution"][i] = col_name
-                result_df["INPS_L"][i] = (result_df["INPS_L"][i] + next_dilution_INP[i]) / 2
+                result_df.loc[i, "dilution"] = col_name
+                result_df.loc[i, "INPS_L"] = (result_df.loc[i, "INPS_L"] + next_dilution_INP[i]) / 2
                 # error propagation: sqrt(a^2 + b^2) / 2
-                result_df["lower_CI"][i] = (
-                    np.sqrt(result_df["lower_CI"][i] ** 2 + lower_INPS_p_L[col_name][i] ** 2) / 2
+                result_df.loc[i, "lower_CI"] = (
+                    np.sqrt(result_df.loc[i, "lower_CI"] ** 2 + lower_INPS_p_L[col_name][i] ** 2)
+                    / 2
                 )
-                result_df["upper_CI"][i] = (
-                    np.sqrt(result_df["upper_CI"][i] ** 2 + upper_INPS_p_L[col_name][i] ** 2) / 2
+                result_df.loc[i, "upper_CI"] = (
+                    np.sqrt(result_df.loc[i, "upper_CI"] ** 2 + upper_INPS_p_L[col_name][i] ** 2)
+                    / 2
                 )
             return
 
