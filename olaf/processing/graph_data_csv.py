@@ -265,12 +265,10 @@ class GraphDataCSV(DataHandler):
                     continue  # current one already selected
                 # If only next dilution is bigger, take that one
                 elif next_dilution_INP[i] >= result_df["INPS_L"].iloc[-1]:
-                    result_df[i] = (
-                        col_name,
-                        next_dilution_INP[i],
-                        lower_INPS_p_L[col_name][i],
-                        upper_INPS_p_L[col_name][i],
-                    )
+                    result_df.loc[i, "dilution"] = col_name
+                    result_df.loc[i, "INPS_L"] = next_dilution_INP[i]
+                    result_df.loc[i, "lower_CI"] = lower_INPS_p_L[col_name][i]
+                    result_df.loc[i, "upper_CI"] = upper_INPS_p_L[col_name][i]
             # After checking the 4 overlapping values, we need to add the rest of the next dilution
             result_df.iloc[i + 1 :, 0] = col_name
             result_df.iloc[i + 1 :, 1] = next_dilution_INP[i + 1 :]
