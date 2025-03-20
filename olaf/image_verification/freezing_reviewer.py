@@ -35,7 +35,19 @@ class FreezingReviewer(ButtonHandler):
         current_index = self.data.index[self.data["Picture"] == picture_name].tolist()[0]
 
         # Apply change to current and later, but keep the value between 0 and 32
-        # TODO: increment only until a pre-existing increment is reached?
+        if change < 0:  # go back to were this went last up
+            # Check if the change would go below 0
+            if self.data.loc[current_index:, f"Sample_{sample}"].values[0] + change < 0:
+                print("Cannot decrease below 0!!")
+                return
+            # Go back from current index and find the first index were the
+            # current value, we're trying to change, was reached
+            current_val = self.data.loc[current_index, f"Sample_{sample}"]
+            for i in range(current_index, 0, -1):
+                if self.data.loc[i, f"Sample_{sample}"] == current_val - 1:
+                    current_index = current_index - i
+                    break
+
         self.data.loc[current_index:, f"Sample_{sample}"] += change
         self.data.loc[current_index:, f"Sample_{sample}"] = self.data.loc[
             current_index:, f"Sample_{sample}"
@@ -60,6 +72,11 @@ class FreezingReviewer(ButtonHandler):
         """
         # Find the row in the data frame corresponding to the current image
         row = self.data[self.data["Picture"] == pic_file_name]
+        # TODO: use dict_to_samples instead of num_samples
+        """
+        Still set out the outline with all the samples
+        but then use the dictionary to see which ones we should be lookg int
+        """
         if not row.empty:
             for i in range(self.num_samples):
                 value = row[f"Sample_{i}"].values[0]
