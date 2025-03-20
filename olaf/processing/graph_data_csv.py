@@ -128,8 +128,11 @@ class GraphDataCSV(DataHandler):
             Returns: none
 
             """
-            current_upper_err = upper_INPS_p_L[col_name][i - 1]
-            next_upper_err = upper_INPS_p_L[col_name][i]
+            curr_dilution = result_df.loc[i - 1, "dilution"]
+            # upper CI of current one we're comparing so i-1
+            current_upper_err = upper_INPS_p_L[curr_dilution][i - 1]
+            # upper CI of possible next point with the same dilution
+            next_upper_err = upper_INPS_p_L[curr_dilution][i]
             next_dil_upper_err = upper_INPS_p_L[col_name][i]
             # check if both/either one are within certain statistical range of
             # previous and next value
@@ -141,22 +144,18 @@ class GraphDataCSV(DataHandler):
                 if next_upper_err < next_dil_upper_err:
                     return  # current one already selected
                 else:
-                    result_df[i] = (
-                        col_name,
-                        next_dilution_INP[i],
-                        lower_INPS_p_L[col_name][i],
-                        upper_INPS_p_L[col_name][i],
-                    )
+                    result_df.loc[i, "dilution"] = col_name
+                    result_df.loc[i, "INPS_L"] = next_dilution_INP[i]
+                    result_df.loc[i, "lower_CI"] = lower_INPS_p_L[col_name][i]
+                    result_df.loc[i, "upper_CI"] = upper_INPS_p_L[col_name][i]
             # if one is within the error range of the previous value other isn't
             elif (result_df["INPS_L"][i - 1] + current_upper_err) > result_df["INPS_L"][i]:
                 return  # current one already selected
             elif (result_df["INPS_L"][i - 1] + current_upper_err) > next_dilution_INP[i]:
-                result_df[i] = (
-                    col_name,
-                    next_dilution_INP[i],
-                    lower_INPS_p_L[col_name][i],
-                    upper_INPS_p_L[col_name][i],
-                )
+                result_df.loc[i, "dilution"] = col_name
+                result_df.loc[i, "INPS_L"] = next_dilution_INP[i]
+                result_df.loc[i, "lower_CI"] = lower_INPS_p_L[col_name][i]
+                result_df.loc[i, "upper_CI"] = upper_INPS_p_L[col_name][i]
             # both outside of error range
             else:
                 # Average them together
@@ -173,7 +172,7 @@ class GraphDataCSV(DataHandler):
                 )
             return
 
-        "----------- Step 1: Seperate temperature and # frozen well values -------------"
+        "----------- Step 1: Separate temperature and # frozen well values -------------"
 
         # Take out temperature
         temps = self.data.pop("°C")
@@ -185,6 +184,7 @@ class GraphDataCSV(DataHandler):
             v for v in self.dict_to_samples_dilution.values() if v != float("inf")
         )
         # check if any dilution is less than the background and take that instead
+        # TODO: automatically false, only compare if background is above 2 frozen
         dilution_v_background_df = samples[float("inf")] > samples[most_diluted_value]
         # if more than NUM_TO_REPLACE_D1 samples in the highest dilutions are smaller
         # than the background
@@ -245,32 +245,33 @@ class GraphDataCSV(DataHandler):
             last_4_i = result_df["INPS_L"].dropna().tail(4).index
 
             for i in last_4_i:
+                prev_val = result_df["INPS_L"][i - 1]
+                if prev_val == np.nan:
+                    prev_val = result_df["INPS_L"][i - 2]
+                if prev_val == np.nan:
+                    print(
+                        f"Dilution transition error going to dilution {col_name}; "
+                        f"check frozen_at_temp file!"
+                    )
+
                 # Check if both options are smaller
-                if (
-                    result_df["INPS_L"][i] < result_df["INPS_L"][i - 1]
-                    and next_dilution_INP[i] < result_df["INPS_L"][i - 1]
-                ):
+                if result_df["INPS_L"][i] < prev_val and next_dilution_INP[i] < prev_val:
                     # throw them out/error, no value for that temperature, whatever
-                    result_df[i] = np.nan
+                    result_df.loc[i, :] = np.nan
                     # Both are bigger:
-                elif (
-                    result_df["INPS_L"][i] >= result_df["INPS_L"][i - 1]
-                    and next_dilution_INP[i] >= result_df["INPS_L"].iloc[-1]
-                ):
+                elif result_df["INPS_L"][i] > prev_val and next_dilution_INP[i] > prev_val:
                     # Logic moved to function at top of this function for readability
                     error_logic_selecting_values(i, col_name, next_dilution_INP)
 
                 # If only current dilution is bigger, take that one
-                elif result_df["INPS_L"][i] >= result_df["INPS_L"][i - 1]:
+                elif result_df["INPS_L"][i] >= prev_val:
                     continue  # current one already selected
                 # If only next dilution is bigger, take that one
-                elif next_dilution_INP[i] >= result_df["INPS_L"].iloc[-1]:
-                    result_df[i] = (
-                        col_name,
-                        next_dilution_INP[i],
-                        lower_INPS_p_L[col_name][i],
-                        upper_INPS_p_L[col_name][i],
-                    )
+                elif next_dilution_INP[i] >= prev_val:
+                    result_df.loc[i, "dilution"] = col_name
+                    result_df.loc[i, "INPS_L"] = next_dilution_INP[i]
+                    result_df.loc[i, "lower_CI"] = lower_INPS_p_L[col_name][i]
+                    result_df.loc[i, "upper_CI"] = upper_INPS_p_L[col_name][i]
             # After checking the 4 overlapping values, we need to add the rest of the next dilution
             result_df.iloc[i + 1 :, 0] = col_name
             result_df.iloc[i + 1 :, 1] = next_dilution_INP[i + 1 :]
