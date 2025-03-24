@@ -358,3 +358,6 @@ class GraphDataCSV(DataHandler):
 
         """
         return (ml_df * self.vol_susp) / (self.vol_air_filt * self.filter_used)
+
+    def new_functions(self, jemoeder, jeoma, jeopa, etc):
+        print(jemoeder)
