@@ -217,8 +217,8 @@ class GraphDataCSV(DataHandler):
         )
 
         "-------------------------- Step 4: Pruning the data --------------------------"
-        # Turn the INF's into NaN's
-        all_INPs_p_L.replace(np.inf, np.nan, inplace=True)
+        # Turn both positive and negative INF's into NaN's
+        all_INPs_p_L.replace({np.inf: np.nan, -np.inf: np.nan}, inplace=True)
         # Turn the values that correspond with frozen wells (in samples) of 30 or higher into NaN's
         # TODO: this assumes all samples have 32 wells, which is not the case for lower temperatures
         # TODO: How to adjust for this?
@@ -241,6 +241,8 @@ class GraphDataCSV(DataHandler):
 
         # iterate over all consequent dilutions | skip the background | apply the logics
         for col_name, next_dilution_INP in all_INPs_p_L.iloc[:, 1:-1].items():
+            # TODO: only do this logic, if the current (lowest) dilution is going down at the end
+
             # Take last 4 real values of current result_df["INPS_L"]
             last_4_i = result_df["INPS_L"].dropna().tail(4).index
 
@@ -358,6 +360,3 @@ class GraphDataCSV(DataHandler):
 
         """
         return (ml_df * self.vol_susp) / (self.vol_air_filt * self.filter_used)
-
-    def new_functions(self, jemoeder, jeoma, jeopa, etc):
-        print(jemoeder)
