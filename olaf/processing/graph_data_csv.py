@@ -241,39 +241,43 @@ class GraphDataCSV(DataHandler):
 
         # iterate over all consequent dilutions | skip the background | apply the logics
         for col_name, next_dilution_INP in all_INPs_p_L.iloc[:, 1:-1].items():
-            # TODO: only do this logic, if the current (lowest) dilution is going down at the end
-
             # Take last 4 real values of current result_df["INPS_L"]
             last_4_i = result_df["INPS_L"].dropna().tail(4).index
-
+            going_down = False
             for i in last_4_i:
-                prev_val = result_df["INPS_L"][i - 1]
-                if prev_val == np.nan:
-                    prev_val = result_df["INPS_L"][i - 2]
-                if prev_val == np.nan:
-                    print(
-                        f"Dilution transition error going to dilution {col_name}; "
-                        f"check frozen_at_temp file!"
-                    )
+                if (
+                    result_df.loc[i, "INPS_L"] < result_df.loc[i - 1, "INPS_L"] or going_down
+                ):  # If value is going down
+                    going_down = True
+                    prev_val = result_df["INPS_L"][i - 1]
+                    if prev_val == np.nan:
+                        prev_val = result_df["INPS_L"][i - 2]
+                    if prev_val == np.nan:
+                        print(
+                            f"Dilution transition error going to dilution {col_name}; "
+                            f"check frozen_at_temp file!"
+                        )
 
-                # Check if both options are smaller
-                if result_df["INPS_L"][i] < prev_val and next_dilution_INP[i] < prev_val:
-                    # throw them out/error, no value for that temperature, whatever
-                    result_df.loc[i, :] = np.nan
-                    # Both are bigger:
-                elif result_df["INPS_L"][i] > prev_val and next_dilution_INP[i] > prev_val:
-                    # Logic moved to function at top of this function for readability
-                    error_logic_selecting_values(i, col_name, next_dilution_INP)
+                    # Check if both options are smaller
+                    if result_df["INPS_L"][i] < prev_val and next_dilution_INP[i] < prev_val:
+                        # throw them out/error, no value for that temperature, whatever
+                        result_df.loc[i, :] = np.nan
+                        # Both are bigger:
+                    elif result_df["INPS_L"][i] > prev_val and next_dilution_INP[i] > prev_val:
+                        # Logic moved to function at top of this function for readability
+                        error_logic_selecting_values(i, col_name, next_dilution_INP)
 
-                # If only current dilution is bigger, take that one
-                elif result_df["INPS_L"][i] >= prev_val:
-                    continue  # current one already selected
-                # If only next dilution is bigger, take that one
-                elif next_dilution_INP[i] >= prev_val:
-                    result_df.loc[i, "dilution"] = col_name
-                    result_df.loc[i, "INPS_L"] = next_dilution_INP[i]
-                    result_df.loc[i, "lower_CI"] = lower_INPS_p_L[col_name][i]
-                    result_df.loc[i, "upper_CI"] = upper_INPS_p_L[col_name][i]
+                    # If only current dilution is bigger, take that one
+                    elif result_df["INPS_L"][i] >= prev_val:
+                        continue  # current one already selected
+                    # If only next dilution is bigger, take that one
+                    elif next_dilution_INP[i] >= prev_val:
+                        result_df.loc[i, "dilution"] = col_name
+                        result_df.loc[i, "INPS_L"] = next_dilution_INP[i]
+                        result_df.loc[i, "lower_CI"] = lower_INPS_p_L[col_name][i]
+                        result_df.loc[i, "upper_CI"] = upper_INPS_p_L[col_name][i]
+                else:
+                    continue
             # After checking the 4 overlapping values, we need to add the rest of the next dilution
             result_df.iloc[i + 1 :, 0] = col_name
             result_df.iloc[i + 1 :, 1] = next_dilution_INP[i + 1 :]
