@@ -7,96 +7,9 @@ import numpy as np
 import pandas as pd
 
 from olaf.CONSTANTS import DATE_PATTERN
-from olaf.utils.path_utils import natural_sort_key
-
-
-def read_with_flexible_header(
-    file_path: Path,
-    expected_columns: tuple = ("°C", "dilution", "INPS_L", "lower_CI", "upper_CI"),
-    max_rows: int = 20,
-):
-    """ """
-    header_found = False
-    header_lines = []
-    i = 0
-    with open(file_path, "r") as f:
-        while not header_found:
-            line = f.readline()
-            if not line:  # end of file
-                print(f"No columns {expected_columns} found in {file_path}")
-                break
-            elif tuple(line.strip().split(",")) == expected_columns:
-                skiprows = i
-                header_found = True
-            else:
-                header_lines.append(line.strip())
-            i += 1
-
-    return header_lines, pd.read_csv(file_path, skiprows=skiprows)
-
-
-def is_within_dates(dates, folder_name):
-    """
-    Check if the folder name contains a date that is within the given date range.
-
-    Args:
-        dates: Tuple of (start_date, end_date) in string format
-        folder_name: String name of folder which might contain a date
-
-    Returns:
-        bool: True if folder date is in range, False otherwise
-    """
-    # Extract date from folder name
-    date_match = re.findall(DATE_PATTERN, folder_name)
-    if not date_match or len(date_match) != 1:
-        return False
-
-    folder_date_str = date_match[0]
-
-    try:
-        earliest_date, latest_date = dates
-
-        # Convert all dates to datetime objects
-        # For the range dates, take just the date part if they have time
-        start_date_str = earliest_date.split()[0] if " " in earliest_date else earliest_date
-        end_date_str = latest_date.split()[0] if " " in latest_date else latest_date
-
-        # Convert to datetime objects
-        start_date = datetime.strptime(start_date_str, "%Y-%m-%d")
-        end_date = datetime.strptime(end_date_str, "%Y-%m-%d")
-        folder_date = datetime.strptime(folder_date_str, "%m.%d.%y")
-
-        # Check if folder date is within range (inclusive)
-        return start_date <= folder_date <= end_date
-
-    except (ValueError, IndexError):
-        # If any parsing fails, assume not in range
-        return False
-
-
-def unique_dilutions(series):
-    """Convert dilution values to integers when possible"""
-    unique_vals = series.unique()
-    # Convert values to appropriate numeric types
-    cleaned_vals = []
-    for val in unique_vals:
-        try:
-            # First convert to float
-            float_val = float(val)
-            # Convert to int if it's a whole number
-            if float_val.is_integer():
-                cleaned_vals.append(int(float_val))
-            else:
-                cleaned_vals.append(float_val)
-        except (ValueError, TypeError):
-            # Keep as is if not convertible
-            cleaned_vals.append(val)
-
-    return tuple(sorted(cleaned_vals))
-
-
-def rms(x):
-    return np.sqrt(np.mean(np.square(x)))
+from olaf.utils.df_utils import header_to_dict, read_with_flexible_header, unique_dilutions
+from olaf.utils.math_utils import extrapolate_blanks, inps_L_to_ml, inps_ml_to_L, rms
+from olaf.utils.path_utils import is_within_dates, natural_sort_key, save_df_file
 
 
 class BlankCorrector:
@@ -145,26 +58,39 @@ class BlankCorrector:
         all_data = []
 
         # Track header information
-        earliest_date = None
-        latest_date = None
         header_info = {}
 
         for file in self.blank_files:
             header_lines, df = read_with_flexible_header(file)
-            # Parse dates from headers
-            for line in header_lines:
-                if line.startswith("start_time = "):
-                    date_str = line.replace("start_time = ", "")
-                    if earliest_date is None or date_str < earliest_date:
-                        earliest_date = date_str
-                elif line.startswith("end_time = "):
-                    date_str = line.replace("end_time = ", "")
-                    if latest_date is None or date_str > latest_date:
-                        latest_date = date_str
-                elif " = " in line:
-                    key, value = line.split(" = ", 1)
-                    # Keep track of other header values (use the last file's values)
-                    header_info[key] = value
+            dict_header = header_to_dict(header_lines)
+
+            if not header_info:
+                header_info.update(dict_header)
+                header_info["start_time"] = datetime.strptime(
+                    dict_header["start_time"], "%Y-%m-%d %H:%M:%S"
+                )
+                header_info["end_time"] = datetime.strptime(
+                    dict_header["end_time"], "%Y-%m-%d %H:%M:%S"
+                )
+
+            # Parse dates directly from the header dictionary
+            if "start_time" in dict_header:
+                date_str = dict_header["start_time"]
+                date_obj = datetime.strptime(date_str, "%Y-%m-%d %H:%M:%S")
+
+                if header_info["start_time"] > date_obj:
+                    header_info["start_time"] = date_obj
+            else:
+                print(f"start_time not found in {file.name}")
+
+            if "end_time" in dict_header:
+                date_str = dict_header["end_time"]
+                date_obj = datetime.strptime(date_str, "%Y-%m-%d %H:%M:%S")
+
+                if header_info["end_time"] < date_obj:
+                    header_info["end_time"] = date_obj
+            else:
+                print(f"end_time not found in {file.name}")
 
             all_data.append(df)
 
@@ -197,38 +123,39 @@ class BlankCorrector:
         clean_df["blank_count"] = grouped_INPS[("INPS_L", "count")]
 
         if save:
-            clean_df = self._save_combined_blanks(clean_df, header_info, earliest_date, latest_date)
+            _, clean_df = self._save_combined_blanks(clean_df, header_info)
 
-        self.combined_blank[(earliest_date, latest_date)] = clean_df
+        self.combined_blank[(header_info["start_time"], header_info["end_time"])] = (
+            clean_df,
+            header_info,
+        )
         return clean_df
 
-    def _save_combined_blanks(self, clean_df, header_info, earliest_date, latest_date):
+    def _save_combined_blanks(self, clean_df, header_info):
+        earliest = header_info["start_time"].strftime("%Y-%m-%d")
+        latest = header_info["end_time"].strftime("%Y-%m-%d")
         # Save the combined blank data to a CSV file
-        output_file = (
-            self.project_folder / f"combined_blank_{earliest_date[:10]}_{latest_date[:10]}.csv"
-        )
+        save_file = self.project_folder / f"combined_blank_{earliest}_{latest}.csv"
+        # save_file, clean_df = save_df_file()
         counter = 0
-        output_stem = output_file.stem
-        while output_file.exists():
+        output_stem = save_file.stem
+        while save_file.exists():
             # If the file exists, append a number to the filename
             counter += 1
-            output_file = output_file.with_name(output_stem + f"({counter})" + output_file.suffix)
+            save_file = save_file.with_name(output_stem + f"({counter})" + save_file.suffix)
 
-        header_info["start_time"] = earliest_date
-        header_info["end_time"] = latest_date
-
-        with open(output_file, "w") as f:
-            f.write(f"filename = {output_file.name}\n")
+        with open(save_file, "w") as f:
+            f.write(f"filename = {save_file.name}\n")
             for key, value in header_info.items():
                 f.write(f"{key} = {value}\n")
             clean_df.to_csv(f, index=False)
-        return clean_df
+        return save_file, clean_df
 
-    def apply_blanks(self):
+    def apply_blanks(self, save=True):
         """Apply the blank correction to all INPs/L files in the project folder"""
 
-        for dates, df in self.combined_blank.items():
-            df_correction = df
+        for dates, data in self.combined_blank.items():
+            df_blanks, header_info_blanks = data
             for experiment_folder in self.project_folder.iterdir():
                 if "blank" not in experiment_folder.name and is_within_dates(
                     dates, experiment_folder.name
@@ -239,33 +166,109 @@ class BlankCorrector:
                     input_files = sorted(input_files, key=lambda x: natural_sort_key(str(x)))
 
                     # Process the latest INPS file (assumes one relevant per folder)
-                    inps_file = input_files[-2]
-                    header_lines, inps_df = read_with_flexible_header(inps_file)
-
+                    # TODO: this can be done better
+                    if len(input_files) > 2:
+                        inps_file = input_files[-2]
+                    else:
+                        inps_file = input_files[-1]
+                    header_lines, df_inps = read_with_flexible_header(inps_file)
+                    dict_header = header_to_dict(header_lines)
                     # Check if the blank correction covers all temperatures from inps
-                    inps_temps = inps_df["°C"]
-                    blank_temps = df_correction.index.to_series()
+                    inps_temps = df_inps["°C"]
+                    blank_temps = df_blanks.index.to_series()
                     missing_temps = set(inps_temps) - set(blank_temps)
                     if missing_temps:
                         # If missing temp higher than highest blank temp, extrapolate
                         if max(missing_temps) > max(blank_temps):
                             # Extrapolate the blank correction
-                            blank_temps = self._extrapolate_blanks(missing_temps)
+                            df_blanks, blank_temps = extrapolate_blanks(
+                                df_blanks, blank_temps, missing_temps
+                            )
                             missing_temps = set(inps_temps) - set(blank_temps)
                         if min(missing_temps) < min(blank_temps):
                             print(f"Missing temperatures in blank correction: {missing_temps}")
 
-                    # Apply the blank correction
+                    # Extract parameters
+                    prop_filter_used = float(dict_header["proportion_filter_used"])
+                    vol_susp = float(dict_header["vol_susp"])
+                    vol_air_filt = float(dict_header["vol_air_filt"])
+                    prop_filter_used_blanks = float(header_info_blanks["proportion_filter_used"])
+                    vol_susp_blanks = float(header_info_blanks["vol_susp"])
+                    vol_air_filt_blanks = float(header_info_blanks["vol_air_filt"])
 
-                    # Root sum of squares for CI
-                    # Iterate through all non-blank folders and apply the blank correction
+                    # Set index to temperature for alignment
+                    df_inps.set_index("°C", inplace=True)
+                    # Create a new DataFrame for the corrected values
+                    df_corrected = df_inps.copy()
+
+                    # Convert to per filter units (vectorized)
+                    df_inps["INPS_per_ml"] = inps_L_to_ml(
+                        df_inps["INPS_L"], vol_air_filt, prop_filter_used, vol_susp
+                    )
+
+                    # Get blank values for matching temperatures
+                    common_temps = df_inps.index.intersection(df_blanks.index)
+
+                    # Vectorized operations for matching temperatures
+
+                    blank_values = df_blanks.loc[common_temps, "INPS_L"]
+                    blank_per_ml = inps_L_to_ml(
+                        blank_values, vol_air_filt_blanks, prop_filter_used_blanks, vol_susp_blanks
+                    )
+
+                    # Subtract blanks (only for matching temperatures)
+                    df_inps.loc[common_temps, "INPS_per_ml"] -= blank_per_ml
+
+                    # Convert back to INPS/L (vectorized)
+                    df_corrected["INPS_L"] = inps_ml_to_L(
+                        df_inps["INPS_per_ml"], vol_air_filt, prop_filter_used, vol_susp
+                    )
+
+                    # Confidence interval correction (vectorized)
+                    if "lower_CI" in df_inps.columns and "upper_CI" in df_blanks.columns:
+                        # TODO add formula here with suspension, air_filtered, etc.
+                        sample_lower = df_inps.loc[common_temps, "lower_CI"]
+                        sample_lower = inps_L_to_ml(
+                            sample_lower, vol_air_filt, prop_filter_used, vol_susp
+                        )
+                        sample_upper = df_inps.loc[common_temps, "upper_CI"]
+                        sample_upper = inps_L_to_ml(
+                            sample_upper, vol_air_filt, prop_filter_used, vol_susp
+                        )
+                        blank_lower = df_blanks.loc[common_temps, "lower_CI"]
+                        blank_lower = inps_L_to_ml(
+                            blank_lower,
+                            vol_air_filt_blanks,
+                            prop_filter_used_blanks,
+                            vol_susp_blanks,
+                        )
+                        blank_upper = df_blanks.loc[common_temps, "upper_CI"]
+                        blank_upper = inps_L_to_ml(
+                            blank_upper,
+                            vol_air_filt_blanks,
+                            prop_filter_used_blanks,
+                            vol_susp_blanks,
+                        )
+
+                        # Root sum of squares for error propagation
+                        df_corrected.loc[common_temps, "lower_CI"] = inps_ml_to_L(
+                            np.sqrt(sample_lower**2 + blank_lower**2),
+                            vol_air_filt,
+                            prop_filter_used,
+                            vol_susp,
+                        )
+                        df_corrected.loc[common_temps, "upper_CI"] = inps_ml_to_L(
+                            np.sqrt(sample_upper**2 + blank_upper**2),
+                            vol_air_filt,
+                            prop_filter_used,
+                            vol_susp,
+                        )
+
+                    # Reset index to restore temperature column
+                    df_corrected.reset_index(inplace=True)
+
+                    # TODO: Final check
                     """
-                    All the Volume stuff
-                    - Take the proportion_filter_used, vol_susp, vol_air_filt
-                    - undo the vol_sus/(prop_filt * vol_air_filt) to get the INPS/filter
-                    - subtract the blank from INPS/filter
-                    - redo the vol_sus/(prop_filt * vol_air_filt) to get the INPS/L
-                    Afterwards run check to see
                     if INP/L[-15] < INP/L[-14.5]: # if value decreases
                         # take previous value
                       INP/L[-15] = INP/L[-14.5]
@@ -275,12 +278,22 @@ class BlankCorrector:
                       lower_INP/L[-15] = lower INP/L[-14.5]
                     """
 
-    def _extrapolate_blanks(self, missing_temps):
-        """Extrapolate the blank correction for missing temperatures"""
-        """
-        What if you don't have blank data for the lowest extremes:
-        Extrapolate out the blank using the slope of the previous 4 points
-        Take error % of previous 4 points for error of the extrapolated points
-        """
-        blank_temps = []
-        return blank_temps
+                    # Save to output file
+                    if save:
+                        # Check if file has number in () at end and remove
+                        if inps_file.stem.endswith(")"):
+                            split_files = inps_file.stem.split("(")
+                            if len(split_files) == 2:
+                                save_file = (
+                                    inps_file.parent
+                                    / f"blank_corrected_{split_files[0]}{inps_file.suffix}"
+                                )
+                            else:
+                                print(
+                                    f"Difficulty saving corrected file name \n"
+                                    f": {inps_file.stem} has more than one ()"
+                                )
+
+                        else:
+                            save_file = inps_file.parent / f"blank_corrected_{inps_file.name}"
+                        save_df_file(df_corrected, save_file, dict_header)
