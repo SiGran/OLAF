@@ -1,5 +1,6 @@
 import re
 import tkinter as tk
+from datetime import datetime
 from pathlib import Path
 
 from CONSTANTS import DATE_PATTERN
@@ -105,13 +106,14 @@ if __name__ == "__main__":
     # Use regular expression to check for dates in folder name:
     found_dates = re.findall(DATE_PATTERN, test_folder.name)
     for date in found_dates:
-        month, day, year = date.split(".")
-        start_year, str_start_month, start_day = start_time.split(" ")[0].split("-")
-        start_month = int(str_start_month)
-        if start_month < 10:
-            start_month = int(str_start_month[1:])
-            month = int(month[1:])
-        if year != start_year[2:] or str(month) != str(start_month) or day != start_day:
+        # Convert `date` to datetime object
+        date_obj = datetime.strptime(date, "%m.%d.%y")
+
+        # Convert `start_time` to datetime object
+        start_time_obj = datetime.strptime(start_time, "%Y-%m-%d %H:%M:%S")
+
+        # Compare the two dates
+        if date_obj.date() != start_time_obj.date():
             print(f"Date {date} does not match with the specified start time: {start_time}")
             ValueError("Date does not match with the specified start time")
             continue
