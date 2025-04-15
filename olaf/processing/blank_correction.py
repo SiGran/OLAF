@@ -53,7 +53,6 @@ class BlankCorrector:
         return blank_files
 
     def average_blanks(self, save=True):
-        # TODO add a date selection option?
         """Average all blank files into a single CSV file by temperature"""
         all_data = []
 
@@ -99,7 +98,7 @@ class BlankCorrector:
 
         # Group by temperature bins and calculate average INPS/L and other stats
         grouped_INPS = (
-            combined_df.groupby("°C")
+            combined_df.groupby("degC")
             .agg(
                 {
                     "dilution": [unique_dilutions],
@@ -174,7 +173,7 @@ class BlankCorrector:
                     header_lines, df_inps = read_with_flexible_header(inps_file)
                     dict_header = header_to_dict(header_lines)
                     # Check if the blank correction covers all temperatures from inps
-                    inps_temps = df_inps["°C"]
+                    inps_temps = df_inps["degC"]
                     blank_temps = df_blanks.index.to_series()
                     missing_temps = set(inps_temps) - set(blank_temps)
                     if missing_temps:
@@ -197,7 +196,7 @@ class BlankCorrector:
                     vol_air_filt_blanks = float(header_info_blanks["vol_air_filt"])
 
                     # Set index to temperature for alignment
-                    df_inps.set_index("°C", inplace=True)
+                    df_inps.set_index("degC", inplace=True)
                     # Create a new DataFrame for the corrected values
                     df_corrected = df_inps.copy()
 
