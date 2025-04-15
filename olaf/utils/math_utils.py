@@ -34,7 +34,7 @@ def extrapolate_blanks(df_blanks, blank_temps, missing_temps):
     # We expect INP values to increase as temperature decreases
     if len(df_blanks) > 1 and df_blanks["INPS_L"].iloc[-1] < df_blanks["INPS_L"].iloc[-2]:
         print(
-            f"Warning: Last temperature {df_blanks.index[-1]}°C has lower INP value "
+            f"Warning: Last temperature {df_blanks.index[-1]}degC has lower INP value "
             f"than previous temperature. Excluding from slope calculation."
         )
 
@@ -55,7 +55,7 @@ def extrapolate_blanks(df_blanks, blank_temps, missing_temps):
     for i in range(1, len(df_blanks) - 1):
         if df_blanks["INPS_L"].iloc[i] > df_blanks["INPS_L"].iloc[i + 1]:
             print(
-                f"Warning: Non-monotonic behavior detected at temperature {df_blanks.index[i]}°C. "
+                f"Warning: Non-monotonic behavior detected at temperature {df_blanks.index[i]}degC. "
                 f"INP value decreases at colder temperature."
             )
 

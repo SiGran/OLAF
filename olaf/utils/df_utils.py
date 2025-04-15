@@ -5,7 +5,7 @@ import pandas as pd
 
 def read_with_flexible_header(
     file_path: Path,
-    expected_columns: tuple = ("°C", "dilution", "INPS_L", "lower_CI", "upper_CI"),
+    expected_columns: tuple = ("degC", "dilution", "INPS_L", "lower_CI", "upper_CI"),
     max_rows: int = 20,
 ):
     """ """

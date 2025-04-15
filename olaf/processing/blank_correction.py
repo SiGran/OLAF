@@ -24,7 +24,7 @@ class BlankCorrector:
         # First collect all potential blank files
         potential_blank_files = []
         for experiment_folder in self.project_folder.iterdir():
-            if experiment_folder.is_dir() and "blanks" in experiment_folder.name.lower():
+            if experiment_folder.is_dir() and "blank" in experiment_folder.name.lower():
                 for file_path in experiment_folder.rglob("INPs_L*.csv"):
                     potential_blank_files.append(file_path)
 
@@ -53,6 +53,7 @@ class BlankCorrector:
         return blank_files
 
     def average_blanks(self, save=True):
+        # TODO add a date selection option?
         """Average all blank files into a single CSV file by temperature"""
         all_data = []
 
@@ -147,7 +148,7 @@ class BlankCorrector:
             f.write(f"filename = {save_file.name}\n")
             for key, value in header_info.items():
                 f.write(f"{key} = {value}\n")
-            clean_df.to_csv(f, index=False)
+            clean_df.to_csv(f, index=True, lineterminator="\n")
         return save_file, clean_df
 
     def apply_blanks(self, save=True):

@@ -52,15 +52,15 @@ class GraphDataCSV(DataHandler):
             # Store original column names for verification
             original_columns = set(self.data.columns)
 
-            # Drop columns that are not in dict_samples_to_dilution keys, except for '°C'
-            cols_to_keep = {"°C"}.union(dict_samples_to_dilution.keys())
+            # Drop columns that are not in dict_samples_to_dilution keys, except for 'degC'
+            cols_to_keep = {"degC"}.union(dict_samples_to_dilution.keys())
             self.data = self.data[self.data.columns.intersection(cols_to_keep)]
 
             # Attempt to rename
             self.data.rename(columns=dict_samples_to_dilution, inplace=True)
 
             # Verify the renaming - modified to match the filtering logic
-            expected_new_columns = {"°C"}.union(
+            expected_new_columns = {"degC"}.union(
                 set(
                     value
                     for key, value in dict_samples_to_dilution.items()
@@ -175,7 +175,7 @@ class GraphDataCSV(DataHandler):
         "----------- Step 1: Separate temperature and # frozen well values -------------"
 
         # Take out temperature
-        temps = self.data.pop("°C")
+        temps = self.data.pop("degC")
         # Sort the columns by dilution
         samples = self.data.reindex(sorted(self.data.columns), axis=1)
 
@@ -284,7 +284,7 @@ class GraphDataCSV(DataHandler):
             result_df.iloc[i + 1 :, 2] = lower_INPS_p_L[col_name][i + 1 :]
             result_df.iloc[i + 1 :, 3] = upper_INPS_p_L[col_name][i + 1 :]
         # Add the temperature back as first column
-        result_df.insert(0, "°C", temps)
+        result_df.insert(0, "degC", temps)
 
         "---------------------- Step 6: Save and return the data ----------------------"
         if save:
