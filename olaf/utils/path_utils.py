@@ -31,6 +31,7 @@ def save_df_file(clean_df, save_file, header_info):
         for key, value in header_info.items():
             f.write(f"{key} = {value}\n")
         clean_df.to_csv(f, index=False, lineterminator="\n")
+    return
 
 
 def is_within_dates(dates, folder_name):

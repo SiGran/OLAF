@@ -55,8 +55,8 @@ def extrapolate_blanks(df_blanks, blank_temps, missing_temps):
     for i in range(1, len(df_blanks) - 1):
         if df_blanks["INPS_L"].iloc[i] > df_blanks["INPS_L"].iloc[i + 1]:
             print(
-                f"Warning: Non-monotonic behavior detected at temperature {df_blanks.index[i]}degC. "
-                f"INP value decreases at colder temperature."
+                f"Warning: Non-monotonic behavior detected at temperature "
+                f"{df_blanks.index[i]}degC. INP value decreases at colder temperature."
             )
 
     # Calculate the slope using linear regression on these points
@@ -100,5 +100,5 @@ def extrapolate_blanks(df_blanks, blank_temps, missing_temps):
     blank_temps = df_blanks.index.to_series()
 
     # Save the new blank here?
-
+    # TODO: save extrapolated blanks to a new file?
     return df_blanks, blank_temps

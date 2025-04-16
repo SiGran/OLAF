@@ -171,6 +171,7 @@ class BlankCorrector:
                         inps_file = input_files[-2]
                     else:
                         inps_file = input_files[-1]
+                        # TODO: add error catch to notify use that no files are found
                     header_lines, df_inps = read_with_flexible_header(inps_file)
                     dict_header = header_to_dict(header_lines)
                     # Check if the blank correction covers all temperatures from inps
