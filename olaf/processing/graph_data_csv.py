@@ -172,14 +172,14 @@ class GraphDataCSV(DataHandler):
                 )
             return
 
-        "----------- Step 1: Separate temperature and # frozen well values -------------"
+        "--------- Step 1: Separate temperature and # frozen well values -----------"
 
         # Take out temperature
         temps = self.data.pop("degC")
         # Sort the columns by dilution
         samples = self.data.reindex(sorted(self.data.columns), axis=1)
 
-        "--------------- Step 2: Background column creation: N_total ------------------"
+        "-------------- Step 2: Background column creation: N_total ---------------"
         most_diluted_value = max(
             v for v in self.dict_to_samples_dilution.values() if v != float("inf")
         )
