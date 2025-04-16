@@ -1,0 +1,114 @@
+olaf.processing.graph_data_csv
+==============================
+
+.. py:module:: olaf.processing.graph_data_csv
+
+
+Classes
+-------
+
+.. autoapisummary::
+
+   olaf.processing.graph_data_csv.GraphDataCSV
+
+
+Module Contents
+---------------
+
+.. py:class:: GraphDataCSV(folder_path, num_samples, vol_air_filt, wells_per_sample, filter_used, vol_susp, dict_samples_to_dilution, suffix = '.csv', includes = ('base', ), excludes = ('INPs_L', ), date_col=False)
+
+   Bases: :py:obj:`olaf.utils.data_handler.DataHandler`
+
+
+   This class is called after the last image is reviewed in the GUI closes,
+   and after the .csv file with the temperature ranges and frozen wells is created.
+   It has a function that reads in in above-mentioned .csv file and calculates the
+   INPs/L to use per temperature over all the dilutions for the experiment.
+
+
+
+   .. py:attribute:: vol_air_filt
+
+
+   .. py:attribute:: wells_per_sample
+
+
+   .. py:attribute:: filter_used
+
+
+   .. py:attribute:: vol_susp
+
+
+   .. py:attribute:: dict_to_samples_dilution
+
+
+   .. py:method:: convert_INPs_L(header, save=True)
+
+      Convert from # frozen wells at temperature for certain dilution to INPs/L.
+      The steps involved in this function are:
+      1. Seperate the temperature and # frozen well values.
+      2. Create a column with the total number of wells per temperature
+      as affected by the background.
+      3. Calculate the INPs/L and the confidence intervals. It does this by using the
+      number of wells frozen compared to the possible total number of wells.
+      With the formula from <insert reference>:
+      (INP/mL) = =(-LN((Dx-Ex)/Dx)/(Cx/1000))*Fx
+      Dx = total number of wells minus the background
+      Ex = number of frozen wells
+      Cx = vol/well (microLiter)
+      Fx = dilution factor
+      4. Prune the data by removing the INF's and values that correspond with frozen wells
+      This will allow for the logic in step 5 to function properly.
+      5. Combine the data into one dataframe, using logic that makes decisions comparing
+      the last 4 values of a dilution before it has more than 29/32 wells frozen.
+      The logic for this is:
+          <insert logic>
+      6. Save and return the data.
+      The result is a dataframe with the temperature, dilution factor, INPs/L, and the
+      lower and upper confidence intervals.
+
+      :param save: whether to save the data to a .csv file (default: True)
+
+      Returns: the data as a pandas DataFrame
+
+
+
+
+   .. py:method:: _error_calc(n_frozen, n_total, vol_well, dilution, z = Z)
+
+      Calculate the error of the INP/L
+      The formula used is in (2) from: Agresti, A., & Coull, B. A. (1998). Approximate is
+      better than "exact" for interval estimation of binomial proportions.
+      The American Statistician, 52(2), 119–126. https://doi.org/10.2307/2685469
+      The formula is split up in three segments
+      1. The plus/minus part to differentiate between the upper and lower confidence interval
+      2. The remaining part of the numenator formula
+      3. The denominator of the remaining part
+
+      this calculates the values in INPs/mL and the typical conversion from mL to L
+      applies for the errors too.
+      :param n_frozen: number of frozen wells measured; single value or pandas df
+      :param n_total: total number of wells; single value or pandas series
+      :param vol_well: volume of each well; single value
+      :param dilution: dilution (-fold); single value or pandas series
+      :param z: z-value of the normal distribution, float
+
+      :returns: error of the INP/L
+
+
+
+   .. py:method:: _INP_ml_to_L(ml_df)
+
+      Convert the INPs/mL to INPs/L, using the formula::
+      INPs/L = (INPs/mL * vol_susp) / (vol_air_filt * filter_used)
+      with vol_susp = volume used for suspension
+      vol_air_filt = volume of air filtered
+      filter_used = proportion of filter used
+      :param ml_df: dataframe containing the INPs/mL values. Could also be a single
+      :param value or series:
+
+      Returns: same format as input, but with INPs/L values
+
+
+
+

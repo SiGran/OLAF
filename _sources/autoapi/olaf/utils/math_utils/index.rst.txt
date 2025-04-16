@@ -1,0 +1,31 @@
+olaf.utils.math_utils
+=====================
+
+.. py:module:: olaf.utils.math_utils
+
+
+Functions
+---------
+
+.. autoapisummary::
+
+   olaf.utils.math_utils.inps_ml_to_L
+   olaf.utils.math_utils.inps_L_to_ml
+   olaf.utils.math_utils.rms
+   olaf.utils.math_utils.extrapolate_blanks
+
+
+Module Contents
+---------------
+
+.. py:function:: inps_ml_to_L(inps_col, vol_air_filt, prop_filter_used, vol_susp)
+
+.. py:function:: inps_L_to_ml(inps_col, vol_air_filt, prop_filter_used, vol_susp)
+
+.. py:function:: rms(x)
+
+.. py:function:: extrapolate_blanks(df_blanks, blank_temps, missing_temps)
+
+   Extrapolate the blank correction for missing temperatures
+
+

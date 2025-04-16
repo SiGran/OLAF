@@ -1,0 +1,65 @@
+olaf.utils.data_handler
+=======================
+
+.. py:module:: olaf.utils.data_handler
+
+
+Classes
+-------
+
+.. autoapisummary::
+
+   olaf.utils.data_handler.DataHandler
+
+
+Module Contents
+---------------
+
+.. py:class:: DataHandler(folder_path, num_samples, **kwargs)
+
+   .. py:attribute:: folder_path
+
+
+   .. py:attribute:: num_samples
+
+
+   .. py:method:: get_data_file(includes, excludes, suffix = '.dat', date_col = 'Time', sep = '\t')
+
+      Load a file with a given suffix (default: .dat) from the Project folder.
+      Arguments to exclude files can be passed as a list to the "excludes" parameter.
+      Because of pandas loading, the Date and Time in column "Time" are split in two
+      Different columns and renamed to Date and Time respectively.
+      It also adds a column to capture changes to the number of frozen wells.
+      The function returns the file path and the data as a pandas DataFrame.
+      :param suffix: suffix of the file to load (default: .dat)
+      :param includes: combination of strings to include in the file name (default: None)
+      :param excludes: combination of strings to exclude from the file name (default: None)
+      :param date_col: column name for the date (or time) column (default: "Time")
+      :param sep: separator for the file to load (default: tab-separated)
+
+      :returns: tuple with the file path and the data as a pandas DataFrame
+
+
+
+   .. py:method:: save_to_new_file(save_data = None, save_path = None, prefix = '_', sep = ',', header = None)
+
+      Save a DataFrame to a new file with a unique name.
+
+      If the target file already exists, automatically adds a number suffix
+      to create a unique filename.
+
+      :param save_data: Pandas DataFrame to save. If None, uses self.data
+      :param save_path: Path to save the file to. If None, uses self.data_file
+      :param prefix: String to add to the start of the file name
+      :param sep: Separator for CSV file (default: comma)
+      :param header: Header to add to the file. If None, no header is added
+
+      :returns: Path to the saved file
+      :rtype: Path
+
+      :raises ValueError: If save_data is None and self.data is not available
+      :raises TypeError: If save_path is not a Path object
+      :raises OSError: If there are file system related errors
+
+
+

@@ -1,0 +1,41 @@
+olaf.utils.path_utils
+=====================
+
+.. py:module:: olaf.utils.path_utils
+
+
+Functions
+---------
+
+.. autoapisummary::
+
+   olaf.utils.path_utils.natural_sort_key
+   olaf.utils.path_utils.save_df_file
+   olaf.utils.path_utils.is_within_dates
+
+
+Module Contents
+---------------
+
+.. py:function:: natural_sort_key(s)
+
+   Key function for sorting strings in "natural" order.
+   :param s: string to sort
+
+   :returns: list of strings and numbers to sort
+   :rtype: list
+
+
+.. py:function:: save_df_file(clean_df, save_file, header_info)
+
+.. py:function:: is_within_dates(dates, folder_name)
+
+   Check if the folder name contains a date that is within the given date range.
+
+   :param dates: Tuple of (start_date, end_date) in string format
+   :param folder_name: String name of folder which might contain a date
+
+   :returns: True if folder date is in range, False otherwise
+   :rtype: bool
+
+

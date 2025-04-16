@@ -1,0 +1,25 @@
+olaf.main_for_blanks
+====================
+
+.. py:module:: olaf.main_for_blanks
+
+
+Attributes
+----------
+
+.. autoapisummary::
+
+   olaf.main_for_blanks.project_folder
+   olaf.main_for_blanks.corrector
+   olaf.main_for_blanks.avg_blanks
+
+
+Module Contents
+---------------
+
+.. py:data:: project_folder
+
+.. py:data:: corrector
+
+.. py:data:: avg_blanks
+

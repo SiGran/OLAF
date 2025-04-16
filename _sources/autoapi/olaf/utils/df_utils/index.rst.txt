@@ -1,0 +1,31 @@
+olaf.utils.df_utils
+===================
+
+.. py:module:: olaf.utils.df_utils
+
+
+Functions
+---------
+
+.. autoapisummary::
+
+   olaf.utils.df_utils.read_with_flexible_header
+   olaf.utils.df_utils.header_to_dict
+   olaf.utils.df_utils.unique_dilutions
+
+
+Module Contents
+---------------
+
+.. py:function:: read_with_flexible_header(file_path, expected_columns = ('degC', 'dilution', 'INPS_L', 'lower_CI', 'upper_CI'), max_rows = 20)
+
+.. py:function:: header_to_dict(header_lines)
+
+   Convert header lines to a dictionary
+
+
+.. py:function:: unique_dilutions(series)
+
+   Convert dilution values to integers when possible, handling tuples and lists
+
+
