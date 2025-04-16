@@ -3,8 +3,7 @@ import tkinter as tk
 from datetime import datetime
 from pathlib import Path
 
-from CONSTANTS import DATE_PATTERN
-
+from olaf.CONSTANTS import DATE_PATTERN
 from olaf.image_verification.freezing_reviewer import FreezingReviewer
 from olaf.processing.graph_data_csv import GraphDataCSV
 from olaf.processing.spaced_temp_csv import SpacedTempCSV

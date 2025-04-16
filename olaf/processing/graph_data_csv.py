@@ -54,7 +54,7 @@ class GraphDataCSV(DataHandler):
 
             # Drop columns that are not in dict_samples_to_dilution keys, except for 'degC'
             cols_to_keep = {"degC"}.union(dict_samples_to_dilution.keys())
-            self.data = self.data[self.data.columns.intersection(cols_to_keep)]
+            self.data = self.data[self.data.columns.intersection(list(cols_to_keep))]
 
             # Attempt to rename
             self.data.rename(columns=dict_samples_to_dilution, inplace=True)
