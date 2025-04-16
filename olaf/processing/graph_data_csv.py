@@ -48,17 +48,24 @@ class GraphDataCSV(DataHandler):
         self.vol_susp = vol_susp
         self.dict_to_samples_dilution = dict_samples_to_dilution
         # change the headers of the data from samples to dilution factor
-        try:
+        try:  # TODO REMOVE COLUMNS NOT IN DICT
             # Store original column names for verification
             original_columns = set(self.data.columns)
+
+            # Drop columns that are not in dict_samples_to_dilution keys, except for 'degC'
+            cols_to_keep = {"degC"}.union(dict_samples_to_dilution.keys())
+            self.data = self.data[self.data.columns.intersection(list(cols_to_keep))]
 
             # Attempt to rename
             self.data.rename(columns=dict_samples_to_dilution, inplace=True)
 
-            # Verify the renaming
-            expected_new_columns = set(
-                original_columns - set(dict_samples_to_dilution.keys())
-                | set(dict_samples_to_dilution.values())
+            # Verify the renaming - modified to match the filtering logic
+            expected_new_columns = {"degC"}.union(
+                set(
+                    value
+                    for key, value in dict_samples_to_dilution.items()
+                    if key in original_columns
+                )
             )
             if set(self.data.columns) != expected_new_columns:
                 raise ValueError("Column renaming did not produce expected results")
@@ -67,10 +74,10 @@ class GraphDataCSV(DataHandler):
             raise ValueError(f"Failed to rename columns: {str(e)}")
         return
 
-    def convert_INPs_L(self, save=True):
+    def convert_INPs_L(self, header: str, save=True):
         """
         Convert from # frozen wells at temperature for certain dilution to INPs/L.
-        The stepls involved in this function are:
+        The steps involved in this function are:
         1. Seperate the temperature and # frozen well values.
         2. Create a column with the total number of wells per temperature
         as affected by the background.
@@ -121,8 +128,11 @@ class GraphDataCSV(DataHandler):
             Returns: none
 
             """
-            current_upper_err = upper_INPS_p_L[col_name][i - 1]
-            next_upper_err = upper_INPS_p_L[col_name][i]
+            curr_dilution = result_df.loc[i - 1, "dilution"]
+            # upper CI of current one we're comparing so i-1
+            current_upper_err = upper_INPS_p_L[curr_dilution][i - 1]
+            # upper CI of possible next point with the same dilution
+            next_upper_err = upper_INPS_p_L[curr_dilution][i]
             next_dil_upper_err = upper_INPS_p_L[col_name][i]
             # check if both/either one are within certain statistical range of
             # previous and next value
@@ -134,61 +144,66 @@ class GraphDataCSV(DataHandler):
                 if next_upper_err < next_dil_upper_err:
                     return  # current one already selected
                 else:
-                    result_df[i] = (
-                        col_name,
-                        next_dilution_INP[i],
-                        lower_INPS_p_L[col_name][i],
-                        upper_INPS_p_L[col_name][i],
-                    )
+                    result_df.loc[i, "dilution"] = col_name
+                    result_df.loc[i, "INPS_L"] = next_dilution_INP[i]
+                    result_df.loc[i, "lower_CI"] = lower_INPS_p_L[col_name][i]
+                    result_df.loc[i, "upper_CI"] = upper_INPS_p_L[col_name][i]
             # if one is within the error range of the previous value other isn't
             elif (result_df["INPS_L"][i - 1] + current_upper_err) > result_df["INPS_L"][i]:
                 return  # current one already selected
             elif (result_df["INPS_L"][i - 1] + current_upper_err) > next_dilution_INP[i]:
-                result_df[i] = (
-                    col_name,
-                    next_dilution_INP[i],
-                    lower_INPS_p_L[col_name][i],
-                    upper_INPS_p_L[col_name][i],
-                )
+                result_df.loc[i, "dilution"] = col_name
+                result_df.loc[i, "INPS_L"] = next_dilution_INP[i]
+                result_df.loc[i, "lower_CI"] = lower_INPS_p_L[col_name][i]
+                result_df.loc[i, "upper_CI"] = upper_INPS_p_L[col_name][i]
             # both outside of error range
             else:
                 # Average them together
-                result_df["dilution"][i] = col_name
-                result_df["INPS_L"][i] = (result_df["INPS_L"][i] + next_dilution_INP[i]) / 2
+                result_df.loc[i, "dilution"] = col_name
+                result_df.loc[i, "INPS_L"] = (result_df.loc[i, "INPS_L"] + next_dilution_INP[i]) / 2
                 # error propagation: sqrt(a^2 + b^2) / 2
-                result_df["lower_CI"][i] = (
-                    np.sqrt(result_df["lower_CI"][i] ** 2 + lower_INPS_p_L[col_name][i] ** 2) / 2
+                result_df.loc[i, "lower_CI"] = (
+                    np.sqrt(result_df.loc[i, "lower_CI"] ** 2 + lower_INPS_p_L[col_name][i] ** 2)
+                    / 2
                 )
-                result_df["upper_CI"][i] = (
-                    np.sqrt(result_df["upper_CI"][i] ** 2 + upper_INPS_p_L[col_name][i] ** 2) / 2
+                result_df.loc[i, "upper_CI"] = (
+                    np.sqrt(result_df.loc[i, "upper_CI"] ** 2 + upper_INPS_p_L[col_name][i] ** 2)
+                    / 2
                 )
             return
 
-        "----------- Step 1: Seperate temperature and # frozen well values -------------"
+        "--------- Step 1: Separate temperature and # frozen well values -----------"
 
         # Take out temperature
-        temps = self.data.pop("°C")
+        temps = self.data.pop("degC")
         # Sort the columns by dilution
         samples = self.data.reindex(sorted(self.data.columns), axis=1)
 
-        "--------------- Step 2: Background column creation: N_total ------------------"
+        "-------------- Step 2: Background column creation: N_total ---------------"
         most_diluted_value = max(
             v for v in self.dict_to_samples_dilution.values() if v != float("inf")
         )
         # check if any dilution is less than the background and take that instead
+        # TODO: automatically false, only compare if background is above 2 frozen
         dilution_v_background_df = samples[float("inf")] > samples[most_diluted_value]
         # if more than NUM_TO_REPLACE_D1 samples in the highest dilutions are smaller
         # than the background
         # to create N_total df --> one column
-        print(f"DI background found to be higher than {most_diluted_value} dilution {dilution_v_background_df.sum()} times.")
+        print(
+            f"DI background found to be higher than {most_diluted_value} dilution "
+            f"{dilution_v_background_df.sum()} times."
+        )
         if dilution_v_background_df.sum() < NUM_TO_REPLACE_D1:
             N_total_series = self.wells_per_sample - samples[float("inf")]
             adjusted_samples = samples.apply(lambda col: col - samples[float("inf")])
         else:  # use the background
             N_total_series = self.wells_per_sample - samples[most_diluted_value]
             adjusted_samples = samples.apply(lambda col: col - samples[most_diluted_value])
-            print(f"DI found to be higher than the {most_diluted_value} diltuion on {dilution_v_background_df.sum()} occasions. "
-                  f"{most_diluted_value} dilution used for background in place of DI.")
+            print(
+                f"DI found to be higher than the {most_diluted_value} diltuion on "
+                f"{dilution_v_background_df.sum()} occasions. "
+                f"{most_diluted_value} dilution used for background in place of DI."
+            )
 
         "--------------- Step 3: INP/L calc + Confidence Intervals ----------------------"
         # With the samples columns and the N_total column, we can calculate the INPs/L
@@ -202,8 +217,8 @@ class GraphDataCSV(DataHandler):
         )
 
         "-------------------------- Step 4: Pruning the data --------------------------"
-        # Turn the INF's into NaN's
-        all_INPs_p_L.replace(np.inf, np.nan, inplace=True)
+        # Turn both positive and negative INF's into NaN's
+        all_INPs_p_L.replace({np.inf: np.nan, -np.inf: np.nan}, inplace=True)
         # Turn the values that correspond with frozen wells (in samples) of 30 or higher into NaN's
         # TODO: this assumes all samples have 32 wells, which is not the case for lower temperatures
         # TODO: How to adjust for this?
@@ -228,45 +243,52 @@ class GraphDataCSV(DataHandler):
         for col_name, next_dilution_INP in all_INPs_p_L.iloc[:, 1:-1].items():
             # Take last 4 real values of current result_df["INPS_L"]
             last_4_i = result_df["INPS_L"].dropna().tail(4).index
-
+            going_down = False
             for i in last_4_i:
-                # Check if both options are smaller
                 if (
-                    result_df["INPS_L"][i] < result_df["INPS_L"][i - 1]
-                    and next_dilution_INP[i] < result_df["INPS_L"][i - 1]
-                ):
-                    # throw them out/error, no value for that temperature, whatever
-                    result_df[i] = np.nan
-                    # Both are bigger:
-                elif (
-                    result_df["INPS_L"][i] >= result_df["INPS_L"][i - 1]
-                    and next_dilution_INP[i] >= result_df["INPS_L"].iloc[-1]
-                ):
-                    # Logic moved to function at top of this function for readability
-                    error_logic_selecting_values(i, col_name, next_dilution_INP)
+                    result_df.loc[i, "INPS_L"] < result_df.loc[i - 1, "INPS_L"] or going_down
+                ):  # If value is going down
+                    going_down = True
+                    prev_val = result_df["INPS_L"][i - 1]
+                    if prev_val == np.nan:
+                        prev_val = result_df["INPS_L"][i - 2]
+                    if prev_val == np.nan:
+                        print(
+                            f"Dilution transition error going to dilution {col_name}; "
+                            f"check frozen_at_temp file!"
+                        )
 
-                # If only current dilution is bigger, take that one
-                elif result_df["INPS_L"][i] >= result_df["INPS_L"][i - 1]:
-                    continue  # current one already selected
-                # If only next dilution is bigger, take that one
-                elif next_dilution_INP[i] >= result_df["INPS_L"].iloc[-1]:
-                    result_df[i] = (
-                        col_name,
-                        next_dilution_INP[i],
-                        lower_INPS_p_L[col_name][i],
-                        upper_INPS_p_L[col_name][i],
-                    )
+                    # Check if both options are smaller
+                    if result_df["INPS_L"][i] < prev_val and next_dilution_INP[i] < prev_val:
+                        # throw them out/error, no value for that temperature, whatever
+                        result_df.loc[i, :] = np.nan
+                        # Both are bigger:
+                    elif result_df["INPS_L"][i] > prev_val and next_dilution_INP[i] > prev_val:
+                        # Logic moved to function at top of this function for readability
+                        error_logic_selecting_values(i, col_name, next_dilution_INP)
+
+                    # If only current dilution is bigger, take that one
+                    elif result_df["INPS_L"][i] >= prev_val:
+                        continue  # current one already selected
+                    # If only next dilution is bigger, take that one
+                    elif next_dilution_INP[i] >= prev_val:
+                        result_df.loc[i, "dilution"] = col_name
+                        result_df.loc[i, "INPS_L"] = next_dilution_INP[i]
+                        result_df.loc[i, "lower_CI"] = lower_INPS_p_L[col_name][i]
+                        result_df.loc[i, "upper_CI"] = upper_INPS_p_L[col_name][i]
+                else:
+                    continue
             # After checking the 4 overlapping values, we need to add the rest of the next dilution
             result_df.iloc[i + 1 :, 0] = col_name
             result_df.iloc[i + 1 :, 1] = next_dilution_INP[i + 1 :]
             result_df.iloc[i + 1 :, 2] = lower_INPS_p_L[col_name][i + 1 :]
             result_df.iloc[i + 1 :, 3] = upper_INPS_p_L[col_name][i + 1 :]
         # Add the temperature back as first column
-        result_df.insert(0, "°C", temps)
+        result_df.insert(0, "degC", temps)
 
         "---------------------- Step 6: Save and return the data ----------------------"
         if save:
-            self.save_to_new_file(result_df, prefix="INPs_L")
+            self.save_to_new_file(result_df, prefix="INPs_L", header=header)
 
         return result_df
 

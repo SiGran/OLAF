@@ -108,8 +108,8 @@ class SpacedTempCSV(DataHandler):
 
             temp_frozen_df.loc[len(temp_frozen_df)] = new_row
 
-        # Change temperature column to standard name of °C
-        temp_frozen_df.rename(columns={temp_col: "°C"}, inplace=True)
+        # Change temperature column to standard name of degC
+        temp_frozen_df.rename(columns={temp_col: "degC"}, inplace=True)
         # Set sample columns to ints
         for i in range(self.num_samples):
             temp_frozen_df[f"Sample_{i}"] = temp_frozen_df[f"Sample_{i}"].astype("int64")
