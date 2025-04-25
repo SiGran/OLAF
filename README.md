@@ -195,12 +195,17 @@ pip install seems to be the best.
 pip install poetry
 
 
-NEED TO USE command prompt (not powershell)
+NEED TO USE command prompt (not powershell):
 pip install pyenv
+
 pyenv install 3.11.0
+
 pyenv gloabl 3.11.0
+
 pip install poetry
+
 poetry install
+
 
 set intepreter in pycharm to the virtual environment created by poetry
 pyproject.
