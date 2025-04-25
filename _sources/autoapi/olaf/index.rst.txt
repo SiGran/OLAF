@@ -1,0 +1,20 @@
+olaf
+====
+
+.. py:module:: olaf
+
+
+Submodules
+----------
+
+.. toctree::
+   :maxdepth: 1
+
+   /autoapi/olaf/CONSTANTS/index
+   /autoapi/olaf/image_verification/index
+   /autoapi/olaf/main/index
+   /autoapi/olaf/main_for_blanks/index
+   /autoapi/olaf/processing/index
+   /autoapi/olaf/utils/index
+
+

@@ -1,0 +1,115 @@
+olaf.main
+=========
+
+.. py:module:: olaf.main
+
+
+Attributes
+----------
+
+.. autoapisummary::
+
+   olaf.main.test_folder
+   olaf.main.site
+   olaf.main.start_time
+   olaf.main.end_time
+   olaf.main.filter_color
+   olaf.main.notes
+   olaf.main.user
+   olaf.main.num_samples
+   olaf.main.vol_air_filt
+   olaf.main.wells_per_sample
+   olaf.main.proportion_filter_used
+   olaf.main.vol_susp
+   olaf.main.treatment
+   olaf.main.dict_samples_to_dilution
+   olaf.main.header
+   olaf.main.vol_air_filt
+
+
+Module Contents
+---------------
+
+.. py:data:: test_folder
+
+.. py:data:: site
+   :value: 'SGP'
+
+
+.. py:data:: start_time
+   :value: '2024-05-15 00:00:00'
+
+
+.. py:data:: end_time
+   :value: '2024-05-15 00:00:00'
+
+
+.. py:data:: filter_color
+   :value: 'white'
+
+
+.. py:data:: notes
+   :value: 'PUT THE NOTES HERE'
+
+
+.. py:data:: user
+   :value: 'JEMOEDER'
+
+
+.. py:data:: num_samples
+   :value: 6
+
+
+.. py:data:: vol_air_filt
+   :value: 1
+
+
+.. py:data:: wells_per_sample
+   :value: 32
+
+
+.. py:data:: proportion_filter_used
+   :value: 1.0
+
+
+.. py:data:: vol_susp
+   :value: 10
+
+
+.. py:data:: treatment
+   :value: ('blank',)
+
+
+.. py:data:: dict_samples_to_dilution
+
+.. py:data:: header
+   :value: Multiline-String
+
+   .. raw:: html
+
+      <details><summary>Show Value</summary>
+
+   .. code-block:: python
+
+      """site = SGP
+      start_time = 2024-05-15 00:00:00
+      end_time = 2024-05-15 00:00:00
+      filter_color = white
+      vol_air_filt = 1
+      proportion_filter_used = 1.0
+      vol_susp = 10
+      treatment = blank
+      notes = PUT THE NOTES HERE
+      user = JEMOEDER
+      """
+
+   .. raw:: html
+
+      </details>
+
+
+
+.. py:data:: vol_air_filt
+   :value: 1
+
+

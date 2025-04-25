@@ -1,0 +1,36 @@
+olaf.CONSTANTS
+==============
+
+.. py:module:: olaf.CONSTANTS
+
+
+Attributes
+----------
+
+.. autoapisummary::
+
+   olaf.CONSTANTS.VOL_WELL
+   olaf.CONSTANTS.NUM_TO_REPLACE_D1
+   olaf.CONSTANTS.Z
+   olaf.CONSTANTS.DATE_PATTERN
+
+
+Module Contents
+---------------
+
+.. py:data:: VOL_WELL
+   :value: 50
+
+
+.. py:data:: NUM_TO_REPLACE_D1
+   :value: 10
+
+
+.. py:data:: Z
+   :value: 1.96
+
+
+.. py:data:: DATE_PATTERN
+   :value: '(?<!\\d)(\\d{1,2}\\.\\d{2}\\.\\d{2})(?!\\d)'
+
+

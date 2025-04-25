@@ -1,0 +1,88 @@
+olaf.image_verification.button_handler
+======================================
+
+.. py:module:: olaf.image_verification.button_handler
+
+
+Classes
+-------
+
+.. autoapisummary::
+
+   olaf.image_verification.button_handler.ButtonHandler
+
+
+Module Contents
+---------------
+
+.. py:class:: ButtonHandler(root, folder_path, num_samples, includes)
+
+   Bases: :py:obj:`olaf.image_verification.data_loader.DataLoader`
+
+
+   .. py:attribute:: num_samples
+
+
+   .. py:method:: create_buttons()
+
+      Create buttons for each sample to increase or decrease the number of frozen wells
+      :returns: None
+
+
+
+   .. py:method:: show_photo()
+
+      Function to display the current photo in the window and update the title with
+      image name. This function is called when the window is first created and when
+      the user navigates to the next or previous image.
+      :returns: None
+
+
+
+   .. py:method:: _update_image(sample, change)
+
+      (Placeholder to) Update the number of frozen wells for the current image
+      :param sample: which sample (column) to update, -1 for "Good"
+      :param change: by what amount to change the sample frozen well value,
+      :param -1 for decrease:
+      :param 1 for increase.:
+
+      :returns: None
+
+
+
+   .. py:method:: _next_image()
+
+      Go to the next photo in the list. If there are no more photos, call the closing
+      sequence. Otherwise, show the next photo.
+      :returns: None
+
+
+
+   .. py:method:: _prev_image()
+
+      Go to the previous photo in the list. If there are no photos to go back to,
+      do nothing.
+      :returns: None
+
+
+
+   .. py:method:: _display_num_frozen(pic_file_name)
+
+      (Placeholder to) Display the number of frozen wells for each sample in the
+      current image.
+      :param pic_file_name: name of the current image being rendered.
+
+      :returns: None
+
+
+
+   .. py:method:: closing_sequence()
+
+      This function is automatically ran after the last image is reviewed and the
+      GUI closes.
+      Currently, it calls the save_data function from the DataLoader class.
+      :returns: None
+
+
+

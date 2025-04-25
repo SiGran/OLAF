@@ -1,0 +1,52 @@
+olaf.processing.blank_correction
+================================
+
+.. py:module:: olaf.processing.blank_correction
+
+
+Classes
+-------
+
+.. autoapisummary::
+
+   olaf.processing.blank_correction.BlankCorrector
+
+
+Module Contents
+---------------
+
+.. py:class:: BlankCorrector(project_folder)
+
+   .. py:attribute:: project_folder
+
+
+   .. py:attribute:: blank_files
+      :value: []
+
+
+
+   .. py:attribute:: combined_blank
+      :type:  dict[tuple[str, str], pandas.DataFrame]
+
+
+   .. py:method:: _find_blank_files()
+
+      Find all blank CSV files in the project structure, selecting only one file per date
+
+
+
+   .. py:method:: average_blanks(save=True)
+
+      Average all blank files into a single CSV file by temperature
+
+
+
+   .. py:method:: _save_combined_blanks(clean_df, header_info)
+
+
+   .. py:method:: apply_blanks(save=True)
+
+      Apply the blank correction to all INPs/L files in the project folder
+
+
+

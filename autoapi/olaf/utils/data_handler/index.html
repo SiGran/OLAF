@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../../../../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>olaf.utils.data_handler &#8212; olaf 0.0.1 documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../../../_static/pygments.css?v=5ecbeea2" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/basic.css?v=b08954a9" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/alabaster.css?v=27fed22d" />
+    <link rel="stylesheet" type="text/css" href="../../../../_static/graphviz.css?v=4ae1632d" />
+    <script src="../../../../_static/documentation_options.js?v=d45e8c67"></script>
+    <script src="../../../../_static/doctools.js?v=9bcbadda"></script>
+    <script src="../../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <link rel="index" title="Index" href="../../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../../search.html" />
+    <link rel="next" title="olaf.utils.df_utils" href="../df_utils/index.html" />
+    <link rel="prev" title="olaf.utils" href="../index.html" />
+   
+  <link rel="stylesheet" href="../../../../_static/custom.css" type="text/css" />
+  
+
+  
+  
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <section id="module-olaf.utils.data_handler">
+<span id="olaf-utils-data-handler"></span><h1>olaf.utils.data_handler<a class="headerlink" href="#module-olaf.utils.data_handler" title="Link to this heading">¶</a></h1>
+<section id="classes">
+<h2>Classes<a class="headerlink" href="#classes" title="Link to this heading">¶</a></h2>
+<table class="autosummary longtable docutils align-default">
+<tbody>
+<tr class="row-odd"><td><p><a class="reference internal" href="#olaf.utils.data_handler.DataHandler" title="olaf.utils.data_handler.DataHandler"><code class="xref py py-obj docutils literal notranslate"><span class="pre">DataHandler</span></code></a></p></td>
+<td><p></p></td>
+</tr>
+</tbody>
+</table>
+</section>
+<section id="module-contents">
+<h2>Module Contents<a class="headerlink" href="#module-contents" title="Link to this heading">¶</a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="olaf.utils.data_handler.DataHandler">
+<em class="property"><span class="k"><span class="pre">class</span></span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">olaf.utils.data_handler.</span></span><span class="sig-name descname"><span class="pre">DataHandler</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">folder_path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_samples</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#olaf.utils.data_handler.DataHandler" title="Link to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>folder_path</strong> (<em>pathlib.Path</em>)</p></li>
+<li><p><strong>num_samples</strong> (<em>int</em>)</p></li>
+</ul>
+</dd>
+</dl>
+<dl class="py attribute">
+<dt class="sig sig-object py" id="olaf.utils.data_handler.DataHandler.folder_path">
+<span class="sig-name descname"><span class="pre">folder_path</span></span><a class="headerlink" href="#olaf.utils.data_handler.DataHandler.folder_path" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py attribute">
+<dt class="sig sig-object py" id="olaf.utils.data_handler.DataHandler.num_samples">
+<span class="sig-name descname"><span class="pre">num_samples</span></span><a class="headerlink" href="#olaf.utils.data_handler.DataHandler.num_samples" title="Link to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="olaf.utils.data_handler.DataHandler.get_data_file">
+<span class="sig-name descname"><span class="pre">get_data_file</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">includes</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">excludes</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">suffix</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'.dat'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">date_col</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'Time'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sep</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'\t'</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#olaf.utils.data_handler.DataHandler.get_data_file" title="Link to this definition">¶</a></dt>
+<dd><p>Load a file with a given suffix (default: .dat) from the Project folder.
+Arguments to exclude files can be passed as a list to the “excludes” parameter.
+Because of pandas loading, the Date and Time in column “Time” are split in two
+Different columns and renamed to Date and Time respectively.
+It also adds a column to capture changes to the number of frozen wells.
+The function returns the file path and the data as a pandas DataFrame.
+:param suffix: suffix of the file to load (default: .dat)
+:param includes: combination of strings to include in the file name (default: None)
+:param excludes: combination of strings to exclude from the file name (default: None)
+:param date_col: column name for the date (or time) column (default: “Time”)
+:param sep: separator for the file to load (default: tab-separated)</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>tuple with the file path and the data as a pandas DataFrame</p>
+</dd>
+<dt class="field-even">Parameters<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>includes</strong> (<em>tuple</em>)</p></li>
+<li><p><strong>excludes</strong> (<em>tuple</em>)</p></li>
+<li><p><strong>suffix</strong> (<em>str</em>)</p></li>
+<li><p><strong>date_col</strong> (<em>str</em>)</p></li>
+<li><p><strong>sep</strong> (<em>str</em>)</p></li>
+</ul>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>tuple[pathlib.Path, pandas.DataFrame]</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="olaf.utils.data_handler.DataHandler.save_to_new_file">
+<span class="sig-name descname"><span class="pre">save_to_new_file</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">save_data</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">save_path</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">prefix</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'_'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sep</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">','</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">header</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#olaf.utils.data_handler.DataHandler.save_to_new_file" title="Link to this definition">¶</a></dt>
+<dd><p>Save a DataFrame to a new file with a unique name.</p>
+<p>If the target file already exists, automatically adds a number suffix
+to create a unique filename.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>save_data</strong> (<em>pandas.DataFrame</em><em> | </em><em>None</em>) – Pandas DataFrame to save. If None, uses self.data</p></li>
+<li><p><strong>save_path</strong> (<em>pathlib.Path</em><em> | </em><em>None</em>) – Path to save the file to. If None, uses self.data_file</p></li>
+<li><p><strong>prefix</strong> (<em>str</em>) – String to add to the start of the file name</p></li>
+<li><p><strong>sep</strong> (<em>str</em>) – Separator for CSV file (default: comma)</p></li>
+<li><p><strong>header</strong> (<em>str</em><em> | </em><em>None</em>) – Header to add to the file. If None, no header is added</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Path to the saved file</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>Path</p>
+</dd>
+<dt class="field-even">Raises<span class="colon">:</span></dt>
+<dd class="field-even"><ul class="simple">
+<li><p><strong>ValueError</strong> – If save_data is None and self.data is not available</p></li>
+<li><p><strong>TypeError</strong> – If save_path is not a Path object</p></li>
+<li><p><strong>OSError</strong> – If there are file system related errors</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+</section>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../../../index.html">olaf</a></h1>
+
+
+
+
+
+
+
+
+
+<search id="searchbox" style="display: none" role="search">
+    <div class="searchformwrapper">
+    <form class="search" action="../../../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Search"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script><h3>Navigation</h3>
+<p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="../../../index.html">API Reference</a><ul class="current">
+<li class="toctree-l2 current"><a class="reference internal" href="../../index.html">olaf</a></li>
+</ul>
+</li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../../../index.html">Documentation overview</a><ul>
+  <li><a href="../../../index.html">API Reference</a><ul>
+  <li><a href="../../index.html">olaf</a><ul>
+  <li><a href="../index.html">olaf.utils</a><ul>
+      <li>Previous: <a href="../index.html" title="previous chapter">olaf.utils</a></li>
+      <li>Next: <a href="../df_utils/index.html" title="next chapter">olaf.utils.df_utils</a></li>
+  </ul></li>
+  </ul></li>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &#169;2024, Simon Grannetia.
+      
+      |
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 8.2.3</a>
+      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 1.0.0</a>
+      
+      |
+      <a href="../../../../_sources/autoapi/olaf/utils/data_handler/index.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

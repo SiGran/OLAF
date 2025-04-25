@@ -1,0 +1,41 @@
+olaf.image_verification.freezing_reviewer
+=========================================
+
+.. py:module:: olaf.image_verification.freezing_reviewer
+
+
+Classes
+-------
+
+.. autoapisummary::
+
+   olaf.image_verification.freezing_reviewer.FreezingReviewer
+
+
+Module Contents
+---------------
+
+.. py:class:: FreezingReviewer(root, folder_path, num_samples, includes)
+
+   Bases: :py:obj:`olaf.image_verification.button_handler.ButtonHandler`
+
+
+   .. py:method:: _update_image(sample, change)
+
+      Update the number of frozen wells for the given sample in the current image.
+      :param sample: sample number to update
+      :param change: change in the number of frozen wells
+
+      :returns: None
+
+
+
+   .. py:method:: _display_num_frozen(pic_file_name)
+
+      Display the number of frozen wells for each sample in the current image.
+      :param pic_file_name: name of the current image
+
+      :returns: None
+
+
+
