@@ -1,15 +1,18 @@
-import re
-from collections import defaultdict
 from datetime import datetime
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
 
-from olaf.CONSTANTS import DATE_PATTERN, ERROR_SIGNAL, THRESHOLD_ERROR
+from olaf.CONSTANTS import ERROR_SIGNAL, THRESHOLD_ERROR
 from olaf.utils.df_utils import header_to_dict, read_with_flexible_header, unique_dilutions
 from olaf.utils.math_utils import extrapolate_blanks, inps_L_to_ml, inps_ml_to_L, rms
-from olaf.utils.path_utils import find_latest_file, is_within_dates, save_df_file
+from olaf.utils.path_utils import (
+    find_latest_file,
+    is_within_dates,
+    save_df_file,
+    sort_files_by_date,
+)
 
 
 class BlankCorrector:
@@ -28,23 +31,14 @@ class BlankCorrector:
                 for file_path in experiment_folder.rglob("INPs_L*.csv"):
                     potential_blank_files.append(file_path)
 
-        # Group files by date
-        files_by_date = defaultdict(list)
-
-        for file_path in potential_blank_files:
-            date_match = re.findall(DATE_PATTERN, file_path.name)
-            if date_match and len(date_match) == 1:  # skip if more dates match
-                date = date_match[0]
-                # Find the trailing number if it exists
-                number_match = re.search(r"(\d+)\.csv$", file_path.name)
-                number = int(number_match.group(1)) if number_match else 0
-                files_by_date[date].append((file_path, number))
+        # Group the files by date
+        files_by_date = sort_files_by_date(potential_blank_files)
 
         # Select the file with the highest trailing number for each date
         blank_files = []
         for date, files in files_by_date.items():
             # Sort by the number (second element of tuple) in descending order
-            # TODO: make sure this works to get the newest file
+            # TODO: use function in path_utils to find newest file and rewrite accordingly
             files.sort(key=lambda x: x[1], reverse=True)
             # Add the file path (first element of tuple) with highest number
             blank_files.append(files[0][0])

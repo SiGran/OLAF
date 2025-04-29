@@ -1,4 +1,5 @@
 import re
+from collections import defaultdict
 from datetime import datetime
 
 from olaf.CONSTANTS import DATE_PATTERN
@@ -103,3 +104,17 @@ def is_within_dates(dates, folder_name):
     except (ValueError, IndexError):
         # If any parsing fails, assume not in range
         return False
+
+
+def sort_files_by_date(file_paths):
+    # Group files by date
+    files_by_date = defaultdict(list)
+    for file_path in file_paths:
+        date_match = re.findall(DATE_PATTERN, file_path.name)
+        if date_match and len(date_match) == 1:  # skip if more dates match
+            date = date_match[0]
+            # Find the trailing number if it exists
+            number_match = re.search(r"(\d+)\.csv$", file_path.name)
+            number = int(number_match.group(1)) if number_match else 0
+            files_by_date[date].append((file_path, number))
+    return files_by_date
