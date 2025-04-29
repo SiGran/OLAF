@@ -104,6 +104,8 @@ if __name__ == "__main__":
     # Processing to create INPs/L
     # Use regular expression to check for dates in folder name:
     found_dates = re.findall(DATE_PATTERN, test_folder.name)
+    if not found_dates:
+        print("No date found in folder name")
     for date in found_dates:
         # Convert `date` to datetime object
         date_obj = datetime.strptime(date, "%m.%d.%y")
