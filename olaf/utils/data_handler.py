@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from olaf.utils.path_utils import natural_sort_key
+from olaf.utils.path_utils import find_latest_file
 
 
 class DataHandler:
@@ -66,7 +66,7 @@ class DataHandler:
         if not files:
             raise FileNotFoundError("No files found with the given revision name")
         elif len(files) > 1:  # if more than one, pick the one with the highest counter
-            data_file = sorted(files, key=lambda x: natural_sort_key(str(x)))[-1]
+            data_file = find_latest_file(files)
         else:  # if only one, pick that one
             data_file = files[0]
 

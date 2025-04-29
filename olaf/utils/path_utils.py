@@ -18,6 +18,45 @@ def natural_sort_key(s: str) -> list:
     return [int(text) if text.isdigit() else text.lower() for text in re.split(r"(\d+)", s)]
 
 
+def find_latest_file(file_paths):
+    """
+    Find the latest version of a file from a list of files that may have (N) version indicators.
+    Files without version numbers are treated as version 0.
+
+    Args:
+        file_paths: List of Path objects to examine
+
+    Returns:
+        Path object of the latest version file
+    """
+    if not file_paths:
+        return None
+
+    def get_version(path):
+        """Extract version number from filename, return -1 for base filename without number."""
+        match = re.search(r"\((\d+)\)(?:\.[^.]+)?$", str(path))
+        return int(match.group(1)) if match else -1
+
+    # Group files by base name (removing version numbers)
+    base_files = {}
+    for file_path in file_paths:
+        # Remove the (N) part if it exists to get base name
+        base_name = re.sub(r"\(\d+\)(?:\.[^.]+)?$", file_path.suffix, str(file_path))
+        if base_name not in base_files:
+            base_files[base_name] = []
+        base_files[base_name].append(file_path)
+
+    # For each group, find the file with highest version number
+    latest_files = []
+    for files in base_files.values():
+        latest_files.append(max(files, key=get_version))
+
+    # If multiple base names, return the most recently modified
+    if len(latest_files) > 1:
+        return max(latest_files, key=lambda x: x.stat().st_mtime)
+    return latest_files[0]
+
+
 def save_df_file(clean_df, save_file, header_info):
     counter = 0
     output_stem = save_file.stem
