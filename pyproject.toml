@@ -7,7 +7,6 @@ authors = [
 ]
 license = "AGPL-3.0"
 readme = "README.md"
-repository = "https://github.com/SiGran/OLAF"
 keywords = ["freezing", "data acquisition", "spectrometer"]
 
 
@@ -15,6 +14,9 @@ requires-python = ">=3.11.0"
 dependencies = [
     "pandas>=2.2.3",
 ]
+
+[project.urls]
+"Repository" = "https://github.com/SiGran/OLAF"
 
 [project.optional-dependencies]
 dev = [
