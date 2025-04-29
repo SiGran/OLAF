@@ -19,15 +19,13 @@ jobs:
         run: |
           curl -LsSf https://astral.sh/uv/install.sh | sh
           echo "$HOME/.cargo/bin" >> $GITHUB_PATH
-          uv venv
-          echo ". .venv/bin/activate" >> $GITHUB_ENV
 
       - name: Install dependencies
         run: |
           uv pip install -e ".[dev]"
 
       - name: Run mypy
-        run: mypy .
+        run: uv run mypy .
 
       - name: Run bandit
-        run: bandit -r .
+        run: uv run bandit -r .

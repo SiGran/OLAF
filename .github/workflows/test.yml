@@ -28,4 +28,4 @@ jobs:
           uv pip install -e ".[dev]"
 
       - name: Run tests
-        run: pytest
+        run: uv run pytest
