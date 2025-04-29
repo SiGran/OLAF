@@ -6,10 +6,10 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from olaf.CONSTANTS import DATE_PATTERN
+from olaf.CONSTANTS import DATE_PATTERN, ERROR_SIGNAL, THRESHOLD_ERROR
 from olaf.utils.df_utils import header_to_dict, read_with_flexible_header, unique_dilutions
 from olaf.utils.math_utils import extrapolate_blanks, inps_L_to_ml, inps_ml_to_L, rms
-from olaf.utils.path_utils import is_within_dates, natural_sort_key, save_df_file
+from olaf.utils.path_utils import find_latest_file, is_within_dates, save_df_file
 
 
 class BlankCorrector:
@@ -53,7 +53,6 @@ class BlankCorrector:
         return blank_files
 
     def average_blanks(self, save=True):
-        # TODO add a date selection option?
         """Average all blank files into a single CSV file by temperature"""
         all_data = []
 
@@ -162,16 +161,23 @@ class BlankCorrector:
                 ):
                     # Collect all INPs/L files in the experiment folder
                     input_files = list(experiment_folder.rglob("INPs_L*.csv"))
-                    # pick the one with the highest number (latest)
-                    input_files = sorted(input_files, key=lambda x: natural_sort_key(str(x)))
-
                     # Process the latest INPS file (assumes one relevant per folder)
-                    # TODO: this can be done better
-                    if len(input_files) > 2:
-                        inps_file = input_files[-2]
-                    else:
-                        inps_file = input_files[-1]
-                        # TODO: add error catch to notify use that no files are found
+                    # Select the appropriate INPs/L file for processing
+                    if not input_files:
+                        raise FileNotFoundError(f"No INPs_L files found in {experiment_folder}")
+
+                    # Filter out any previously blank-corrected files
+                    original_files = [f for f in input_files if "blank_corrected" not in f.name]
+
+                    if not original_files:
+                        raise FileNotFoundError(
+                            f"Only blank-corrected files found in {experiment_folder}"
+                        )
+
+                    # Get the latest original file (highest numbered or most recent)
+                    inps_file = find_latest_file(original_files)
+                    print(f"Selected {inps_file.name} for blank correction")
+
                     header_lines, df_inps = read_with_flexible_header(inps_file)
                     dict_header = header_to_dict(header_lines)
                     # Check if the blank correction covers all temperatures from inps
@@ -227,7 +233,6 @@ class BlankCorrector:
 
                     # Confidence interval correction (vectorized)
                     if "lower_CI" in df_inps.columns and "upper_CI" in df_blanks.columns:
-                        # TODO add formula here with suspension, air_filtered, etc.
                         sample_lower = df_inps.loc[common_temps, "lower_CI"]
                         sample_lower = inps_L_to_ml(
                             sample_lower, vol_air_filt, prop_filter_used, vol_susp
@@ -268,16 +273,7 @@ class BlankCorrector:
                     # Reset index to restore temperature column
                     df_corrected.reset_index(inplace=True)
 
-                    # TODO: Final check
-                    """
-                    if INP/L[-15] < INP/L[-14.5]: # if value decreases
-                        # take previous value
-                      INP/L[-15] = INP/L[-14.5]
-                      # upper error is rmse of the one we throwing out and previous error
-                      upper_INP/L[-15] = rtsmsqrs(upper error -15 and -14.5)
-                      # lower CI is just the lower CI
-                      lower_INP/L[-15] = lower INP/L[-14.5]
-                    """
+                    df_corrected = self._final_check(df_corrected, df_inps, df_blanks)
 
                     # Save to output file
                     if save:
@@ -298,3 +294,59 @@ class BlankCorrector:
                         else:
                             save_file = inps_file.parent / f"blank_corrected_{inps_file.name}"
                         save_df_file(df_corrected, save_file, dict_header)
+
+    def _final_check(self, df_corrected, df_inps, df_blanks):
+        """
+        Add info with how many times corrected value is below lower CI
+        if INP/L[-15] < INP/L[-14.5]: # if value decreases
+            # take previous value
+          INP/L[-15] = INP/L[-14.5]
+          # upper error is rmse of the one we throwing out and previous error
+          upper_INP/L[-15] = rtsmsqrs(upper error -15 and -14.5)
+          # lower CI is just the lower CI
+          lower_INP/L[-15] = lower INP/L[-14.5]
+        """
+        # we create a check where we compare the original INP/L values to the blank
+        # corrected ones for each temp and store the number of times and at which temp
+        # values the blank corrected INP/L goes below the lower 95% CI of the
+        # uncorrected value.
+        corrected_below_ci = []
+        for temp in df_corrected.index:
+            # Check if the corrected value is below the lower CI of the original
+            if (
+                df_corrected["INPS_L"].iloc[temp]
+                < df_inps["INPS_L"].iloc[temp] - df_inps["lower_CI"].iloc[temp]
+            ):
+                # If so, store the temperature
+                corrected_below_ci.append(temp)
+            else:
+                continue
+
+        if (len(corrected_below_ci) / len(df_corrected)) * 100 > THRESHOLD_ERROR:
+            # Replace all the temperatures, and CI's with -9999 <-- or the CI in final file creation
+            for temp in corrected_below_ci:
+                print(
+                    f"value {df_corrected['INPS_L'].iloc[temp]} for temperature {temp} "
+                    f"outside temperature range, replacing with error value {ERROR_SIGNAL}"
+                )
+                df_corrected["INPS_L"].iloc[temp] = ERROR_SIGNAL
+                # df_corrected["lower_CI"].iloc[temp] = ERROR_SIGNAL
+                # df_corrected["upper_CI"].iloc[temp] = ERROR_SIGNAL
+        else:
+            # do correction logic
+            for temp in df_corrected.index[1:]:
+                if df_corrected["INPS_L"].iloc[temp] < df_corrected["INPS_L"].iloc[temp - 1]:
+                    print(f"Correcting value at temperature {df_corrected['degC'].iloc[temp]}")
+                    # take previous value
+                    df_corrected["INPS_L"].iloc[temp] = df_corrected["INPS_L"].iloc[temp - 1]
+                    # upper error is rmse of the one we throwing out and previous error
+                    df_corrected["upper_CI"].iloc[temp] = rms(
+                        [
+                            df_corrected["upper_CI"].iloc[temp],
+                            df_corrected["upper_CI"].iloc[temp - 1],
+                        ]
+                    )
+                    # lower CI is just the lower CI
+                    df_corrected["lower_CI"].iloc[temp] = df_corrected["lower_CI"].iloc[temp - 1]
+                else:
+                    continue
