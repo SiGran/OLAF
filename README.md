@@ -3,33 +3,16 @@
 OpenSource Library for Automating Freezing data acquisition from Ice Nucleation Spectrometer (OLAF DaQ INS).
 Documentation can be found [here](https://sigran.github.io/OLAF/).
 ## Getting Started
- This projects (packages versions) dependencies are managed by [Poetry](https://python-poetry.org/docs/). 
- It's recommended to create a virtual environment (in order to maintain a usable system Python), 
- and use Poetry to install the dependencies.
+ This project's virtual environment and dependencies are managed by [uv](https://docs.astral.sh/uv/). 
 
 ### Background information
-When working with a lot of different projects, and needing Python for your operating system, 
-it's highly recommended to use a 1) virtual environment and 2) a package manager.
+When working with many different Python projects, it is highly recommended to use a 1) virtual environment and 2) a package manager.
 1) A virtual environment is a self-contained directory that contains a Python installation for a particular version of Python, plus a number of additional packages.
 2) A package manager is a tool that automates the process of installing, upgrading, configuring, and removing packages inside a virtual environment.
 
-There are multiple options to manage multiple versions of python and packages, but this project uses instructions for following popular options::
-1) In order to manage multiple versions of python, you can use [pyenv](https://realpython.com/intro-to-pyenv/).
-2) For package managed we use: [Poetry](https://python-poetry.org/docs/).
+There are multiple options to manage versions of python and packages, but this project uses one package and project manager, [uv](https://docs.astral.sh/uv/).
 
-If you're on windows and want some more information: [some background](https://endjin.com/blog/2023/03/how-to-setup-python-pyenv-poetry-on-windows)
-
-### Installation on windows
-Some pre-requisites are needed to install the project on windows. 
-Using Powershell inside pycharm:
-1. Install pyenv-win 
-2. Close pycharm and redo 
-3. Install new environment: `pyenv install 3.11.0`
-4. pip install poetry 
-5. poetry install 
-6. select interpreter in pycharm (bottom right, select interpreter --> existing interpreter --> select poetry)
-
-#### Pre-requisites
+### Pre-requisites
 Find and follow instructions online for installing the following:
 1. [Python](https://www.python.org/downloads/)
 2. [Git](https://git-scm.com/downloads)
@@ -40,51 +23,31 @@ To make installation as beginner-friendly as possible, we use pycharm to simplif
 more familiar with installing software packages and setting up your environment, you should be able to find the parts
 in these instructions to install it without pycharm.
 
-#### Installation steps
-##### Pyenv
-Install pyenv-win:
-1. Open a powershell terminal in pycharm <add image>.
-2. Run the following command:
+### Installation on windows
+#### uv
+Install uv with pipx:
+1. Open windows powershell and verify that python is installed on your computer. <img width="1280" alt="IScompinstall1" src="https://github.com/user-attachments/assets/6c3f7fc1-6cd2-43a7-a68e-02d3e6f2c589" />
+Then run the following command:
 ```bash
-Invoke-WebRequest -UseBasicParsing -Uri "https://raw.githubusercontent.com/pyenv-win/pyenv-win/master/pyenv-win/install-pyenv-win.ps1" -OutFile "./install-pyenv-win.ps1"; &"./install-pyenv-win.ps1"
+py -m pip install --user pipx"
 ```
-3. Close the terminal and open a new one.
-4. Run the following command to verify the installation:
+2. Ensure that the pipx directory is added to PATH (more information on this [here](https://phoenixnap.com/kb/add-python-to-path)).
 ```bash
-pyenv --version
+py -m pipx ensurepath
 ```
-The output should say `pyenv-win` and a version number.
-
-##### Setting up the virtual environment
-Install virtual environment and set it locally.
-5. Run the following command to install python 3.11.0:
+3. Close and re-open powershell for the PATH changes to take effect.
+4. Install uv with pipx.
 ```bash
-pyenv install 3.11.0
+py -m pipx install uv
 ```
-Note: if you get an error like `command not found`: restart pycharm and try again.
-    If it still doesn't work, you need to add the path to python and/or pyenv to your [system environment variables](https://phoenixnap.com/kb/add-python-to-path).
-6. Set the local python version to newly installed 3.11.0:
+5. Check which versions of python are available to install with uv
 ```bash
-pyenv local 3.11.0
+uv python list
 ```
-7. Run the following command to verify the python version:
+6. Install python 3.11.12 (or whatever version of python 3.11.x is available)
 ```bash
-python --version
+uv python install 3.11.12
 ```
-The output should be `Python 3.11.0`.
-
-##### Poetry
-Install poetry:
-8. Run the following command to install poetry:
-```bash
-pip install poetry
-```
-9. Run the following command to verify the installation:
-```bash
-poetry --version
-```
-The output should be a version number.
-
 ##### Install the project
 Install the project dependencies:
 10. Navigate to the project directory where `pyproject.toml` is located. 
@@ -103,7 +66,7 @@ poetry show
 ```
 The output should list the project dependencies.
 
-##### Activate the Poetry virtual environment
+##### Activate the uv virtual environment
 select interpreter in pycharm: 
 bottom right, select interpreter --> existing interpreter --> select poetry.
 <add images>
