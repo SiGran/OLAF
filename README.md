@@ -16,7 +16,7 @@ There are multiple options to manage versions of python and packages, but this p
 Find and follow instructions online for installing the following:
 1. [Python](https://www.python.org/downloads/)
 2. [Git](https://git-scm.com/downloads)
-3. Optional:[Pycharm](https://www.jetbrains.com/pycharm/download/)
+3. Optional: [Pycharm](https://www.jetbrains.com/pycharm/download/)
 
 Please note that pycharm is not required to use this project. Feel free to use your favorite IDE or text editor.
 To make installation as beginner-friendly as possible, we use pycharm to simplify the installation process. If you are
@@ -40,6 +40,8 @@ py -m pipx ensurepath
 ```bash
 py -m pipx install uv
 ```
+<img width="867" alt="IScompinstall3" src="https://github.com/user-attachments/assets/30655eb8-408c-4532-bd97-ed331f6a8c2d" />
+
 5. Check which versions of python are available to install with uv
 ```bash
 uv python list
@@ -49,32 +51,33 @@ uv python list
 uv python install 3.11.12
 ```
 ##### Install the project
-Install the project dependencies:
-10. Navigate to the project directory where `pyproject.toml` is located. 
-Note: skip this step when using pycharm; it should already be in this directory.
+7. Open pycharm (must be version 2024.3.2 or later) and navigate to File --> Project from Version Control. OR if using pycharm for the first time, open the application and select "clone repository."
+8. Copy/paste the github link below for the URL and choose a directory where you would like to store the project. You can insstall git at this stage if you have not already.
 ```bash
-cd ~/path/to/olaf
+https://github.com/SiGran/OLAF.git
 ```
-Replace `~/path/to/` with the path to the project directory.
-11. Run the following command to install the project dependencies:
+<img width="752" alt="IScompinstall7" src="https://github.com/user-attachments/assets/6e0871a4-940f-4dc8-90c2-ab57e82b2ec7" />
+
+#### Activate the virtual environment
+9. Open a powershell terminal in pycharm and run the following to create the virtual environment:
 ```bash
-poetry install
+uv venv
 ```
-12. Run the following command to verify the installation:
+<img width="1041" alt="IScompinstall8" src="https://github.com/user-attachments/assets/c122ca24-eb8d-4739-95fd-908f44ab0ee6" />
+
+10. Run the .venv\Scripts\activate command.
+
+11. Run "uv sync" in the terminal.
 ```bash
-poetry show
+uv sync
 ```
-The output should list the project dependencies.
+12. Close and re-open pycharm.
 
-##### Activate the uv virtual environment
-select interpreter in pycharm: 
-bottom right, select interpreter --> existing interpreter --> select poetry.
-<add images>
+#### Select the interpreter
+14. Select the interpreter at the bottom right hand corner of the application and nagivate to "add local interpreter."
+15. Select "select existing" and "uv" for the type of interpreter. If pycharm did not automatically detect where uv is installed on your computer, find its location and use this for "path to uv." Set the virtual environment (uv env use) by navigating to the "python.exe" installed in the "Scripts" folder where you installed the program.
 
-
-
-
-
+<img width="1037" alt="IScompinstall10" src="https://github.com/user-attachments/assets/9b54f8a3-5ccf-437b-9a49-d8cbab0a5935" />
 
 
 
