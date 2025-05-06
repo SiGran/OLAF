@@ -12,5 +12,4 @@ project_folder = Path.cwd().parent / "tests" / "test_data" / "test_project"
 # Make sure to have an indivdual "INPS_L_forzen_at_temp..." for each date
 corrector = BlankCorrector(project_folder)
 avg_blanks = corrector.average_blanks()
-# TODO: add in the extrapolation of the blanks
 corrector.apply_blanks()

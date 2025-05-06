@@ -6,7 +6,7 @@ import pandas as pd
 
 from olaf.CONSTANTS import ERROR_SIGNAL, THRESHOLD_ERROR
 from olaf.utils.df_utils import header_to_dict, read_with_flexible_header, unique_dilutions
-from olaf.utils.math_utils import extrapolate_blanks, inps_L_to_ml, inps_ml_to_L, rms
+from olaf.utils.math_utils import inps_L_to_ml, inps_ml_to_L, rms
 from olaf.utils.path_utils import (
     find_latest_file,
     is_within_dates,
@@ -182,8 +182,8 @@ class BlankCorrector:
                         # If missing temp higher than highest blank temp, extrapolate
                         if max(missing_temps) > max(blank_temps):
                             # Extrapolate the blank correction
-                            df_blanks, blank_temps = extrapolate_blanks(
-                                df_blanks, blank_temps, missing_temps
+                            df_blanks, blank_temps = self._extrapolate_blanks(
+                                df_blanks, blank_temps, missing_temps, dates
                             )
                             missing_temps = set(inps_temps) - set(blank_temps)
                         if min(missing_temps) < min(blank_temps):
@@ -266,8 +266,9 @@ class BlankCorrector:
 
                     # Reset index to restore temperature column
                     df_corrected.reset_index(inplace=True)
+                    df_corrected.set_index("degC", inplace=True)
 
-                    df_corrected = self._final_check(df_corrected, df_inps, df_blanks)
+                    df_corrected = self._final_check(df_corrected, df_inps)
 
                     # Save to output file
                     if save:
@@ -289,7 +290,7 @@ class BlankCorrector:
                             save_file = inps_file.parent / f"blank_corrected_{inps_file.name}"
                         save_df_file(df_corrected, save_file, dict_header)
 
-    def _final_check(self, df_corrected, df_inps, df_blanks):
+    def _final_check(self, df_corrected, df_inps):
         """
         Add info with how many times corrected value is below lower CI
         if INP/L[-15] < INP/L[-14.5]: # if value decreases
@@ -308,8 +309,8 @@ class BlankCorrector:
         for temp in df_corrected.index:
             # Check if the corrected value is below the lower CI of the original
             if (
-                df_corrected["INPS_L"].iloc[temp]
-                < df_inps["INPS_L"].iloc[temp] - df_inps["lower_CI"].iloc[temp]
+                df_corrected.loc[temp, "INPS_L"]
+                < df_inps.loc[temp, "INPS_L"] - df_inps.loc[temp, "INPS_L"]
             ):
                 # If so, store the temperature
                 corrected_below_ci.append(temp)
@@ -320,27 +321,125 @@ class BlankCorrector:
             # Replace all the temperatures, and CI's with -9999 <-- or the CI in final file creation
             for temp in corrected_below_ci:
                 print(
-                    f"value {df_corrected['INPS_L'].iloc[temp]} for temperature {temp} "
+                    f"value {df_corrected.loc[temp, 'INPS_L']} for temperature {temp} "
                     f"outside temperature range, replacing with error value {ERROR_SIGNAL}"
                 )
-                df_corrected["INPS_L"].iloc[temp] = ERROR_SIGNAL
+                df_corrected.loc[temp, "INPS_L"] = ERROR_SIGNAL
                 # df_corrected["lower_CI"].iloc[temp] = ERROR_SIGNAL
                 # df_corrected["upper_CI"].iloc[temp] = ERROR_SIGNAL
         else:
             # do correction logic
             for temp in df_corrected.index[1:]:
-                if df_corrected["INPS_L"].iloc[temp] < df_corrected["INPS_L"].iloc[temp - 1]:
+                if df_corrected.loc[temp, "INPS_L"] < df_corrected["INPS_L"].iloc[temp - 1]:
                     print(f"Correcting value at temperature {df_corrected['degC'].iloc[temp]}")
                     # take previous value
                     df_corrected["INPS_L"].iloc[temp] = df_corrected["INPS_L"].iloc[temp - 1]
                     # upper error is rmse of the one we throwing out and previous error
                     df_corrected["upper_CI"].iloc[temp] = rms(
                         [
-                            df_corrected["upper_CI"].iloc[temp],
-                            df_corrected["upper_CI"].iloc[temp - 1],
+                            df_corrected.loc[temp, "upper_CI"],
+                            df_corrected.loc[temp - 1, "upper_CI"],
                         ]
                     )
                     # lower CI is just the lower CI
-                    df_corrected["lower_CI"].iloc[temp] = df_corrected["lower_CI"].iloc[temp - 1]
+                    df_corrected.loc[temp, "lower_CI"] = df_corrected.loc[temp - 1, "lower_CI"]
                 else:
                     continue
+
+        return df_corrected
+
+    def _extrapolate_blanks(self, df_blanks, blank_temps, missing_temps, dates, save=True):
+        """Extrapolate the blank correction for missing temperatures"""
+        """
+        What if you don't have blank data for the lowest extremes:
+        Extrapolate out the blank using the slope of the previous 4 points
+        Take error % of previous 4 points for error of the extrapolated points
+        """
+        # Find missing temperatures that are below the current minimum
+        min_blank_temp = min(blank_temps)
+        extrapolation_temps = [temp for temp in missing_temps if temp < min_blank_temp]
+
+        if not extrapolation_temps:
+            print(f"No extrapolation occured for missing temperatures: {missing_temps}")
+            return df_blanks, blank_temps
+
+        # Check if the last (or any other value) is lower than previous ones
+        # We expect INP values to increase as temperature decreases
+        if len(df_blanks) > 1 and df_blanks["INPS_L"].iloc[-1] < df_blanks["INPS_L"].iloc[-2]:
+            print(
+                f"Warning: Last temperature {df_blanks.index[-1]}degC has lower INP value "
+                f"than previous temperature. Excluding from slope calculation."
+            )
+
+            # Use the 4 points before the last one
+            if len(df_blanks) >= 5:
+                last_four = df_blanks.iloc[-5:-1]
+            else:
+                last_four = df_blanks.iloc[:-1]
+
+            # Add the excluded temperature to extrapolation list
+            if df_blanks.index[-1] not in extrapolation_temps:
+                extrapolation_temps.append(df_blanks.index[-1])
+        else:
+            # No issues with monotonicity at the end, use the last 4 points
+            last_four = df_blanks.tail(4)
+
+        # Check for other non-monotonic behavior in the dataset
+        for i in range(1, len(df_blanks) - 1):
+            if df_blanks["INPS_L"].iloc[i] > df_blanks["INPS_L"].iloc[i + 1]:
+                print(
+                    f"Warning: Non-monotonic behavior detected at temperature "
+                    f"{df_blanks.index[i]}degC. INP value decreases at colder temperature."
+                )
+
+        # Calculate the slope using linear regression on these points
+        x = last_four.index.to_numpy()  # Temperatures
+        y = last_four["INPS_L"].to_numpy()  # INPS_L values
+
+        # Simple linear regression: calculate slope
+        fit = np.polyfit(x, y, 1)
+
+        # Calculate average error percentages for last 4 points
+        # Avoid division by zero (with the 0.001)
+        error_percents = {
+            "lower_CI": (last_four["lower_CI"] / np.maximum(last_four["INPS_L"], 0.001)).mean(),
+            "upper_CI": (last_four["upper_CI"] / np.maximum(last_four["INPS_L"], 0.001)).mean(),
+        }
+
+        # Use all the unique dilutions from the points used for extrapolation
+        dilution = unique_dilutions(last_four["dilution"])
+
+        for temp in sorted(extrapolation_temps, reverse=True):
+            # Calculate extrapolated INPS_L using the slope
+            extrapolated_inps = fit[1] + fit[0] * temp
+
+            # Calculate CIs based on average error percentages
+            lower_ci = extrapolated_inps * error_percents["lower_CI"]
+            upper_ci = extrapolated_inps * error_percents["upper_CI"]
+
+            # Add the new row to df_blanks
+            df_blanks.loc[temp] = {
+                "dilution": dilution,
+                "INPS_L": extrapolated_inps,
+                "lower_CI": lower_ci,
+                "upper_CI": upper_ci,
+                "blank_count": 0,  # Mark as extrapolated
+            }
+
+        # Sort again to ensure proper order
+        df_blanks = df_blanks.sort_index(ascending=False)
+
+        # Calculate new blanks temps
+        blank_temps = df_blanks.index.to_series()
+
+        # Save the new blank here?
+        if save:
+            # Save the updated DataFrame to a CSV file
+            current_time = datetime.now().strftime("%Y%m%d_%H%M%S")
+            save_file = (
+                self.project_folder / f"extrap_comb_b_correction_range_{dates[0]}_{dates[1]}_"
+                f"created_on-{current_time}.csv"
+            )
+            print(f"Saving extrapolated blanks to {save_file}")
+            df_blanks.to_csv(save_file, index=True)
+        return df_blanks, blank_temps
