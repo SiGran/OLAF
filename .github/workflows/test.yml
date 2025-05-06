@@ -22,6 +22,7 @@ jobs:
           echo "$HOME/.cargo/bin" >> $GITHUB_PATH
           uv venv
           echo ". .venv/bin/activate" >> $GITHUB_ENV
+          uv venv
 
       - name: Install dependencies
         run: |
