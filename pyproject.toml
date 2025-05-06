@@ -37,3 +37,6 @@ extend-select = ["I", "F", "E", "W"]
 
 [tool.pytest.ini_options]
 testpaths = "tests"
+
+[tool.bandit]
+exclude = ["tests"]
