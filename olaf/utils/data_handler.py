@@ -1,4 +1,5 @@
 from pathlib import Path
+from typing import Any
 
 import pandas as pd
 
@@ -8,8 +9,8 @@ from olaf.utils.path_utils import find_latest_file
 class DataHandler:
     def __init__(self, folder_path: Path, num_samples: int, **kwargs) -> None:
         kwargs.setdefault("suffix", ".dat")
-        kwargs.setdefault("includes", {})
-        kwargs.setdefault("excludes", {})
+        kwargs.setdefault("includes", ())
+        kwargs.setdefault("excludes", ())
         kwargs.setdefault("date_col", "Time")
         kwargs.setdefault("sep", "\t")
 
@@ -32,7 +33,7 @@ class DataHandler:
         suffix: str = ".dat",
         date_col: str = "Time",
         sep: str = "\t",
-    ) -> tuple[Path, pd.DataFrame]:
+    ) -> tuple[Any, Any]:
         """
         Load a file with a given suffix (default: .dat) from the Project folder.
         Arguments to exclude files can be passed as a list to the "excludes" parameter.
@@ -64,7 +65,14 @@ class DataHandler:
                 if file.suffix == suffix and all(name in file.name for name in includes)
             ]
         if not files:
-            raise FileNotFoundError("No files found with the given revision name")
+            return (
+                None,
+                FileNotFoundError(
+                    f"No files found in {self.folder_path} with "
+                    f"suffix {suffix} that includes {includes} and "
+                    f"excludes {excludes}"
+                ),
+            )
         elif len(files) > 1:  # if more than one, pick the one with the highest counter
             data_file = find_latest_file(files)
         else:  # if only one, pick that one

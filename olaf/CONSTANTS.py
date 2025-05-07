@@ -10,4 +10,4 @@ THRESHOLD_ERROR = 10  # Percentage!!!
 ERROR_SIGNAL = -9999  # Signal when values are set to be an error
 
 # date pattern for file name
-DATE_PATTERN = r"(?<!\d)(\d{1,2}\.\d{2}\.\d{2})(?!\d)"
+DATE_PATTERN = r"(?<!\d)(\d{1,2}\.\d{1,2}\.\d{2})(?!\d)"

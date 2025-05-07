@@ -8,26 +8,24 @@ from olaf.image_verification.freezing_reviewer import FreezingReviewer
 from olaf.processing.graph_data_csv import GraphDataCSV
 from olaf.processing.spaced_temp_csv import SpacedTempCSV
 
-test_folder = (
-    Path.cwd().parent / "tests" / "test_data" / "test_project" / "SGP 5.15.24 6.20.24 blanks"
-)
+test_folder = Path.cwd().parent / "tests" / "test_data" / "test_project" / "SGP 7.20.24 peroxide"
 site = "SGP"
-start_time = "2024-05-15 00:00:00"
-end_time = "2024-05-15 00:00:00"
+start_time = "2024-07-20 00:00:00"
+end_time = "2024-07-20 23:00:00"
 filter_color = "white"
 notes = "PUT THE NOTES HERE"
 user = "JEMOEDER"
 # TODO what to do with number of samples for the blanks
 num_samples = 6  # In the file
-vol_air_filt = 1  # L
+vol_air_filt = 10000  # L
 wells_per_sample = 32
 proportion_filter_used = 1.0  # between 0 and 1.0
 vol_susp = 10  # mL
 treatment = (
     # "base",
     # "heat",
-    # "peroxide",
-    "blank",
+    "peroxide",
+    # "blank",
     # "blank heat",
     # "blank peroxide,"
 )  # uncomment the one you want to use

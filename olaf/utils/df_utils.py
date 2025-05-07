@@ -13,6 +13,7 @@ def read_with_flexible_header(
     header_lines = []
     i = 0
     with open(file_path, "r") as f:
+        skiprows = 0
         while not header_found:
             line = f.readline()
             if not line:  # end of file
