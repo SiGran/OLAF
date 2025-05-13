@@ -325,6 +325,7 @@ class BlankCorrector:
 
                 # Check if INP/L decreases with lower temperature (non-monotonic)
                 if df_corrected.loc[current_temp, "INPS_L"] < df_corrected.loc[prev_temp, "INPS_L"]:
+                    # TODO: edge case handling for when current or previous is ERROR_SIGNAL!
                     print(f"Correcting value at temperature {current_temp}")
                     # Take previous value
                     df_corrected.loc[current_temp, "INPS_L"] = df_corrected.loc[prev_temp, "INPS_L"]
@@ -431,8 +432,9 @@ class BlankCorrector:
             # Save the updated DataFrame to a CSV file
             current_time = datetime.now().strftime("%Y%m%d_%H%M%S")
             save_file = (
-                self.project_folder / f"extrap_comb_b_correction_range_{dates[0].strftime('%Y%m%d_%H%M%S')}_{dates[1].strftime('%Y%m%d_%H%M%S')}_"
-                f"created_on-{current_time}.csv"
+                self.project_folder
+                / f"extrap_comb_b_correction_range_{dates[0].strftime('%Y%m%d_%H%M%S')}_"
+                f"{dates[1].strftime('%Y%m%d_%H%M%S')}_created_on-{current_time}.csv"
             )
             print(f"Saving extrapolated blanks to {save_file}")
             df_blanks.to_csv(save_file, index=True)
