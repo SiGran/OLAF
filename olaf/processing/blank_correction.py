@@ -431,7 +431,7 @@ class BlankCorrector:
             # Save the updated DataFrame to a CSV file
             current_time = datetime.now().strftime("%Y%m%d_%H%M%S")
             save_file = (
-                self.project_folder / f"extrap_comb_b_correction_range_{dates[0]}_{dates[1]}_"
+                self.project_folder / f"extrap_comb_b_correction_range_{dates[0].strftime('%Y%m%d_%H%M%S')}_{dates[1].strftime('%Y%m%d_%H%M%S')}_"
                 f"created_on-{current_time}.csv"
             )
             print(f"Saving extrapolated blanks to {save_file}")
