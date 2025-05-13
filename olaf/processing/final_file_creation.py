@@ -79,8 +79,8 @@ class FinalFileCreation:
                 if save_file is None:  # on First read, set save_file and extend header
                     save_file = final_file_folder / (
                         f"{dict_header['site']}_C1_"
-                        f"{dict_header['end_time'][0:10]}_"
-                        f"{dict_header['end_time'][11:].replace(':', '')}.csv"
+                        f"{dict_header['start_time'][0:10]}_"
+                        f"{dict_header['start_time'][11:].replace(':', '')}.csv"
                     )
 
                     header += f"Site: {dict_header['site']}\n"
@@ -135,7 +135,7 @@ class FinalFileCreation:
             if save_file is not None:
                 with open(save_file, "w") as f:
                     f.write(header)
-                    final_df.to_csv(f, sep="\t", index=False, header=False)
+                    final_df.to_csv(f, sep=",", index=False, header=False)
             else:
                 print(f"Warning: No save file created for date {date} in {self.project_folder}")
 
