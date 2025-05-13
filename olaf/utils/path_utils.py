@@ -58,7 +58,7 @@ def find_latest_file(file_paths):
     return latest_files[0]
 
 
-def save_df_file(clean_df, save_file, header_info):
+def save_df_file(clean_df, save_file, header_info, index=False):
     counter = 0
     output_stem = save_file.stem
     while save_file.exists():
@@ -70,7 +70,7 @@ def save_df_file(clean_df, save_file, header_info):
         f.write(f"filename = {save_file.name}\n")
         for key, value in header_info.items():
             f.write(f"{key} = {value}\n")
-        clean_df.to_csv(f, index=False, lineterminator="\n")
+        clean_df.to_csv(f, index=index, lineterminator="\n")
     return
 
 

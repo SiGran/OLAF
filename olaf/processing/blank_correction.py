@@ -288,7 +288,7 @@ class BlankCorrector:
 
                         else:
                             save_file = inps_file.parent / f"blank_corrected_{inps_file.name}"
-                        save_df_file(df_corrected, save_file, dict_header)
+                        save_df_file(df_corrected, save_file, dict_header, index=True)
 
     def _final_check(self, df_corrected, df_inps):
         """
