@@ -150,12 +150,14 @@ class DataHandler:
             save_path.parent.mkdir(parents=True, exist_ok=True)
 
             # Save the data
-            if not header:
-                save_data.to_csv(save_path, sep=sep, index=False, lineterminator="\n")
-            else:
-                with open(save_path, "w") as file:
-                    file.write(header)
-                    save_data.to_csv(file, sep=sep, index=False, lineterminator="\n")
+            with open(save_path, "w") as f:
+                if header:
+                    if isinstance(header, dict):
+                        for key, value in header.items():
+                            f.write(f"{key} = {value}\n")
+                    else:
+                        f.write(f"{header}\n")
+                save_data.to_csv(f, sep=sep, index=False, lineterminator="\n")
             return save_path
 
         except OSError as e:

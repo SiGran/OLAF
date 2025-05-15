@@ -3,9 +3,9 @@ from pathlib import Path
 from olaf.CONSTANTS import ERROR_SIGNAL
 from olaf.processing.final_file_creation import FinalFileCreation
 
-project_folder = Path.cwd().parent / "tests" / "test_data" / "test_project"
-includes = ("INPs_L", "frozen_at_temp", "reviewed")
-excludes = ("blanks", "blank_corrected")
+project_folder = Path.cwd().parent / "tests" / "test_data" / "capek"
+includes = ("blank_corrected", "INPs_L", "frozen_at_temp", "reviewed")
+excludes = "blanks"
 treatment_dict = {"base": 0, "heat": 1, "peroxide": 2}
 header_start = (
     f"ARM Mentor: Jessie Creamean at Colorado State University\n"
