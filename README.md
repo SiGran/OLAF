@@ -65,7 +65,7 @@ E.g.
 ```
 pip install --user pipx
 ```
-Steps (6) and (7) are completely the same.
+Steps (6) and (7) are the same for MacOS and PC.
 
 ##### Install the project
 7. Open pycharm (must be version 2024.3.2 or later) and navigate to File --> Project from Version Control. OR if using pycharm for the first time, open the application and select "clone repository."
