@@ -11,3 +11,6 @@ ERROR_SIGNAL = -9999  # Signal when values are set to be an error
 
 # date pattern for file name
 DATE_PATTERN = r"(?<!\d)(\d{1,2}\.\d{1,2}\.\d{2})(?!\d)"
+
+# How many wells less than total number of wells should be excluded from calculations. See Agresti-Coull 1998.
+AGRESTI_COULL_UNCERTAIN_VALUES = 2
