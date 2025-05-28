@@ -4,7 +4,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from olaf.CONSTANTS import NUM_TO_REPLACE_D1, VOL_WELL, Z
+from olaf.CONSTANTS import NUM_TO_REPLACE_D1, VOL_WELL, Z, AGRESTI_COULE_UNCERTAIN_VALUES
 from olaf.utils.data_handler import DataHandler
 
 
@@ -48,7 +48,7 @@ class GraphDataCSV(DataHandler):
         self.vol_susp = vol_susp
         self.dict_to_samples_dilution = dict_samples_to_dilution
         # change the headers of the data from samples to dilution factor
-        try:  # TODO REMOVE COLUMNS NOT IN DICT
+        try:  # TODO REMOVE COLUMNS NOT IN DICT - not sure if this is still necessary
             # Store original column names for verification
             original_columns = set(self.data.columns)
 
@@ -184,7 +184,7 @@ class GraphDataCSV(DataHandler):
             v for v in self.dict_to_samples_dilution.values() if v != float("inf")
         )
         # check if any dilution is less than the background and take that instead
-        # TODO: automatically false, only compare if background is above 2 frozen
+        # TODO: automatically false, only compare if background is above 2 frozen - pretty sure this has been done
         dilution_v_background_df = samples[float("inf")] > samples[most_diluted_value]
         # if more than NUM_TO_REPLACE_D1 samples in the highest dilutions are smaller
         # than the background
@@ -217,14 +217,16 @@ class GraphDataCSV(DataHandler):
         )
 
         "-------------------------- Step 4: Pruning the data --------------------------"
-        # Turn both positive and negative INF's into NaN's
+        # Turn both positive and negative INP's into NaN's
         all_INPs_p_L.replace({np.inf: np.nan, -np.inf: np.nan}, inplace=True)
         # Turn the values that correspond with frozen wells (in samples) of 30 or higher into NaN's
         # TODO: this assumes all samples have 32 wells, which is not the case for lower temperatures
-        # TODO: How to adjust for this?
-        all_INPs_p_L[samples >= 30] = np.nan
-        lower_INPS_p_L[samples >= 30] = np.nan
-        upper_INPS_p_L[samples >= 30] = np.nan
+        # TODO: How to adjust for this? - simple. Make this a new_variable = wells_per_sample - 2. It will always be 2, no matter how big wells_per_sample gets. 
+        # if we ever want to modify this we can make it a CONSTANT. As seen below:
+        max_allowable_wells_used = wells_per_sample - AGRESTI_COULE_UNCERTAIN_VALUES
+        all_INPs_p_L[samples >= max_allowable_wells_used] = np.nan
+        lower_INPS_p_L[samples >= max_allowable_wells_used] = np.nan
+        upper_INPS_p_L[samples >= max_allowable_wells_used] = np.nan
 
         " -------------------------- Step 5: Combining into one -------------------------- "
         # initialize the results df with the first dilution
