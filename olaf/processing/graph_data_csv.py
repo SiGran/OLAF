@@ -4,7 +4,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from olaf.CONSTANTS import NUM_TO_REPLACE_D1, VOL_WELL, Z, AGRESTI_COULE_UNCERTAIN_VALUES
+from olaf.CONSTANTS import NUM_TO_REPLACE_D1, VOL_WELL, Z, AGRESTI_COULL_UNCERTAIN_VALUES
 from olaf.utils.data_handler import DataHandler
 
 
@@ -223,7 +223,7 @@ class GraphDataCSV(DataHandler):
         # TODO: this assumes all samples have 32 wells, which is not the case for lower temperatures
         # TODO: How to adjust for this? - simple. Make this a new_variable = wells_per_sample - 2. It will always be 2, no matter how big wells_per_sample gets. 
         # if we ever want to modify this we can make it a CONSTANT. As seen below:
-        max_allowable_wells_used = wells_per_sample - AGRESTI_COULE_UNCERTAIN_VALUES
+        max_allowable_wells_used = wells_per_sample - AGRESTI_COULL_UNCERTAIN_VALUES
         all_INPs_p_L[samples >= max_allowable_wells_used] = np.nan
         lower_INPS_p_L[samples >= max_allowable_wells_used] = np.nan
         upper_INPS_p_L[samples >= max_allowable_wells_used] = np.nan
