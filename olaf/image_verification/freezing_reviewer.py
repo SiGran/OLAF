@@ -5,7 +5,8 @@ from .button_handler import ButtonHandler
 
 
 class FreezingReviewer(ButtonHandler):
-    # TODO: Full screen makes it become weird ---> mainly location of the "Sample x" on top
+    # TODO: Full screen makes it become weird ---> mainly location of the "Sample x" on top - works fine as is but would be much better if you could change the window size
+    # of the GUI and keep the "sample x" labels over each section of wells
     def __init__(self, root: tk.Tk, folder_path: Path, num_samples: int, includes: tuple) -> None:
         """
         Class that creates a GUI for reviewing well freezing images and
@@ -72,7 +73,7 @@ class FreezingReviewer(ButtonHandler):
         """
         # Find the row in the data frame corresponding to the current image
         row = self.data[self.data["Picture"] == pic_file_name]
-        # TODO: use dict_to_samples instead of num_samples
+        # TODO: use dict_to_samples instead of num_samples - not sure if this is needed
         """
         Still set out the outline with all the samples
         but then use the dictionary to see which ones we should be lookg int
