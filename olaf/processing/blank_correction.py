@@ -307,7 +307,7 @@ class BlankCorrector:
 
                         else:
                             save_file = inps_file.parent / f"blank_corrected_{inps_file.name}"
-                        save_df_file(df_corrected, save_file, dict_header, index=True)
+                        save_df_file(df_corrected, save_file, dict_header, index=False)
 
     def _final_check(self, df_corrected, df_inps):
         """
@@ -320,7 +320,7 @@ class BlankCorrector:
             # Check if the corrected value is below the lower CI of the original
             if (
                 df_corrected.loc[temp, "INPS_L"]
-                < df_inps.loc[temp, "INPS_L"] - df_inps.loc[temp, "INPS_L"]
+                < df_inps.loc[temp, "INPS_L"] - df_inps.loc[temp, "lower_CI"]
             ):
                 # If so, store the temperature
                 corrected_below_ci.append(temp)
@@ -335,12 +335,12 @@ class BlankCorrector:
                 df_corrected.loc[temp, "INPS_L"] = ERROR_SIGNAL
         else:
             # Get sorted temperatures for monotonic check
-            temperatures = sorted(df_corrected.index, reverse=True)  # Higher to lower temp
+            indices = sorted(df_corrected.index)  # Higher to lower temp
 
             # Loop through temperatures, starting from the second one
-            for i in range(1, len(temperatures)):
-                current_temp = temperatures[i]
-                prev_temp = temperatures[i - 1]
+            for i in range(1, len(indices)):
+                current_temp = indices[i]
+                prev_temp = indices[i - 1]
 
                 # Check if INP/L decreases with lower temperature (non-monotonic)
                 if df_corrected.loc[current_temp, "INPS_L"] < df_corrected.loc[prev_temp, "INPS_L"]:
