@@ -22,7 +22,7 @@ class FinalFileCreation:
         file_paths = []
         # Go through every folder in the project folder and create a data_handler object for it
         for folder in self.project_folder.iterdir():
-            if folder.is_dir():
+            if folder.is_dir() and not any(excl in folder.name for excl in excludes):
                 data_handler = DataHandler(
                     folder, 0, suffix=".csv", includes=includes, excludes=excludes, date_col=None
                 )
@@ -73,7 +73,7 @@ class FinalFileCreation:
                 notes += f"{dict_header['notes']}. "
                 if save_file is None:  # on First read, set save_file and extend header
                     save_file = final_file_folder / (
-                        f"{dict_header['site']}_C1_"
+                        f"{dict_header['site']}"
                         f"{dict_header['start_time'][0:10]}_"
                         f"{dict_header['start_time'][11:].replace(':', '')}.csv"
                     )
@@ -144,7 +144,7 @@ class FinalFileCreation:
             # Replace the old line with the new timestamps
             header += f"{start_utc_seconds}\t {end_utc_seconds}\t {dict_header['vol_air_filt']}\n"
             if save_file is not None:
-                with open(save_file, "w") as f:
+                with open(save_file, "w", newline = '') as f:
                     f.write(header)
                     final_df.to_csv(f, sep=",", index=False, header=False)
             else:
