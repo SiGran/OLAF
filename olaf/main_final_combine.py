@@ -3,8 +3,8 @@ from pathlib import Path
 from olaf.CONSTANTS import ERROR_SIGNAL
 from olaf.processing.final_file_creation import FinalFileCreation
 
-project_folder = Path.cwd().parent / "tests" / "test_data" / "capek"
-includes = ("blank_corrected", "INPs_L", "frozen_at_temp", "reviewed")
+project_folder = Path.cwd().parent / "data" / "CAPE_k"
+includes = ("INPs_L", "frozen_at_temp", "reviewed", "blank_corrected")
 excludes = ("blanks",)
 treatment_dict = {"base": 0, "heat": 1, "peroxide": 2}
 header_start = (
