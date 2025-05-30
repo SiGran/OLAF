@@ -15,7 +15,7 @@ end_time = "2024-07-20 23:00:00"
 filter_color = "white"
 notes = "PUT THE NOTES HERE"
 user = "JEMOEDER"
-# TODO what to do with number of samples for the blanks - num_samples can stay as is. This only changes based on the user changing
+
 # num_samples in the labview program
 num_samples = 6  # In the file
 vol_air_filt = 10000  # L
@@ -88,8 +88,6 @@ if __name__ == "__main__":
     if "blank" in treatment:
         vol_air_filt = 1  # Always the case for blank
 
-    # TODO: add check to see if num_samples is same as keys in dict - not needed, would cause other unintended problems
-
     # GUI
     window = tk.Tk()
     app = FreezingReviewer(window, test_folder, num_samples, includes=treatment)
@@ -97,7 +95,6 @@ if __name__ == "__main__":
 
     # # Processing to create .csv file
     spaced_temp_csv = SpacedTempCSV(test_folder, num_samples, includes=treatment)
-    # TODO: how to to deal with least diluted for when it's blanks with two experiments - not sure if this is needed?
     spaced_temp_csv.create_temp_csv(dict_samples_to_dilution)
 
     # Processing to create INPs/L

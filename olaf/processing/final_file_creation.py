@@ -56,20 +56,15 @@ class FinalFileCreation:
         final_file_folder = self.project_folder / "final_files"
         if not final_file_folder.exists():
             final_file_folder.mkdir()
+
         # Iterate through all the files per date in the project folder
         for date, files in self.files_per_date.items():
             header = header_start
             save_file = None  # placeholder for file saving name
             notes = ""  # string to fill out with the notes from all the files
-            final_df = pd.DataFrame(
-                columns=[
-                    "Temperature (degC)",
-                    "n_INP_STP (per L)",
-                    "lower_CL (per L)",
-                    "upper_CL (per L)",
-                    "Treatment_flag",
-                ]
-            )
+
+            dfs_to_concat = []  # List to hold dataframes for concatenation
+
             # Go through each file and add it to the final df
             for file in files:
                 # Read the file and get the header data
@@ -110,9 +105,25 @@ class FinalFileCreation:
                     },
                     inplace=True,
                 )
-                final_df = pd.concat([final_df, temp_df], ignore_index=True)
+                # Final check before concatenating
+                temp_df = self._final_check(temp_df)
 
-            final_df = self._final_check(final_df)
+                # Add the dataframe to the list for concatenation
+                dfs_to_concat.append(temp_df)
+
+            # Concatenate all dataframes in the list
+            if dfs_to_concat:
+                final_df = pd.concat(dfs_to_concat, ignore_index=True)
+            else:
+                final_df = pd.DataFrame(
+                    columns=[
+                        "Temperature (degC)",
+                        "n_INP_STP (per L)",
+                        "lower_CL (per L)",
+                        "upper_CL (per L)",
+                        "Treatment_flag",
+                    ]
+                )
 
             # Add all the notes to the header
             header += f"Sample notes: {notes}\n"
@@ -144,6 +155,16 @@ class FinalFileCreation:
         Final check for the dataframe. If lower_CI (TOTAL VALUE) is below 0, set it to
         error signal.
         """
+        # Remove all the rows at the start where n_INP_STP (per L) is 0
+        # Find where n_INP_STP is not zero
+        non_zero_mask = abs(df["n_INP_STP (per L)"]) > 1e-10
+
+        if non_zero_mask.any():
+            # Get index of first non-zero value
+            first_non_zero_idx = non_zero_mask.idxmax()
+            # Keep only rows starting from the first non-zero value
+            df = df.iloc[first_non_zero_idx:]
+
         # If any lower_CL (per L) is below 0, then set all that go below to error signal
         if df["lower_CL (per L)"].min() < 0:
             df.loc[df["lower_CL (per L)"] < 0, "lower_CL (per L)"] = ERROR_SIGNAL

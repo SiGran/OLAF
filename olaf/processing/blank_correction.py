@@ -38,7 +38,6 @@ class BlankCorrector:
         blank_files = []
         for date, files in files_by_date.items():
             # Sort by the number (second element of tuple) in descending order
-            # TODO: use function in path_utils to find newest file and rewrite accordingly
             files.sort(key=lambda x: x[1], reverse=True)
             # Add the file path (first element of tuple) with highest number
             blank_files.append(files[0][0])
@@ -56,6 +55,9 @@ class BlankCorrector:
         for file in self.blank_files:
             header_lines, df = read_with_flexible_header(file)
             dict_header = header_to_dict(header_lines)
+
+            # Filter out zero and negative INPS values
+            df = df[df["INPS_L"] > 0]
 
             if not header_info:
                 header_info.update(dict_header)
@@ -175,6 +177,18 @@ class BlankCorrector:
                     header_lines, df_inps = read_with_flexible_header(inps_file)
                     dict_header = header_to_dict(header_lines)
                     # Check if the blank correction covers all temperatures from inps
+
+                    # Store the original dataframe before filtering
+                    df_original = df_inps.copy()
+
+                    # Find zero INPS rows to be preserved in the final output
+                    zero_rows_mask = df_inps["INPS_L"] == 0
+                    df_zero_rows = df_inps[zero_rows_mask].copy()
+
+                    # Remove rows with zero INPS values for blank correction
+                    df_inps = df_inps[~zero_rows_mask]
+
+                    # Continue with the blank correction process using the filtered dataframe
                     inps_temps = df_inps["degC"]
                     blank_temps = df_blanks.index.to_series()
                     missing_temps = set(inps_temps) - set(blank_temps)
@@ -264,11 +278,16 @@ class BlankCorrector:
                             vol_susp,
                         )
 
-                    # Reset index to restore temperature column
-                    df_corrected.reset_index(inplace=True)
-                    df_corrected.set_index("degC", inplace=True)
+                    # Before concatenating, ensure the index is set to temperature
+                    df_zero_rows.set_index("degC", inplace=True)
+                    if not df_zero_rows.empty:
+                        # Reinsert zero INPS rows
+                        df_corrected = pd.concat([df_zero_rows, df_corrected], axis=0)
 
-                    df_corrected = self._final_check(df_corrected, df_inps)
+                    # Reset index to restore temperature column and sort
+                    df_corrected = df_corrected.sort_index(ascending=False)
+                    df_corrected.reset_index(inplace=True)
+                    df_corrected = self._final_check(df_corrected, df_original)
 
                     # Save to output file
                     if save:
