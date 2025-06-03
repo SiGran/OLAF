@@ -18,16 +18,17 @@ from olaf.utils.path_utils import (
 class BlankCorrector:
     def __init__(self, project_folder: Path) -> None:
         self.project_folder = project_folder
-        self.blank_files = self._find_blank_files()
+        self.blank_files = self._find_blank_files
         self.combined_blank: dict[tuple[str, str], pd.DataFrame] = {}
 
+    @property
     def _find_blank_files(self):
         """Find all blank CSV files in the project structure, selecting only one file per date"""
 
         # First collect all potential blank files
         potential_blank_files = []
         for experiment_folder in self.project_folder.iterdir():
-            if experiment_folder.is_dir() and "blank" in experiment_folder.name.lower():
+            if experiment_folder.is_dir() and ("blank" in experiment_folder.name.lower()):
                 for file_path in experiment_folder.rglob("INPs_L*.csv"):
                     potential_blank_files.append(file_path)
 
@@ -40,7 +41,11 @@ class BlankCorrector:
             # Sort by the number (second element of tuple) in descending order
             files.sort(key=lambda x: x[1], reverse=True)
             # Add the file path (first element of tuple) with highest number
-            blank_files.append(files[0][0])
+            if "TBS" in self.project_folder.name:
+                for file_tuple in files:
+                    blank_files.append(file_tuple[0])
+            else:
+                blank_files.append(files[0][0])
             # Print statement for which file we found:
             print(f" found {len(files)} blank files for date {date}: {files}")
         return blank_files
@@ -330,9 +335,11 @@ class BlankCorrector:
             for temp in corrected_below_ci:
                 print(
                     f"value {df_corrected.loc[temp, 'INPS_L']} for temperature {temp} "
-                    f"outside temperature range, replacing with error value {ERROR_SIGNAL}"
+                    f"below error threshold (see CONSTANTS); replacing with error value {ERROR_SIGNAL}"
                 )
                 df_corrected.loc[temp, "INPS_L"] = ERROR_SIGNAL
+                df_corrected.loc[temp, "lower_CI"] = ERROR_SIGNAL
+                df_corrected.loc[temp, "upper_CI"] = ERROR_SIGNAL
         else:
             # Get sorted temperatures for monotonic check
             indices = sorted(df_corrected.index)  # Higher to lower temp
@@ -345,10 +352,10 @@ class BlankCorrector:
                 # Check if INP/L decreases with lower temperature (non-monotonic)
                 if df_corrected.loc[current_temp, "INPS_L"] < df_corrected.loc[prev_temp, "INPS_L"]:
                     # TODO: edge case handling for when current or previous is ERROR_SIGNAL!
-                    print(f"Correcting value at temperature {current_temp}")
+                    print(f"Correcting value at temperature {current_temp} due to previous INP_L value of {ERROR_SIGNAL}.")
                     # Take previous value
                     df_corrected.loc[current_temp, "INPS_L"] = df_corrected.loc[prev_temp, "INPS_L"]
-                    # Upper error is rmse of the one we throwing out and previous error
+                    # Upper error is rmse of the one we are removing and previous error
                     df_corrected.loc[current_temp, "upper_CI"] = rms(
                         [
                             df_corrected.loc[current_temp, "upper_CI"],
@@ -374,7 +381,7 @@ class BlankCorrector:
         extrapolation_temps = [temp for temp in missing_temps if temp < min_blank_temp]
 
         if not extrapolation_temps:
-            print(f"No extrapolation occured for missing temperatures: {missing_temps}")
+            print(f"No extrapolation occurred for missing temperatures: {missing_temps}")
             return df_blanks, blank_temps
 
         # Check if the last (or any other value) is lower than previous ones
@@ -403,7 +410,7 @@ class BlankCorrector:
             if df_blanks["INPS_L"].iloc[i] > df_blanks["INPS_L"].iloc[i + 1]:
                 print(
                     f"Warning: Non-monotonic behavior detected at temperature "
-                    f"{df_blanks.index[i]}degC. INP value decreases at colder temperature."
+                    f"{df_blanks.index[i]}degC in combined blank file. INP value decreases at colder temperature."
                 )
 
         # Calculate the slope using linear regression on these points
