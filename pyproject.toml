@@ -12,6 +12,7 @@ keywords = ["freezing", "data acquisition", "spectrometer"]
 
 requires-python = ">=3.11.0"
 dependencies = [
+    "matplotlib>=3.10.3",
     "pandas>=2.2.3",
 ]
 
