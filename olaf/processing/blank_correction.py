@@ -16,14 +16,13 @@ from olaf.utils.path_utils import (
 
 
 class BlankCorrector:
-    def __init__(self, project_folder: Path) -> None:
+    def __init__(self, project_folder: Path, multiple_per_day=False) -> None:
         self.project_folder = project_folder
-        self.blank_files = self._find_blank_files
+        self.blank_files = self._find_blank_files(multiple_per_day)
         self.combined_blank: dict[tuple[str, str], pd.DataFrame] = {}
 
-    @property
-    def _find_blank_files(self):
-        """Find all blank CSV files in the project structure, selecting only one file per date"""
+    def _find_blank_files(self, multiple_per_day):
+        """Find all blank files in the project folder."""
 
         # First collect all potential blank files
         potential_blank_files = []
@@ -37,17 +36,17 @@ class BlankCorrector:
 
         # Select the file with the highest trailing number for each date
         blank_files = []
-        for date, files in files_by_date.items():
+        for date, files_list in files_by_date.items():
             # Sort by the number (second element of tuple) in descending order
-            files.sort(key=lambda x: x[1], reverse=True)
+            files_list.sort(key=lambda x: x[1], reverse=True)
             # Add the file path (first element of tuple) with highest number
-            if "TBS" in self.project_folder.name:
-                for file_tuple in files:
+            if multiple_per_day:
+                for file_tuple in files_list:
                     blank_files.append(file_tuple[0])
             else:
-                blank_files.append(files[0][0])
+                blank_files.append(files_list[0][0])
             # Print statement for which file we found:
-            print(f" found {len(files)} blank files for date {date}: {files}")
+            print(f" found {len(files_list)} blank files for date {date}: {files_list}")
         return blank_files
 
     def average_blanks(self, save=True):
@@ -95,7 +94,10 @@ class BlankCorrector:
             all_data.append(df)
 
         # Combine all blank dataframes
-        combined_df = pd.concat(all_data)
+        if all_data:
+            combined_df = pd.concat(all_data)
+        else:
+            raise ValueError("No valid blank data found in the provided files.")
 
         # Group by temperature bins and calculate average INPS/L and other stats
         grouped_INPS = (
@@ -321,25 +323,23 @@ class BlankCorrector:
         """
         # Check how many times corrected values go below the lower CI of originals
         corrected_below_ci = []
-        for temp in df_corrected.index:
+        for i in df_corrected.index:
             # Check if the corrected value is below the lower CI of the original
-            if (
-                df_corrected.loc[temp, "INPS_L"]
-                < df_inps.loc[temp, "INPS_L"] - df_inps.loc[temp, "lower_CI"]
-            ):
+            if df_corrected.loc[i, "INPS_L"] < df_inps.loc[i, "INPS_L"] - df_inps.loc[i, "INPS_L"]:
                 # If so, store the temperature
-                corrected_below_ci.append(temp)
+                corrected_below_ci.append(i)
 
         if (len(corrected_below_ci) / len(df_corrected)) * 100 > THRESHOLD_ERROR:
             # Replace all the temperatures, and CI's with error value
-            for temp in corrected_below_ci:
+            for i in corrected_below_ci:
                 print(
-                    f"value {df_corrected.loc[temp, 'INPS_L']} for temperature {temp} "
-                    f"below error threshold (see CONSTANTS); replacing with error value {ERROR_SIGNAL}"
+                    f"value {df_corrected.loc[i, 'INPS_L']} for temperature {i} "
+                    f"below error threshold (see CONSTANTS); replacing with error "
+                    f"value {ERROR_SIGNAL}"
                 )
-                df_corrected.loc[temp, "INPS_L"] = ERROR_SIGNAL
-                df_corrected.loc[temp, "lower_CI"] = ERROR_SIGNAL
-                df_corrected.loc[temp, "upper_CI"] = ERROR_SIGNAL
+                df_corrected.loc[i, "INPS_L"] = ERROR_SIGNAL
+                df_corrected.loc[i, "lower_CI"] = ERROR_SIGNAL
+                df_corrected.loc[i, "upper_CI"] = ERROR_SIGNAL
         else:
             # Get sorted temperatures for monotonic check
             indices = sorted(df_corrected.index)  # Higher to lower temp
@@ -352,7 +352,10 @@ class BlankCorrector:
                 # Check if INP/L decreases with lower temperature (non-monotonic)
                 if df_corrected.loc[current_temp, "INPS_L"] < df_corrected.loc[prev_temp, "INPS_L"]:
                     # TODO: edge case handling for when current or previous is ERROR_SIGNAL!
-                    print(f"Correcting value at temperature {current_temp} due to previous INP_L value of {ERROR_SIGNAL}.")
+                    print(
+                        f"Correcting value at temperature {current_temp} due to "
+                        f"previous INP_L value of {ERROR_SIGNAL}."
+                    )
                     # Take previous value
                     df_corrected.loc[current_temp, "INPS_L"] = df_corrected.loc[prev_temp, "INPS_L"]
                     # Upper error is rmse of the one we are removing and previous error
@@ -410,7 +413,8 @@ class BlankCorrector:
             if df_blanks["INPS_L"].iloc[i] > df_blanks["INPS_L"].iloc[i + 1]:
                 print(
                     f"Warning: Non-monotonic behavior detected at temperature "
-                    f"{df_blanks.index[i]}degC in combined blank file. INP value decreases at colder temperature."
+                    f"{df_blanks.index[i]}degC in combined blank file. INP value "
+                    f"decreases at colder temperature."
                 )
 
         # Calculate the slope using linear regression on these points

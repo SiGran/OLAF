@@ -10,6 +10,6 @@ project_folder = Path.cwd().parent / "data" / "CAPE_k"
 # "frozen_at_temp_reviewed" csv for "blanks"
 
 # Make sure to have an individual "INPS_L_frozen_at_temp..." for each date
-corrector = BlankCorrector(project_folder)
+corrector = BlankCorrector(project_folder, multiple_per_day=True)
 avg_blanks = corrector.average_blanks()
 corrector.apply_blanks()
