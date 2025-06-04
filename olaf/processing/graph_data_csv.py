@@ -291,7 +291,8 @@ class GraphDataCSV(DataHandler):
             self.save_to_new_file(result_df, prefix="INPs_L", header=header)
 
         if show_plots:
-            plot_INPS_L(result_df)
+            save_path = self.folder_path / "plots" / "INPs_L_plot.png"
+            plot_INPS_L(result_df, save_path)
 
         return result_df
 

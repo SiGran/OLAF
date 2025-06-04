@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 
 
-def plot_INPS_L(result_df):
+def plot_INPS_L(result_df, save_path):
     """
     Plots the INP concentrations from the result DataFrame.
 
@@ -12,6 +12,8 @@ def plot_INPS_L(result_df):
     Returns:
     - None: Displays the plot.
     """
+    if not save_path.parent.exists():
+        save_path.parent.mkdir(parents=True, exist_ok=True)
 
     # Plotting the INP concentrations
     plt.figure(figsize=(10, 6))
@@ -30,3 +32,5 @@ def plot_INPS_L(result_df):
     plt.grid()
     plt.legend()
     plt.show()
+
+    plt.savefig(save_path)
