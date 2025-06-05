@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 
 
-def plot_INPS_L(result_df, save_path):
+def plot_INPS_L(result_df, save_path, header_dict):
     """
     Plots the INP concentrations from the result DataFrame.
 

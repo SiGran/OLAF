@@ -6,6 +6,7 @@ import pandas as pd
 
 from olaf.CONSTANTS import AGRESTI_COULL_UNCERTAIN_VALUES, NUM_TO_REPLACE_D1, VOL_WELL, Z
 from olaf.utils.data_handler import DataHandler
+from olaf.utils.df_utils import header_to_dict
 from olaf.utils.plot_utils import plot_INPS_L
 
 
@@ -291,8 +292,9 @@ class GraphDataCSV(DataHandler):
             self.save_to_new_file(result_df, prefix="INPs_L", header=header)
 
         if show_plots:
-            save_path = self.folder_path / "plots" / "INPs_L_plot.png"
-            plot_INPS_L(result_df, save_path)
+            header_dict = header_to_dict(header)
+            save_path = self.folder_path / "plots" / f"{header_dict['site']}__INPs_L_plot.png"
+            plot_INPS_L(result_df, save_path, header_dict)
 
         return result_df
 
