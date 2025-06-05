@@ -325,7 +325,7 @@ class BlankCorrector:
         corrected_below_ci = []
         for i in df_corrected.index:
             # Check if the corrected value is below the lower CI of the original
-            if df_corrected.loc[i, "INPS_L"] < df_inps.loc[i, "INPS_L"] - df_inps.loc[i, "INPS_L"]:
+            if df_corrected.loc[i, "INPS_L"] < df_inps.loc[i, "INPS_L"] - df_inps.loc[i, "lower_CI"]:
                 # If so, store the temperature
                 corrected_below_ci.append(i)
 
