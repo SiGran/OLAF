@@ -325,7 +325,10 @@ class BlankCorrector:
         corrected_below_ci = []
         for i in df_corrected.index:
             # Check if the corrected value is below the lower CI of the original
-            if df_corrected.loc[i, "INPS_L"] < df_inps.loc[i, "INPS_L"] - df_inps.loc[i, "lower_CI"]:
+            if (
+                df_corrected.loc[i, "INPS_L"]
+                < df_inps.loc[i, "INPS_L"] - df_inps.loc[i, "lower_CI"]
+            ):
                 # If so, store the temperature
                 corrected_below_ci.append(i)
 
@@ -352,12 +355,14 @@ class BlankCorrector:
                 # Check if INP/L decreases with lower temperature (non-monotonic)
                 if df_corrected.loc[current_temp, "INPS_L"] < df_corrected.loc[prev_temp, "INPS_L"]:
                     # TODO: edge case handling for when current or previous is ERROR_SIGNAL!
+                    while df_corrected.loc[prev_temp, "INPS_L"] == ERROR_SIGNAL:
+                        print(f"previous INP_L value of {ERROR_SIGNAL} at {prev_temp}.")
+                        prev_temp -= 1
                     print(
-                        f"Correcting value at temperature {current_temp} due to "
-                        f"previous INP_L value of {ERROR_SIGNAL}."
+                        f"Correcting value at temperature {current_temp} due to non-monotonicity."
                     )
-                    # Take previous value
                     df_corrected.loc[current_temp, "INPS_L"] = df_corrected.loc[prev_temp, "INPS_L"]
+
                     # Upper error is rmse of the one we are removing and previous error
                     df_corrected.loc[current_temp, "upper_CI"] = rms(
                         [
