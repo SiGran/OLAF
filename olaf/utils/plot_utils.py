@@ -26,7 +26,7 @@ def plot_INPS_L(result_df, save_path, header_dict):
         capsize=5,
     )
 
-    plt.title("Ice Nucleating Particles Concentration")
+    plt.title(f"Ice Nucleating Particles Concentration {header_dict['site']}\n")
     plt.xlabel("Temperature (degC)")
     plt.ylabel("INP Concentration (per L)")
     plt.grid()

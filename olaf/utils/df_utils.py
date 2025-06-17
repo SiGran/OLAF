@@ -31,6 +31,8 @@ def read_with_flexible_header(
 
 def header_to_dict(header_lines):
     """Convert header lines to a dictionary"""
+    if isinstance(header_lines, str):
+        header_lines = header_lines.splitlines()
     header_dict = {}
     for line in header_lines:
         if " = " in line:

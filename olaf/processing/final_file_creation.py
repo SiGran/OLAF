@@ -144,7 +144,7 @@ class FinalFileCreation:
             # Replace the old line with the new timestamps
             header += f"{start_utc_seconds}\t {end_utc_seconds}\t {dict_header['vol_air_filt']}\n"
             if save_file is not None:
-                with open(save_file, "w", newline = '') as f:
+                with open(save_file, "w", newline="") as f:
                     f.write(header)
                     final_df.to_csv(f, sep=",", index=False, header=False)
             else:

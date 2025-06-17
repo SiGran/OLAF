@@ -1,23 +1,30 @@
 import tkinter as tk
 from pathlib import Path
 
+from utils.type_utils import ensure_list
+
 from .button_handler import ButtonHandler
 
 
 class FreezingReviewer(ButtonHandler):
-    # TODO: Full screen makes it become weird ---> mainly location of the "Sample x" on top - works fine as is but would be much better if you could change the window size
-    # of the GUI and keep the "sample x" labels over each section of wells
-    def __init__(self, root: tk.Tk, folder_path: Path, num_samples: int, includes: tuple) -> None:
+    def __init__(
+        self,
+        root: tk.Tk,
+        folder_path: Path,
+        num_samples: int,
+        dict_samples_to_dilution: dict,
+        includes: tuple,
+    ) -> None:
         """
         Class that creates a GUI for reviewing well freezing images and
         updating the number of frozen wells.
-        Class inherits from ButtonHandler and DataLoader.
+        Class inherited from ButtonHandler and DataLoader.
         Args:
             root: tkinter root object
             folder_path: path to the project folder containing the images and .dat file
         """
+        self.dict_samples_to_dilution = dict_samples_to_dilution
         super().__init__(root, folder_path, num_samples, includes)
-
         return
 
     def _update_image(self, sample: int, change: int) -> None:
@@ -55,8 +62,11 @@ class FreezingReviewer(ButtonHandler):
         ].clip(0, 32)
 
         # Update the changes column with the change
+        # bug can occur that turns the "changes" column into a string
+        self.data["changes"] = self.data["changes"].apply(ensure_list)
+        # Update the change from the click to the changes column
         self.data.loc[current_index:, "changes"] = self.data.loc[current_index:, "changes"].apply(
-            lambda x: [y + change if i == sample else y for i, y in enumerate(x)]
+            lambda x: [int(y) + change if i == sample else y for i, y in enumerate(x)]
         )
         # NOTE: above line/column isn't corrected for clipping to (0, 32)
         self._display_num_frozen(picture_name)
@@ -73,21 +83,30 @@ class FreezingReviewer(ButtonHandler):
         """
         # Find the row in the data frame corresponding to the current image
         row = self.data[self.data["Picture"] == pic_file_name]
-        # TODO: use dict_to_samples instead of num_samples - not sure if this is needed
-        """
-        Still set out the outline with all the samples
-        but then use the dictionary to see which ones we should be lookg int
-        """
+
+        # Clear any existing sample frames
+        for widget in self.root.winfo_children():
+            if isinstance(widget, tk.LabelFrame) and "sample" in widget["text"]:
+                widget.destroy()
+
         if not row.empty:
-            for i in range(self.num_samples):
+            # Use the includes parameter to determine which samples to display
+            samples_to_display = range(self.num_samples)
+
+            # Create a container frame to hold all sample frames
+            container = tk.Frame(self.root)
+            container.place(relx=0.5, y=170, anchor=tk.CENTER)
+
+            for idx, i in enumerate(samples_to_display):
                 value = row[f"Sample_{i}"].values[0]
-                sample_frame = tk.LabelFrame(self.root, text=f"sample {i}")
-                x_coord = (i + 1.2) * 100
-                if i > 2:
-                    x_coord += 100
-                sample_frame.place(x=x_coord, y=170)  # Adjust x and y for proper spacing
+                if f"Sample_{i}" in self.dict_samples_to_dilution:
+                    frame_text = f"Sample {i} \n ({self.dict_samples_to_dilution[f'Sample_{i}']})"
+                else:
+                    frame_text = f"Sample {i} \n (Not in Dict)"
+                sample_frame = tk.LabelFrame(container, text=frame_text)
+                sample_frame.grid(row=0, column=idx, padx=20)
                 label = tk.Label(sample_frame, text=str(value))
-                label.pack()
+                label.pack(padx=10, pady=5)
         else:
             print(f"Error: No data found for {pic_file_name}")
         return
