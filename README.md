@@ -200,7 +200,8 @@ After you have all specified the variables, you can run the `main.py` script to 
 After running the `main.py` script, a GUI will open where you can validate the number of frozen wells.
 It's a simple user interface where you can increase or decrease the number of frozen wells for each sample.
 
-![img.png](img.png)
+![img_1.png](img_1.png)
+
 Note: the *back* button is greyed out because we're looking at _image 0_.
 
 If every sample looks correct, you can move to the next image by clicking `good`. 
