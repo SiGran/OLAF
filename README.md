@@ -98,22 +98,21 @@ uv sync
 
 
 ## Usage
-recommended is to use a Python IDE (e.g. PyCharm) to run and work with the code.
+It is recommended to use a Python IDE (e.g. PyCharm) to run and work with the code.
 
 There are three main scripts to run in the `olaf` directory:
-1. `main.py` - This is the main script to process the data and run the application.
-2. `main_for_blanks.py` - This script is used to correct the blank data and apply it to the processed data.
-3. `main_final_combine.py` - This script combines the different treatments into one `.csv` file in a format that is preferred for further processing by ARM.
+1. `main.py` - This is the main script to process INS (or Ice Spectometer, i.e. "IS") data and run the application.
+2. `main_for_blanks.py` - This script is used to average the blank data and apply it to the processed ice nucleating particle (INP) data.
+3. `main_final_combine.py` - This script combines the different treatments for the same sample into one `.csv` file in a format that is preferred for further processing by Atmopheric Radiation Measurement (ARM).
 
 ### File Structure
-Here's the entire file structure of the project:
 OLAF/  
 ├── data/  
 ├── olaf/  
 │   ├── __init__.py  
 │   ├── CONSTANTS.py  
-│   ├── main.py            # main script to process data and run the application  
-│   ├── main_for_blanks.py # 2nd script to combine blank and apply to the INPS data  
+│   ├── main.py            # main script to process IS data and run the application  
+│   ├── main_for_blanks.py # 2nd script to average the blank data and apply to the processed INP data  
 │   ├── main_final_combine.py # combines all the treatments into one .csv file  
 │   ├── utils/               # Folder with utility/helper classes and functions  
 │   │   ├── __init__.py  
@@ -121,15 +120,19 @@ OLAF/
 │   │   ├── df_utils.py <br>
 │   │   ├── path_utils.py <br>
 │   │   ├── plot_utils.py <br>
+│   │   ├── type_utils.py <br>
 │   │   └── math_utils.py <br>
 │   ├── processing/ <br>
 │   │   ├── __init__.py <br>
+│   │   ├── blank_correction.py <br>
+│   │   ├── final_file_creation.py <br>
 │   │   ├── graph_data_csv.py <br>
 │   │   └── spaced_temp_csv.py <br>
 │   └── image_verification/ <br>
 │       ├── __init__.py <br>
 │       ├── button_handler.py <br>
-│       └── data_loader.py <br>
+│       ├── data_loader.py <br>
+│       └── freezing_reviewer.py <br>
 ├── tests/ <br>
 │   └── ... <br>
 ├── docs/  <br>
@@ -138,12 +141,12 @@ OLAF/
 
 
 ### Running the `main.py` script
-This script is used to process the data from a single experiment/data set. 
+This script is used to process the data from a single experiment. 
 
 #### Prepare the file structure: name variables and location of the data
-With the above file structure, place your experiments in the *data* directory. 
-Make sure you use date in the file {specify date format/how to structure}. 
-> The *data* folder needs to contain a *.dat* file, and a folder with *images* in the name.  
+With the above file structure, create folders for your experiments in the *data* directory. 
+Make sure you use the sample start date in the name of the experiment folder. 
+> The sample folder needs to contain a *.dat* file, and a folder with *images* in the name.  
 
 The program expects the .dat file to have the following headers:
 
@@ -173,11 +176,11 @@ wells_per_sample = 32
 proportion_filter_used = 1.0  # between 0 and 1.0
 vol_susp = 10  # mL
 treatment = (  # Type of treatment, e.g. "base", "heat", "peroxide", etc.
-     "enclosed as string", # It neds to be a tupe!
+     "enclosed as string", # Keep the comma - it needs to be a tuple!
     # 
 )  # uncomment the one you want to use
 
-# Specify the dilution factor for each sample
+# Specify the dilution factors for each sample
 dict_samples_to_dilution = {
     "Sample_0": 1,
     "Sample_1": 11,
@@ -191,48 +194,56 @@ dict_samples_to_dilution = {
 lower_altitude = 300 # m agl
 upper_altitude = 575 # m agl
 ```
-These variables will be used to calculate from frozen wells to Ice Nucleating Particles per Liter (INPS_L).
-They'll also be added as a header to the output files.
+These variables will be used to calculate INPs per Liter (INPS_L) from frozen well data.
+They will also be added as a header to the output files.
 
-After you have all specified the variables, you can run the `main.py` script to process the data.
+After you have specified all the variables, you can run the `main.py` script to process the data.
 
 #### Using the GUI to validate the number of frozen wells
 After running the `main.py` script, a GUI will open where you can validate the number of frozen wells.
-It's a simple user interface where you can increase or decrease the number of frozen wells for each sample.
+It is a simple user interface where you can increase or decrease the number of frozen wells for each sample.
 
 ![img_1.png](img_1.png)
 
 Note: the *back* button is greyed out because we're looking at _image 0_.
 
-If every sample looks correct, you can move to the next image by clicking `good`. 
+If every sample looks correct, you can move to the next image by clicking `good`.
+If the frozen well numbers displayed in the box above each sample are incorrect, use the `-1` and `+1` buttons for each sample that requires a change.
 If you made a mistake you can click on `back` to go back to the previous image.
 
 Once you've validated all the images, the program will continue and will save files in the `data` directory with the processed data.
 
-NOTE: the number of frozen wells is capped between 0 and 32, so you canot +1 or -1 the number of frozen wells beyond that range.
-NOTE2: if you click the +1 or -1 button, all further time/temperature points will have that added to them.
+NOTE: the number of frozen wells is capped between 0 and the maiximum wells specified in `wells_per_sample`. Using +1 or -1 buttons will not affect the number of frozen wells beyond that range.
+NOTE2: if you click the +1 or -1 button, all time/temperature points will reflect that change.
 
 #### Files created after successfully running `main.py`
-The `main.py` script will creates the following files in the `specified experiment folder` inside the `data` directory:
+The `main.py` script creates the following files in the `specified experiment folder` inside the `data` directory:
 1. `reviewed_(original filename).dat` - This file contains the original data, with the corrections made in the GUI.
-2. `frozen_at_temp_reviewed_(original filename).csv` - This file contains the number of frozen wells at each temperature for each sample.
-3. `INPS_L_frozen_at_temp_reviewed_(original filename).csv` - This file contains the computed Ice Nucleating Particles per Liter at relevant temperatures.
+2. `frozen_at_temp_reviewed_(original filename).csv` - This file contains the number of frozen wells at every half degree for each sample, including the first instance of freezing in the least dilute sample to the nearest 0.1 degree.
+3. `INPS_L_frozen_at_temp_reviewed_(original filename).csv` - This file contains the computed Ice Nucleating Particles per Liter at relevant temperatures. 
+4. `plot_{site}_{start_time}_{treatment}_INPs_L.png` - This file is an optional plot of the INP spectrum and can be toggled on/off on `main.py` by designating `show_plot = True` or `False` when `graph_data_csv` is called.
+   ```
+   graph_data_csv.convert_INPs_L(header, show_plot = True)
+   ```
 
 
 ### Correcting the blank data and applying
-The `main_for_blanks.py` script is used to correct the blank data and apply it to the processed data.
-Whereas the `main.py` works on the level per experiment. This script works on the level of the project.
+The `main_for_blanks.py` script is used to average the blank data and apply it to the processed data.
+While `main.py` works on the level per experiment, this script works on the level of the project.
 
 #### Files created after successfully running `main_for_blanks.py`
-1. `combined_blank_YYYY-MM-DD.csv` - Located in the project folder. This file contains the combined blank data for a Date range of experiments. The *start date* is in the file name. The *end date* is specified in the header.
+1. `combined_blank_YYYY-MM-DD.csv` - Located in the project folder. This file contains the averaged blank data for a Date range of experiments. The *start date* is in the file name. The *end date* is specified in the header.
 2. `extrap_comb_b_correction_range_YYYYMMDD(start_date)_000000_YYYYMMDD(end_date)_000000_created_on-YYYYMMDD_HHMMSS` - Located in the project folder. This file contains the extrapolated blank data for a Date range of experiments. The *start_date* and *end_date* are in the filename. It also specifies the creation date
-   - Note: this file is only created to check, it will be recreated every time you run the `main_for_blanks.py` script.
+   - Note: this file is only created to check. It will be recreated every time you run the `main_for_blanks.py` script.
 3. `blank_corrected_INPS_L_frozen_at_temp_reviewed_(original filename).csv` - In each experiment folder within the date rate of the blanks. This file contains the corrected Ice Nucleating Particles per Liter at relevant temperatures, after applying the blank correction.
+4. `blank_corrected_comp_plot_{ERROR THRESHOLD}_{site}_{start_time}_{treatment}_INPs_L_created_on_{current datetime}.png` - This file is an optional plot comparing the pre and post-correction INP spectra and can be toggled on/off by designating `show_comp_plot = True` or `False`.
+   ```
+   corrector.apply_blanks(show_comp_plot=True)
+   ```
 
 
 ### Combining the data
 The last *main* to run is the `main_final_combine.py` script. This script combines the different treatments into one `.csv` file.
-In a format preferred for further processing by ARM.
 
 #### Files created after successfully running `main_final_combine.py`
 This script creates a new directory in the project folder called `final_files`.
