@@ -13,6 +13,7 @@ from olaf.utils.path_utils import (
     save_df_file,
     sort_files_by_date,
 )
+from olaf.utils.plot_utils import plot_blank_corrected_vs_pre_corrected_inps
 
 
 class BlankCorrector:
@@ -153,7 +154,7 @@ class BlankCorrector:
             clean_df.to_csv(f, index=True, lineterminator="\n")
         return save_file, clean_df
 
-    def apply_blanks(self, save=True):
+    def apply_blanks(self, save=True, show_comp_plot = False, show_corrected_plot = False):
         """Apply the blank correction to all INPs/L files in the project folder"""
 
         for dates, data in self.combined_blank.items():
@@ -296,6 +297,16 @@ class BlankCorrector:
                     df_corrected.reset_index(inplace=True)
                     df_corrected = self._final_check(df_corrected, df_original)
 
+                    # Plot blank corrected and non-corrected INP spectra on same plot
+                    if show_comp_plot:
+                        plot_header_info = dict_header
+                        current_time = datetime.now().strftime("%Y%m%d_%H%M%S")
+                        save_path = inps_file.parent / (f"blank_corrected_comp_plot_{THRESHOLD_ERROR}%_error_threshold_"
+                                                        f"{dict_header['site']}_"
+                                                        f"{dict_header['start_time'][:10]}_"
+                                                        f"{dict_header['treatment']}_INPs_L_created_on-{current_time}.png")
+                        plot_blank_corrected_vs_pre_corrected_inps(df_corrected, df_original, save_path, plot_header_info)
+
                     # Save to output file
                     if save:
                         # Check if file has number in () at end and remove
@@ -313,7 +324,7 @@ class BlankCorrector:
                                 )
 
                         else:
-                            save_file = inps_file.parent / f"blank_corrected_{inps_file.name}"
+                            save_file = inps_file.parent / f"blank_corrected_{THRESHOLD_ERROR}%_error_threshold_{inps_file.name}"
                         save_df_file(df_corrected, save_file, dict_header, index=False)
 
     def _final_check(self, df_corrected, df_inps):
