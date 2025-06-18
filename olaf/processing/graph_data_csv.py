@@ -6,8 +6,8 @@ import pandas as pd
 
 from olaf.CONSTANTS import AGRESTI_COULL_UNCERTAIN_VALUES, NUM_TO_REPLACE_D1, VOL_WELL, Z
 from olaf.utils.data_handler import DataHandler
-from olaf.utils.df_utils import header_to_dict
 from olaf.utils.plot_utils import plot_INPS_L
+from olaf.utils.df_utils import header_to_dict
 
 
 class GraphDataCSV(DataHandler):
@@ -76,7 +76,7 @@ class GraphDataCSV(DataHandler):
             raise ValueError(f"Failed to rename columns: {str(e)}")
         return
 
-    def convert_INPs_L(self, header: str, save=True, show_plots=False) -> pd.DataFrame:
+    def convert_INPs_L(self, header: str, save=True, show_plot=False) -> pd.DataFrame:
         """
         Convert from # frozen wells at temperature for certain dilution to INPs/L.
         The steps involved in this function are:
@@ -290,10 +290,11 @@ class GraphDataCSV(DataHandler):
         "---------------------- Step 6: Save and return the data ----------------------"
         if save:
             self.save_to_new_file(result_df, prefix="INPs_L", header=header)
-
-        if show_plots:
+        # Plotting option
+        if show_plot:
             header_dict = header_to_dict(header)
-            save_path = self.folder_path / "plots" / f"{header_dict['site']}__INPs_L_plot.png"
+            save_path = self.folder_path / (f"plot_{header_dict['site']}_{header_dict['start_time'][:10]}_"
+                                            f"{header_dict['treatment']}_INPs_L.png")
             plot_INPS_L(result_df, save_path, header_dict)
 
         return result_df
