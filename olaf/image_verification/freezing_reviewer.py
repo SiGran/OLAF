@@ -12,6 +12,7 @@ class FreezingReviewer(ButtonHandler):
         root: tk.Tk,
         folder_path: Path,
         num_samples: int,
+        wells_per_sample: int,
         dict_samples_to_dilution: dict,
         includes: tuple,
     ) -> None:
@@ -24,6 +25,7 @@ class FreezingReviewer(ButtonHandler):
             folder_path: path to the project folder containing the images and .dat file
         """
         self.dict_samples_to_dilution = dict_samples_to_dilution
+        self.wells_per_sample = wells_per_sample
         super().__init__(root, folder_path, num_samples, includes)
         return
 
@@ -42,7 +44,7 @@ class FreezingReviewer(ButtonHandler):
         # Get the index of the current image in the data frame
         current_index = self.data.index[self.data["Picture"] == picture_name].tolist()[0]
 
-        # Apply change to current and later, but keep the value between 0 and 32
+        # Apply change to current and later, but keep the value between 0 and the maximum wells_per_sample
         if change < 0:  # go back to were this went last up
             # Check if the change would go below 0
             if self.data.loc[current_index:, f"Sample_{sample}"].values[0] + change < 0:
@@ -59,7 +61,7 @@ class FreezingReviewer(ButtonHandler):
         self.data.loc[current_index:, f"Sample_{sample}"] += change
         self.data.loc[current_index:, f"Sample_{sample}"] = self.data.loc[
             current_index:, f"Sample_{sample}"
-        ].clip(0, 32)
+        ].clip(0, self.wells_per_sample)
 
         # Update the changes column with the change
         # bug can occur that turns the "changes" column into a string
@@ -68,7 +70,7 @@ class FreezingReviewer(ButtonHandler):
         self.data.loc[current_index:, "changes"] = self.data.loc[current_index:, "changes"].apply(
             lambda x: [int(y) + change if i == sample else y for i, y in enumerate(x)]
         )
-        # NOTE: above line/column isn't corrected for clipping to (0, 32)
+        # NOTE: above line/column isn't corrected for clipping to (0, wells_per_sample)
         self._display_num_frozen(picture_name)
         return
 
@@ -95,7 +97,7 @@ class FreezingReviewer(ButtonHandler):
 
             # Create a container frame to hold all sample frames
             container = tk.Frame(self.root)
-            container.place(relx=0.5, y=170, anchor=tk.CENTER)
+            container.place(relx=0.5, y=100, anchor=tk.CENTER)
 
             for idx, i in enumerate(samples_to_display):
                 value = row[f"Sample_{i}"].values[0]
