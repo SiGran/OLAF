@@ -129,4 +129,4 @@ if __name__ == "__main__":
             dict_samples_to_dilution,
             includes=includes,
         )
-        graph_data_csv.convert_INPs_L(header)
+        graph_data_csv.convert_INPs_L(header, show_plot = True)
