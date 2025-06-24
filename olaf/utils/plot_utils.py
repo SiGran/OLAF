@@ -87,10 +87,10 @@ def plot_blank_corrected_vs_pre_corrected_inps(df_corrected, df_original, save_p
     plot_eligible_data = filter_non_error_signal(df_corrected)
     # Add blank corrected data to the plot
     plt.errorbar(
-        plot_eligible_data["degC"][4:],
-        plot_eligible_data["INPS_L"][4:],
+        plot_eligible_data["degC"],
+        plot_eligible_data["INPS_L"],
         label="Blank corrected INP Concentration",
-        yerr=[plot_eligible_data["lower_CI"][4:], plot_eligible_data["upper_CI"][4:]],
+        yerr=[plot_eligible_data["lower_CI"], plot_eligible_data["upper_CI"]],
         fmt="o",
         capsize=2,
         color='darkred'
