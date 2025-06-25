@@ -8,25 +8,24 @@ from olaf.image_verification.freezing_reviewer import FreezingReviewer
 from olaf.processing.graph_data_csv import GraphDataCSV
 from olaf.processing.spaced_temp_csv import SpacedTempCSV
 
-test_folder = (
-    Path.cwd().parent / "data" / "CoURAGE" / "TBS" / "CRG 02.22.25.S2 base"
-)
-site = "CRG_S7_TBS" # If this is ARM data use the official, full site site
+test_folder = Path.cwd().parent / "data" / "CoURAGE" / "TBS" / "CRG 02.22.25.S2 base"
+site = "CRG_S7_TBS"  # If this is ARM data use the official, full site site
 start_time = "2025-02-22 21:09:00"
 end_time = "2025-02-22 22:08:00"
 filter_color = "white"
 notes = "Battery was over-discharged - programmed to operational max mode limited to two altitudes."
-lower_altitude = 300 # m agl
-upper_altitude = 575 # m agl
+lower_altitude = 300  # m agl
+upper_altitude = 575  # m agl
 user = "Carson"
 IS = "IS3a"
 num_samples = 6  # In the file
+sample_type = "air"  # air, liquid or soil
 vol_air_filt = 620.48  # L
 wells_per_sample = 32
 proportion_filter_used = 1.0  # between 0 and 1.0
 vol_susp = 10  # mL
 treatment = (
-     "base",
+    "base",
     # "heat",
     # "peroxide",
     # "blank",
@@ -40,7 +39,7 @@ dict_samples_to_dilution = {
     "Sample_1": 11,
     "Sample_2": 121,
     "Sample_3": 1331,
-    #"Sample_4": 1,
+    # "Sample_4": 1,
     "Sample_5": float("inf"),
 }
 
@@ -62,10 +61,9 @@ dict_samples_to_dilution = {
 # }
 
 
-
 header = (
     f"site = {site}\nstart_time = {start_time}\nend_time = {end_time}\n"
-    f"filter_color = {filter_color}\n"
+    f"filter_color = {filter_color}\nsample_type = {sample_type}\n"
     f"vol_air_filt = {vol_air_filt}\nproportion_filter_used = {proportion_filter_used}\n"
     f"vol_susp = {vol_susp}\ntreatment = {treatment[0]}\nnotes = {notes}\n"
     f"user = {user}\nIS = {IS}\n"
@@ -84,15 +82,22 @@ if __name__ == "__main__":
             f"Number of samples * wells per sample ({num_samples}*{wells_per_sample} is "
             f"not equal to 192"
         )
-    if "blank" in treatment:
+    if "blank" in treatment or sample_type != "air":
         vol_air_filt = 1  # Always the case for blank
 
     if "TBS" in site:
-        header += f"lower_altitude = {lower_altitude}\n"f"upper_altitude = {upper_altitude}\n"
+        header += f"lower_altitude = {lower_altitude}\nupper_altitude = {upper_altitude}\n"
 
     # GUI
     window = tk.Tk()
-    app = FreezingReviewer(window, test_folder, num_samples, includes=treatment)
+    app = FreezingReviewer(
+        window,
+        test_folder,
+        num_samples,
+        wells_per_sample,
+        dict_samples_to_dilution,
+        includes=treatment,
+    )
     window.mainloop()
 
     # # Processing to create .csv file
@@ -119,9 +124,11 @@ if __name__ == "__main__":
         # add date to includes
         print(f"Processing data for: {site} {date}")
         includes = (date,) + treatment
+        # TODO: make the changes work for sample_type see issue #18
         graph_data_csv = GraphDataCSV(
             test_folder,
             num_samples,
+            sample_type,
             vol_air_filt,
             wells_per_sample,
             proportion_filter_used,
@@ -129,4 +136,4 @@ if __name__ == "__main__":
             dict_samples_to_dilution,
             includes=includes,
         )
-        graph_data_csv.convert_INPs_L(header, show_plot = True)
+        graph_data_csv.convert_INPs_L(header, show_plot=True)

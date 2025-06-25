@@ -79,9 +79,9 @@ class DataHandler:
             data_file = files[0]
 
         if date_col:
-            data = pd.read_csv(data_file, sep=sep, parse_dates=[date_col], index_col = False)
+            data = pd.read_csv(data_file, sep=sep, parse_dates=[date_col], index_col=False)
         else:
-            data = pd.read_csv(data_file, sep=sep, index_col = False)
+            data = pd.read_csv(data_file, sep=sep, index_col=False)
         # If original .dat file, some changes are needed in this if statement
         if "Time" in data.columns and "Unnamed: 1" in data.columns and date_col == "Time":
             # rename automatically split datetime column

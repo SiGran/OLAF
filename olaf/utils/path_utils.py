@@ -15,7 +15,7 @@ def natural_sort_key(s: str) -> list:
         list: list of strings and numbers to sort
 
     """
-    # TODO: this doesn't work with windows file paths it seems
+    # note: this might have different behavior on Linux than Windows.
     return [int(text) if text.isdigit() else text.lower() for text in re.split(r"(\d+)", s)]
 
 
@@ -95,7 +95,7 @@ def is_within_dates(dates, folder_name):
     try:
         earliest_date, latest_date = dates
 
-        # Conveart folder to datetime object
+        # Convert folder to datetime object
         folder_date = datetime.strptime(folder_date_str, "%m.%d.%y")
 
         # Check if folder date is within range (inclusive)

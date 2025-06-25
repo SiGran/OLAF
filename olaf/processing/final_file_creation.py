@@ -155,6 +155,9 @@ class FinalFileCreation:
         Final check for the dataframe. If lower_CI (TOTAL VALUE) is below 0, set it to
         error signal.
         """
+
+        # NOTE: completely redundant when removing all zero values
+        # in the blank_correction _final_check() function
         # Remove all the rows at the start where n_INP_STP (per L) is 0
         # Find where n_INP_STP is not zero
         non_zero_mask = abs(df["n_INP_STP (per L)"]) > 1e-10

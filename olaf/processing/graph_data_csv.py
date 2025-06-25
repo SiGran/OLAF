@@ -6,8 +6,8 @@ import pandas as pd
 
 from olaf.CONSTANTS import AGRESTI_COULL_UNCERTAIN_VALUES, NUM_TO_REPLACE_D1, VOL_WELL, Z
 from olaf.utils.data_handler import DataHandler
-from olaf.utils.plot_utils import plot_INPS_L
 from olaf.utils.df_utils import header_to_dict
+from olaf.utils.plot_utils import plot_INPS_L
 
 
 class GraphDataCSV(DataHandler):
@@ -23,6 +23,7 @@ class GraphDataCSV(DataHandler):
         self,
         folder_path: Path,
         num_samples,
+        sample_type: str,
         vol_air_filt: float,
         wells_per_sample: int,
         filter_used: float,
@@ -44,6 +45,7 @@ class GraphDataCSV(DataHandler):
             date_col=date_col,
             sep=",",
         )
+        self.sample_type = sample_type.lower()
         self.vol_air_filt = vol_air_filt
         self.wells_per_sample = wells_per_sample
         self.filter_used = filter_used
@@ -293,8 +295,10 @@ class GraphDataCSV(DataHandler):
         # Plotting option
         if show_plot:
             header_dict = header_to_dict(header)
-            save_path = self.folder_path / (f"plot_{header_dict['site']}_{header_dict['start_time'][:10]}_"
-                                            f"{header_dict['treatment']}_INPs_L.png")
+            save_path = self.folder_path / (
+                f"plot_{header_dict['site']}_{header_dict['start_time'][:10]}_"
+                f"{header_dict['treatment']}_INPs_L.png"
+            )
             plot_INPS_L(result_df, save_path, header_dict)
 
         return result_df
