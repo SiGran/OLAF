@@ -154,14 +154,14 @@ class BlankCorrector:
             clean_df.to_csv(f, index=True, lineterminator="\n")
         return save_file, clean_df
 
-    def apply_blanks(self, save=True, show_comp_plot = False, show_corrected_plot = False):
+    def apply_blanks(self, save=True, only_within_dates=True, show_comp_plot=False):
         """Apply the blank correction to all INPs/L files in the project folder"""
 
         for dates, data in self.combined_blank.items():
             df_blanks, header_info_blanks = data
             for experiment_folder in self.project_folder.iterdir():
-                if "blank" not in experiment_folder.name and is_within_dates(
-                    dates, experiment_folder.name
+                if "blank" not in experiment_folder.name and (
+                    is_within_dates(dates, experiment_folder.name) or not only_within_dates
                 ):
                     # Collect all INPs/L files in the experiment folder
                     input_files = list(experiment_folder.rglob("INPs_L*.csv"))
@@ -301,11 +301,15 @@ class BlankCorrector:
                     if show_comp_plot:
                         plot_header_info = dict_header
                         current_time = datetime.now().strftime("%Y%m%d_%H%M%S")
-                        save_path = inps_file.parent / (f"blank_corrected_comp_plot_{THRESHOLD_ERROR}%_error_threshold_"
-                                                        f"{dict_header['site']}_"
-                                                        f"{dict_header['start_time'][:10]}_"
-                                                        f"{dict_header['treatment']}_INPs_L_created_on-{current_time}.png")
-                        plot_blank_corrected_vs_pre_corrected_inps(df_corrected, df_original, save_path, plot_header_info)
+                        save_path = inps_file.parent / (
+                            f"blank_corrected_comp_plot_{THRESHOLD_ERROR}%_error_threshold_"
+                            f"{dict_header['site']}_"
+                            f"{dict_header['start_time'][:10]}_"
+                            f"{dict_header['treatment']}_INPs_L_created_on-{current_time}.png"
+                        )
+                        plot_blank_corrected_vs_pre_corrected_inps(
+                            df_corrected, df_original, save_path, plot_header_info
+                        )
 
                     # Save to output file
                     if save:
@@ -314,8 +318,8 @@ class BlankCorrector:
                             split_files = inps_file.stem.split("(")
                             if len(split_files) == 2:
                                 save_file = (
-                                    inps_file.parent
-                                    / f"blank_corrected_{THRESHOLD_ERROR}%_error_threshold_{split_files[0]}{inps_file.suffix}"
+                                    inps_file.parent / f"blank_corrected_{THRESHOLD_ERROR}%_error_"
+                                    f"threshold_{split_files[0]}{inps_file.suffix}"
                                 )
                             else:
                                 print(
@@ -324,7 +328,11 @@ class BlankCorrector:
                                 )
 
                         else:
-                            save_file = inps_file.parent / f"blank_corrected_{THRESHOLD_ERROR}%_error_threshold_{inps_file.name}"
+                            save_file = (
+                                inps_file.parent
+                                / f"blank_corrected_{THRESHOLD_ERROR}%_error_threshold_"
+                                f"{inps_file.name}"
+                            )
                         save_df_file(df_corrected, save_file, dict_header, index=False)
 
     def _final_check(self, df_corrected, df_inps):
@@ -334,7 +342,6 @@ class BlankCorrector:
         """
         # Remove zero value rows from corrected INPS_L
         df_corrected = df_corrected[df_inps["INPS_L"] != 0]
-
 
         # Check how many times corrected values go below the lower CI of originals
         corrected_below_ci = []
@@ -369,16 +376,18 @@ class BlankCorrector:
 
             # Check if INP/L decreases with lower temperature (non-monotonic)
             if (
-                    df_corrected.loc[current_temp, "INPS_L"] < df_corrected.loc[prev_temp, "INPS_L"] != ERROR_SIGNAL !=
-                    df_corrected.loc[current_temp, "INPS_L"] and df_corrected.loc[prev_temp, "INPS_L"] != 0
-                    != df_corrected.loc[current_temp, "INPS_L"]):
-                # TODO: edge case handling for when current or previous is ERROR_SIGNAL!
+                df_corrected.loc[current_temp, "INPS_L"]
+                < df_corrected.loc[prev_temp, "INPS_L"]
+                != ERROR_SIGNAL
+                != df_corrected.loc[current_temp, "INPS_L"]
+                and df_corrected.loc[prev_temp, "INPS_L"]
+                != 0
+                != df_corrected.loc[current_temp, "INPS_L"]
+            ):
                 while df_corrected.loc[prev_temp, "INPS_L"] == ERROR_SIGNAL:
                     print(f"previous INP_L value of {ERROR_SIGNAL} at {prev_temp}.")
                     prev_temp -= 1
-                print(
-                    f"Correcting value at temperature {current_temp} due to non-monotonicity."
-                )
+                print(f"Correcting value at temperature {current_temp} due to non-monotonicity.")
                 df_corrected.loc[current_temp, "INPS_L"] = df_corrected.loc[prev_temp, "INPS_L"]
 
                 # Upper error is rmse of the one we are removing and previous error
@@ -389,9 +398,7 @@ class BlankCorrector:
                     ]
                 )
                 # Lower CI is just the lower CI
-                df_corrected.loc[current_temp, "lower_CI"] = df_corrected.loc[
-                    prev_temp, "lower_CI"
-                ]
+                df_corrected.loc[current_temp, "lower_CI"] = df_corrected.loc[prev_temp, "lower_CI"]
 
         return df_corrected
 
