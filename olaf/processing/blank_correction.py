@@ -168,15 +168,19 @@ class BlankCorrector:
                     # Process the latest INPS file (assumes one relevant per folder)
                     # Select the appropriate INPs/L file for processing
                     if not input_files:
-                        raise FileNotFoundError(f"No INPs_L files found in {experiment_folder}")
+                        print(FileNotFoundError(f"No INPs_L files found in {experiment_folder}"))
+                        continue
 
                     # Filter out any previously blank-corrected files
                     original_files = [f for f in input_files if "blank_corrected" not in f.name]
 
                     if not original_files:
-                        raise FileNotFoundError(
-                            f"Only blank-corrected files found in {experiment_folder}"
+                        print(
+                            FileNotFoundError(
+                                f"Only blank-corrected files found in {experiment_folder}"
+                            )
                         )
+                        continue
 
                     # Get the latest original file (highest numbered or most recent)
                     inps_file = find_latest_file(original_files)

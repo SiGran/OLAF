@@ -6,6 +6,7 @@ from olaf.processing.blank_correction import BlankCorrector
 # iterate through project folder to find all the blank INPS/L
 # take average of all blanks
 project_folder = Path.cwd().parent / "tests" / "test_data" / "capek"
+includes = ("INPS_L_frozen_at_temp_reviewed",)
 # iterate the project folder to find all the folders with "blanks" and therein all the
 # "frozen_at_temp_reviewed" csv for "blanks"
 
