@@ -44,7 +44,7 @@ class FreezingReviewer(ButtonHandler):
         # Get the index of the current image in the data frame
         current_index = self.data.index[self.data["Picture"] == picture_name].tolist()[0]
 
-        # Apply change to current and later, but keep the value between 0 and the maximum wells_per_sample
+        # Apply change to current and later; keep the value between 0 and max wells_per_sample
         if change < 0:  # go back to were this went last up
             # Check if the change would go below 0
             if self.data.loc[current_index:, f"Sample_{sample}"].values[0] + change < 0:
