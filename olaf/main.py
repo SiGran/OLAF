@@ -60,6 +60,14 @@ dict_samples_to_dilution = {
 #     "Sample_2": 1,
 # }
 
+#------------------------EXTRA INFO IF NEEDED--------------------------#
+# if running filters from TBS
+lower_altitude = 0 # m agl
+upper_altitude = 0 # m agl
+
+# if sample is soil
+dry_mass = 2 # dried mass of soil in g
+
 
 header = (
     f"site = {site}\nstart_time = {start_time}\nend_time = {end_time}\n"
@@ -84,6 +92,9 @@ if __name__ == "__main__":
         )
     if "blank" in treatment or sample_type != "air":
         vol_air_filt = 1  # Always the case for blank
+
+    if "soil" in sample_type:
+        vol_air_filt = vol_susp/dry_mass
 
     if "TBS" in site:
         header += f"lower_altitude = {lower_altitude}\nupper_altitude = {upper_altitude}\n"
