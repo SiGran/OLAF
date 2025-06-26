@@ -32,7 +32,7 @@ treatment = (
     # "blank peroxide,"
 )  # uncomment the one you want to use
 
-# Use for side A
+# Use for side A or IS2
 dict_samples_to_dilution = {
     "Sample_0": 1,
     "Sample_1": 11,
