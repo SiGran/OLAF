@@ -8,6 +8,7 @@ from olaf.image_verification.freezing_reviewer import FreezingReviewer
 from olaf.processing.graph_data_csv import GraphDataCSV
 from olaf.processing.spaced_temp_csv import SpacedTempCSV
 
+# -----------------------------    USER INPUTS    -------------------------------------
 test_folder = Path.cwd().parent / "data" / "CoURAGE" / "TBS" / "CRG 02.22.25.S2 base"
 site = "CRG_S7_TBS"  # If this is ARM data use the official, full site site
 start_time = "2025-02-22 21:09:00"
@@ -60,15 +61,16 @@ dict_samples_to_dilution = {
 #     "Sample_2": 1,
 # }
 
-#------------------------EXTRA INFO IF NEEDED--------------------------#
+# ----------------------------    EXTRA INFO IF NEEDED  ---------------------------------
 # if running filters from TBS
-lower_altitude = 0 # m agl
-upper_altitude = 0 # m agl
+lower_altitude = 0  # m agl
+upper_altitude = 0  # m agl
 
 # if sample is soil
-dry_mass = 2 # dried mass of soil in g
+dry_mass = 2  # dried mass of soil in g
 
 
+# ----------------------- Assembling the header for the CSV file -----------------------
 header = (
     f"site = {site}\nstart_time = {start_time}\nend_time = {end_time}\n"
     f"filter_color = {filter_color}\nsample_type = {sample_type}\n"
@@ -90,11 +92,13 @@ if __name__ == "__main__":
             f"Number of samples * wells per sample ({num_samples}*{wells_per_sample} is "
             f"not equal to 192"
         )
+
+    # Few automatic variabel assignments and optional header additions
     if "blank" in treatment or sample_type != "air":
         vol_air_filt = 1  # Always the case for blank
 
     if "soil" in sample_type:
-        vol_air_filt = vol_susp/dry_mass
+        vol_air_filt = vol_susp / dry_mass
 
     if "TBS" in site:
         header += f"lower_altitude = {lower_altitude}\nupper_altitude = {upper_altitude}\n"
