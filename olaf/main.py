@@ -10,7 +10,7 @@ from olaf.processing.spaced_temp_csv import SpacedTempCSV
 
 # -----------------------------    USER INPUTS    -------------------------------------
 test_folder = Path.cwd().parent / "data" / "CoURAGE" / "TBS" / "CRG 02.22.25.S2 base"
-site = "CRG_S7_TBS"  # If this is ARM data use the official, full site site
+site = "CRG_S7_TBS"  # If this is ARM data use the official, full site
 start_time = "2025-02-22 21:09:00"
 end_time = "2025-02-22 22:08:00"
 filter_color = "white"
