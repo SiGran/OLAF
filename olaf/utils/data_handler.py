@@ -1,15 +1,16 @@
 from pathlib import Path
+from typing import Any
 
 import pandas as pd
 
-from olaf.utils.path_utils import natural_sort_key
+from olaf.utils.path_utils import find_latest_file
 
 
 class DataHandler:
     def __init__(self, folder_path: Path, num_samples: int, **kwargs) -> None:
         kwargs.setdefault("suffix", ".dat")
-        kwargs.setdefault("includes", {})
-        kwargs.setdefault("excludes", {})
+        kwargs.setdefault("includes", ())
+        kwargs.setdefault("excludes", ())
         kwargs.setdefault("date_col", "Time")
         kwargs.setdefault("sep", "\t")
 
@@ -32,7 +33,7 @@ class DataHandler:
         suffix: str = ".dat",
         date_col: str = "Time",
         sep: str = "\t",
-    ) -> tuple[Path, pd.DataFrame]:
+    ) -> tuple[Any, Any]:
         """
         Load a file with a given suffix (default: .dat) from the Project folder.
         Arguments to exclude files can be passed as a list to the "excludes" parameter.
@@ -64,16 +65,23 @@ class DataHandler:
                 if file.suffix == suffix and all(name in file.name for name in includes)
             ]
         if not files:
-            raise FileNotFoundError("No files found with the given revision name")
+            return (
+                None,
+                FileNotFoundError(
+                    f"No files found in {self.folder_path} with "
+                    f"suffix {suffix} that includes {includes} and "
+                    f"excludes {excludes}"
+                ),
+            )
         elif len(files) > 1:  # if more than one, pick the one with the highest counter
-            data_file = sorted(files, key=lambda x: natural_sort_key(str(x)))[-1]
+            data_file = find_latest_file(files)
         else:  # if only one, pick that one
             data_file = files[0]
 
         if date_col:
-            data = pd.read_csv(data_file, sep=sep, parse_dates=[date_col])
+            data = pd.read_csv(data_file, sep=sep, parse_dates=[date_col], index_col=False)
         else:
-            data = pd.read_csv(data_file, sep=sep)
+            data = pd.read_csv(data_file, sep=sep, index_col=False)
         # If original .dat file, some changes are needed in this if statement
         if "Time" in data.columns and "Unnamed: 1" in data.columns and date_col == "Time":
             # rename automatically split datetime column
@@ -142,12 +150,14 @@ class DataHandler:
             save_path.parent.mkdir(parents=True, exist_ok=True)
 
             # Save the data
-            if not header:
-                save_data.to_csv(save_path, sep=sep, index=False, lineterminator="\n")
-            else:
-                with open(save_path, "w") as file:
-                    file.write(header)
-                    save_data.to_csv(file, sep=sep, index=False, lineterminator="\n")
+            with open(save_path, "w") as f:
+                if header:
+                    if isinstance(header, dict):
+                        for key, value in header.items():
+                            f.write(f"{key} = {value}\n")
+                    else:
+                        f.write(f"{header}\n")
+                save_data.to_csv(f, sep=sep, index=False, lineterminator="\n")
             return save_path
 
         except OSError as e:

@@ -4,15 +4,17 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from olaf.CONSTANTS import NUM_TO_REPLACE_D1, VOL_WELL, Z
+from olaf.CONSTANTS import AGRESTI_COULL_UNCERTAIN_VALUES, NUM_TO_REPLACE_D1, VOL_WELL, Z
 from olaf.utils.data_handler import DataHandler
+from olaf.utils.df_utils import header_to_dict
+from olaf.utils.plot_utils import plot_INPS_L
 
 
 class GraphDataCSV(DataHandler):
     """
     This class is called after the last image is reviewed in the GUI closes,
     and after the .csv file with the temperature ranges and frozen wells is created.
-    It has a function that reads in in above-mentioned .csv file and calculates the
+    It has a function that reads in an above-mentioned .csv file and calculates the
     INPs/L to use per temperature over all the dilutions for the experiment.
 
     """
@@ -21,6 +23,7 @@ class GraphDataCSV(DataHandler):
         self,
         folder_path: Path,
         num_samples,
+        sample_type: str,
         vol_air_filt: float,
         wells_per_sample: int,
         filter_used: float,
@@ -42,13 +45,14 @@ class GraphDataCSV(DataHandler):
             date_col=date_col,
             sep=",",
         )
+        self.sample_type = sample_type.lower()
         self.vol_air_filt = vol_air_filt
         self.wells_per_sample = wells_per_sample
         self.filter_used = filter_used
         self.vol_susp = vol_susp
         self.dict_to_samples_dilution = dict_samples_to_dilution
         # change the headers of the data from samples to dilution factor
-        try:  # TODO REMOVE COLUMNS NOT IN DICT
+        try:
             # Store original column names for verification
             original_columns = set(self.data.columns)
 
@@ -74,7 +78,7 @@ class GraphDataCSV(DataHandler):
             raise ValueError(f"Failed to rename columns: {str(e)}")
         return
 
-    def convert_INPs_L(self, header: str, save=True):
+    def convert_INPs_L(self, header: str, save=True, show_plot=False) -> pd.DataFrame:
         """
         Convert from # frozen wells at temperature for certain dilution to INPs/L.
         The steps involved in this function are:
@@ -184,7 +188,6 @@ class GraphDataCSV(DataHandler):
             v for v in self.dict_to_samples_dilution.values() if v != float("inf")
         )
         # check if any dilution is less than the background and take that instead
-        # TODO: automatically false, only compare if background is above 2 frozen
         dilution_v_background_df = samples[float("inf")] > samples[most_diluted_value]
         # if more than NUM_TO_REPLACE_D1 samples in the highest dilutions are smaller
         # than the background
@@ -217,14 +220,14 @@ class GraphDataCSV(DataHandler):
         )
 
         "-------------------------- Step 4: Pruning the data --------------------------"
-        # Turn both positive and negative INF's into NaN's
+        # Turn both positive and negative INP's into NaN's
         all_INPs_p_L.replace({np.inf: np.nan, -np.inf: np.nan}, inplace=True)
         # Turn the values that correspond with frozen wells (in samples) of 30 or higher into NaN's
-        # TODO: this assumes all samples have 32 wells, which is not the case for lower temperatures
-        # TODO: How to adjust for this?
-        all_INPs_p_L[samples >= 30] = np.nan
-        lower_INPS_p_L[samples >= 30] = np.nan
-        upper_INPS_p_L[samples >= 30] = np.nan
+        # if we ever want to modify this we can make it a CONSTANT. As seen below:
+        max_allowable_wells_used = self.wells_per_sample - AGRESTI_COULL_UNCERTAIN_VALUES
+        all_INPs_p_L[samples >= max_allowable_wells_used] = np.nan
+        lower_INPS_p_L[samples >= max_allowable_wells_used] = np.nan
+        upper_INPS_p_L[samples >= max_allowable_wells_used] = np.nan
 
         " -------------------------- Step 5: Combining into one -------------------------- "
         # initialize the results df with the first dilution
@@ -289,6 +292,14 @@ class GraphDataCSV(DataHandler):
         "---------------------- Step 6: Save and return the data ----------------------"
         if save:
             self.save_to_new_file(result_df, prefix="INPs_L", header=header)
+        # Plotting option
+        if show_plot:
+            header_dict = header_to_dict(header)
+            save_path = self.folder_path / (
+                f"plot_{header_dict['site']}_{header_dict['start_time'][:10]}_"
+                f"{header_dict['treatment']}_INPs_L.png"
+            )
+            plot_INPS_L(result_df, save_path, header_dict)
 
         return result_df
 

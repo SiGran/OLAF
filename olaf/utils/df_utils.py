@@ -13,6 +13,7 @@ def read_with_flexible_header(
     header_lines = []
     i = 0
     with open(file_path, "r") as f:
+        skiprows = 0
         while not header_found:
             line = f.readline()
             if not line:  # end of file
@@ -30,6 +31,8 @@ def read_with_flexible_header(
 
 def header_to_dict(header_lines):
     """Convert header lines to a dictionary"""
+    if isinstance(header_lines, str):
+        header_lines = header_lines.splitlines()
     header_dict = {}
     for line in header_lines:
         if " = " in line:

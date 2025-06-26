@@ -1,22 +1,32 @@
 import tkinter as tk
 from pathlib import Path
 
+from olaf.utils.type_utils import ensure_list
+
 from .button_handler import ButtonHandler
 
 
 class FreezingReviewer(ButtonHandler):
-    # TODO: Full screen makes it become weird ---> mainly location of the "Sample x" on top
-    def __init__(self, root: tk.Tk, folder_path: Path, num_samples: int, includes: tuple) -> None:
+    def __init__(
+        self,
+        root: tk.Tk,
+        folder_path: Path,
+        num_samples: int,
+        wells_per_sample: int,
+        dict_samples_to_dilution: dict,
+        includes: tuple,
+    ) -> None:
         """
         Class that creates a GUI for reviewing well freezing images and
         updating the number of frozen wells.
-        Class inherits from ButtonHandler and DataLoader.
+        Class inherited from ButtonHandler and DataLoader.
         Args:
             root: tkinter root object
             folder_path: path to the project folder containing the images and .dat file
         """
+        self.dict_samples_to_dilution = dict_samples_to_dilution
+        self.wells_per_sample = wells_per_sample
         super().__init__(root, folder_path, num_samples, includes)
-
         return
 
     def _update_image(self, sample: int, change: int) -> None:
@@ -34,7 +44,7 @@ class FreezingReviewer(ButtonHandler):
         # Get the index of the current image in the data frame
         current_index = self.data.index[self.data["Picture"] == picture_name].tolist()[0]
 
-        # Apply change to current and later, but keep the value between 0 and 32
+        # Apply change to current and later; keep the value between 0 and max wells_per_sample
         if change < 0:  # go back to were this went last up
             # Check if the change would go below 0
             if self.data.loc[current_index:, f"Sample_{sample}"].values[0] + change < 0:
@@ -51,13 +61,16 @@ class FreezingReviewer(ButtonHandler):
         self.data.loc[current_index:, f"Sample_{sample}"] += change
         self.data.loc[current_index:, f"Sample_{sample}"] = self.data.loc[
             current_index:, f"Sample_{sample}"
-        ].clip(0, 32)
+        ].clip(0, self.wells_per_sample)
 
         # Update the changes column with the change
+        # bug can occur that turns the "changes" column into a string
+        self.data["changes"] = self.data["changes"].apply(ensure_list)
+        # Update the change from the click to the changes column
         self.data.loc[current_index:, "changes"] = self.data.loc[current_index:, "changes"].apply(
-            lambda x: [y + change if i == sample else y for i, y in enumerate(x)]
+            lambda x: [int(y) + change if i == sample else y for i, y in enumerate(x)]
         )
-        # NOTE: above line/column isn't corrected for clipping to (0, 32)
+        # NOTE: above line/column isn't corrected for clipping to (0, wells_per_sample)
         self._display_num_frozen(picture_name)
         return
 
@@ -72,21 +85,30 @@ class FreezingReviewer(ButtonHandler):
         """
         # Find the row in the data frame corresponding to the current image
         row = self.data[self.data["Picture"] == pic_file_name]
-        # TODO: use dict_to_samples instead of num_samples
-        """
-        Still set out the outline with all the samples
-        but then use the dictionary to see which ones we should be lookg int
-        """
+
+        # Clear any existing sample frames
+        for widget in self.root.winfo_children():
+            if isinstance(widget, tk.LabelFrame) and "sample" in widget["text"]:
+                widget.destroy()
+
         if not row.empty:
-            for i in range(self.num_samples):
+            # Use the includes parameter to determine which samples to display
+            samples_to_display = range(self.num_samples)
+
+            # Create a container frame to hold all sample frames
+            container = tk.Frame(self.root)
+            container.place(relx=0.5, y=100, anchor=tk.CENTER)
+
+            for idx, i in enumerate(samples_to_display):
                 value = row[f"Sample_{i}"].values[0]
-                sample_frame = tk.LabelFrame(self.root, text=f"sample {i}")
-                x_coord = (i + 1.2) * 100
-                if i > 2:
-                    x_coord += 100
-                sample_frame.place(x=x_coord, y=170)  # Adjust x and y for proper spacing
+                if f"Sample_{i}" in self.dict_samples_to_dilution:
+                    frame_text = f"Sample {i} \n ({self.dict_samples_to_dilution[f'Sample_{i}']})"
+                else:
+                    frame_text = f"Sample {i} \n (Not in Dict)"
+                sample_frame = tk.LabelFrame(container, text=frame_text)
+                sample_frame.grid(row=0, column=idx, padx=20)
                 label = tk.Label(sample_frame, text=str(value))
-                label.pack()
+                label.pack(padx=10, pady=5)
         else:
             print(f"Error: No data found for {pic_file_name}")
         return

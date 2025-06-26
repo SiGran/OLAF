@@ -73,7 +73,6 @@ class SpacedTempCSV(DataHandler):
         # step 3: round down to nearest 0.5
         round_temp_frozen = ceil((temp_frozen * 2)) / 2
         # step 5: Initialize with three rows for the first two and zeros for the samples
-        # TODO: maybe not required, could be prettier without
         temp_first_frozen_row = [temp_frozen] + [
             self.data.loc[first_frozen_id, f"Sample_{i}"] for i in range(self.num_samples)
         ]
