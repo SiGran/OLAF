@@ -14,8 +14,6 @@ start_time = "2025-02-22 21:09:00"
 end_time = "2025-02-22 22:08:00"
 filter_color = "white"
 notes = "Battery was over-discharged - programmed to operational max mode limited to two altitudes."
-lower_altitude = 300  # m agl
-upper_altitude = 575  # m agl
 user = "Carson"
 IS = "IS3a"
 num_samples = 6  # In the file
@@ -51,13 +49,6 @@ dict_samples_to_dilution = {
 #     "Sample_2": 121,
 #     "Sample_1": 1331,
 #     "Sample_0": float("inf"),
-# }
-
-# Use for Blanks
-# dict_samples_to_dilution = {
-#     "Sample_0" : float("inf"),
-#     "Sample_1": 11,
-#     "Sample_2": 1,
 # }
 
 #------------------------EXTRA INFO IF NEEDED--------------------------#
