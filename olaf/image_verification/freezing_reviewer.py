@@ -1,7 +1,7 @@
 import tkinter as tk
 from pathlib import Path
 
-from utils.type_utils import ensure_list
+from olaf.utils.type_utils import ensure_list
 
 from .button_handler import ButtonHandler
 

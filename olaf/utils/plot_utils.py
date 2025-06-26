@@ -146,17 +146,36 @@ def plot_blank_corrected_vs_pre_corrected_inps(
     plt.grid(True, which="major", alpha=0.5)  # Major grid lines
     plt.grid(True, which="minor", alpha=0.1)
     if "TBS" in site:
-        legend_elements = [Patch(facecolor='none', edgecolor='none', label=f"Site: {site}"),
-                           Patch(facecolor='none', edgecolor='none', label=f"Start: {plot_header_info['start_time']}"),
-                           Patch(facecolor='none', edgecolor='none', label=f"End: {plot_header_info['end_time']}"),
-                           Patch(facecolor='none', edgecolor='none', label=f"Treatment: {plot_header_info['treatment']}"),
-                           Patch(facecolor='none', edgecolor='none',
-                                 label=f"Lower altitude (m agl): {plot_header_info['lower_altitude']}"),
-                           Patch(facecolor='none', edgecolor='none',
-                                 label=f"Upper altitude (m agl): {plot_header_info['upper_altitude']}"),
-                           Patch(facecolor='none', edgecolor='none',
-                                 label=f"Total volume collected (L STP): {plot_header_info['vol_air_filt']}"),
-                           Patch(facecolor='none', edgecolor='none',label = f"Error Threshold: {THRESHOLD_ERROR} %")]
+        legend_elements = [
+            Patch(facecolor="none", edgecolor="none", label=f"Site: {site}"),
+            Patch(
+                facecolor="none", edgecolor="none", label=f"Start: {plot_header_info['start_time']}"
+            ),
+            Patch(facecolor="none", edgecolor="none", label=f"End: {plot_header_info['end_time']}"),
+            Patch(
+                facecolor="none",
+                edgecolor="none",
+                label=f"Treatment: {plot_header_info['treatment']}",
+            ),
+            Patch(
+                facecolor="none",
+                edgecolor="none",
+                label=f"Lower altitude (m agl): " f"{plot_header_info['lower_altitude']}",
+            ),
+            Patch(
+                facecolor="none",
+                edgecolor="none",
+                label=f"Upper altitude (m agl): " f"{plot_header_info['upper_altitude']}",
+            ),
+            Patch(
+                facecolor="none",
+                edgecolor="none",
+                label=f"Total volume collected (L STP): " f"{plot_header_info['vol_air_filt']}",
+            ),
+            Patch(
+                facecolor="none", edgecolor="none", label=f"Error Threshold: {THRESHOLD_ERROR} %"
+            ),
+        ]
     else:
         legend_elements = [
             Patch(facecolor="none", edgecolor="none", label=f"Site: {site}"),
