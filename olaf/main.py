@@ -124,7 +124,7 @@ if __name__ == "__main__":
         # add date to includes
         print(f"Processing data for: {site} {date}")
         includes = (date,) + treatment
-        # TODO: make the changes work for sample_type see issue #18
+        # TODO: make the changes work for sample_type see issue #18 on github
         graph_data_csv = GraphDataCSV(
             test_folder,
             num_samples,
