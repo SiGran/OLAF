@@ -241,8 +241,8 @@ While `main.py` works on the level per experiment, this script works on the leve
    corrector.apply_blanks(show_comp_plot=True)
    ```
 
-
 ### Combining the data
+
 The last *main* to run is the `main_final_combine.py` script. This script combines the different treatments into one `.csv` file.
 
 #### Files created after successfully running `main_final_combine.py`
