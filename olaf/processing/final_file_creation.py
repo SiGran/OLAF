@@ -31,20 +31,18 @@ class FinalFileCreation:
 
         files_per_date = {}
         for file in file_paths:
-            # look for the m.d.yyyy format in the file name
-            found_dates = re.findall(DATE_PATTERN, file.name)
+            # look for the "start_time" in the header
+            header_lines, _ = read_with_flexible_header(file)
+            dict_header = header_to_dict(header_lines)
+            found_dates = dict_header["start_time"]
             if not found_dates:
                 print(f"No date found in file name: {file.name}")
                 continue
             else:
-                # Convert `date` to datetime object
-                date_obj = found_dates[-1]  # pick last date found
-                # Convert to datetime object
-                date_obj = datetime.strptime(date_obj, "%m.%d.%y").date()
                 # Check if the date is already in the dictionary
-                if date_obj not in files_per_date:
-                    files_per_date[date_obj] = []
-                files_per_date[date_obj].append(file)
+                if found_dates not in files_per_date:
+                    files_per_date[found_dates] = []
+                files_per_date[found_dates].append(file)
 
         return files_per_date
 
