@@ -1,10 +1,9 @@
-import re
 from datetime import datetime
 from pathlib import Path
 
 import pandas as pd
 
-from olaf.CONSTANTS import DATE_PATTERN, ERROR_SIGNAL
+from olaf.CONSTANTS import ERROR_SIGNAL
 from olaf.utils.data_handler import DataHandler
 from olaf.utils.df_utils import header_to_dict, read_with_flexible_header
 
