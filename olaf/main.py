@@ -10,13 +10,11 @@ from olaf.processing.spaced_temp_csv import SpacedTempCSV
 
 # -----------------------------    USER INPUTS    -------------------------------------
 test_folder = Path.cwd().parent / "data" / "CoURAGE" / "TBS" / "CRG 02.22.25.S2 base"
-site = "CRG_S7_TBS"  # If this is ARM data use the official, full site site
+site = "CRG_S7_TBS"  # If this is ARM data use the official, full site
 start_time = "2025-02-22 21:09:00"
 end_time = "2025-02-22 22:08:00"
 filter_color = "white"
 notes = "Battery was over-discharged - programmed to operational max mode limited to two altitudes."
-lower_altitude = 300  # m agl
-upper_altitude = 575  # m agl
 user = "Carson"
 IS = "IS3a"
 num_samples = 6  # In the file
@@ -34,7 +32,7 @@ treatment = (
     # "blank peroxide,"
 )  # uncomment the one you want to use
 
-# Use for side A
+# Use for side A or IS2
 dict_samples_to_dilution = {
     "Sample_0": 1,
     "Sample_1": 11,
@@ -52,13 +50,6 @@ dict_samples_to_dilution = {
 #     "Sample_2": 121,
 #     "Sample_1": 1331,
 #     "Sample_0": float("inf"),
-# }
-
-# Use for Blanks
-# dict_samples_to_dilution = {
-#     "Sample_0" : float("inf"),
-#     "Sample_1": 11,
-#     "Sample_2": 1,
 # }
 
 # ----------------------------    EXTRA INFO IF NEEDED  ---------------------------------
@@ -93,7 +84,7 @@ if __name__ == "__main__":
             f"not equal to 192"
         )
 
-    # Few automatic variabel assignments and optional header additions
+    # Few automatic variable assignments and optional header additions
     if "blank" in treatment or sample_type != "air":
         vol_air_filt = 1  # Always the case for blank
 

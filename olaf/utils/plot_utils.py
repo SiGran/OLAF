@@ -160,17 +160,17 @@ def plot_blank_corrected_vs_pre_corrected_inps(
             Patch(
                 facecolor="none",
                 edgecolor="none",
-                label=f"Lower altitude (m agl): " f"{plot_header_info['lower_altitude']}",
+                label=f"Lower altitude (m agl): {plot_header_info['lower_altitude']}",
             ),
             Patch(
                 facecolor="none",
                 edgecolor="none",
-                label=f"Upper altitude (m agl): " f"{plot_header_info['upper_altitude']}",
+                label=f"Upper altitude (m agl): {plot_header_info['upper_altitude']}",
             ),
             Patch(
                 facecolor="none",
                 edgecolor="none",
-                label=f"Total volume collected (L STP): " f"{plot_header_info['vol_air_filt']}",
+                label=f"Total volume collected (L STP): {plot_header_info['vol_air_filt']}",
             ),
             Patch(
                 facecolor="none", edgecolor="none", label=f"Error Threshold: {THRESHOLD_ERROR} %"
