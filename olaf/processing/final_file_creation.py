@@ -30,7 +30,7 @@ class FinalFileCreation:
 
         files_per_date = {}
         for file in file_paths:
-            # look for the "start_time" in the header
+            # look for the "start_time" in the header of each blank_corrected .csv file
             header_lines, _ = read_with_flexible_header(file)
             dict_header = header_to_dict(header_lines)
             found_dates = dict_header["start_time"]
@@ -67,7 +67,7 @@ class FinalFileCreation:
                 # Read the file and get the header data
                 header_lines, df_inps = read_with_flexible_header(file)
                 dict_header = header_to_dict(header_lines)
-                notes += f"{dict_header['notes']}. "
+                notes += f"{dict_header['notes']}"
                 if save_file is None:  # on First read, set save_file and extend header
                     save_file = final_file_folder / (
                         f"{dict_header['site']}"
@@ -90,8 +90,24 @@ class FinalFileCreation:
 
                 temp_df = df_inps.drop("dilution", axis=1)
                 temp_df["Treatment_flag"] = treatment_flag
-                temp_df["lower_CI"] = df_inps["INPS_L"] - df_inps["lower_CI"]
-                temp_df["upper_CI"] = df_inps["INPS_L"] + df_inps["upper_CI"]
+
+                # find ERROR SIGNAl for confidence intervals L in df_inps
+                error_mask = (df_inps["lower_CI"] == ERROR_SIGNAL) | (
+                    df_inps["upper_CI"] == ERROR_SIGNAL
+                )
+                no_error_mask = ~error_mask
+
+                # Keep error confidence intervals as errors
+                temp_df.loc[error_mask, "lower_CI"] = df_inps.loc[error_mask, "lower_CI"]
+                temp_df.loc[error_mask, "upper_CI"] = df_inps.loc[error_mask, "upper_CI"]
+
+                # Convert non-error confidence intervals to confidence limits
+                temp_df.loc[no_error_mask, "lower_CI"] = (
+                    df_inps.loc[no_error_mask, "INPS_L"] - df_inps.loc[no_error_mask, "lower_CI"]
+                )
+                temp_df.loc[no_error_mask, "upper_CI"] = (
+                    df_inps.loc[no_error_mask, "INPS_L"] + df_inps.loc[no_error_mask, "upper_CI"]
+                )
 
                 temp_df.rename(
                     columns={
@@ -124,11 +140,18 @@ class FinalFileCreation:
 
             # Add all the notes to the header
             header += f"Sample notes: {notes}\n"
-            # Add the columns manually
+            # Add the columns manually with two options for either TBS or non TBS samples
+            if "TBS" in dict_header["site"]:
+                header += (
+                    "Start (UTC); Stop (UTC); Lower altitude range (m AGL); "
+                    "Upper altitude range (m AGL); Total_vol (L)\n"
+                )
+            else:
+                header += "Start (UTC); Stop (UTC); Total_vol (L)\n"
+
             header += (
-                "Start (UTC)\t Stop (UTC)\t Total_vol (L)\n"
-                "Temperature (degC)\t n_INP_STP (per L)\t lower_CL (per L)\t "
-                "upper_CL (per L)\t Treatment_flag\n"
+                "Temperature (degC); n_INP_STP (per L); lower_CL (per L); "
+                "upper_CL (per L); Treatment_flag\n"
             )
             # Convert both start_time and end_time to UTC seconds
             start_dt_obj = datetime.strptime(dict_header["start_time"], "%Y-%m-%d %H:%M:%S")
@@ -138,8 +161,15 @@ class FinalFileCreation:
             start_utc_seconds = int(start_dt_obj.timestamp())
             end_utc_seconds = int(end_dt_obj.timestamp())
 
-            # Replace the old line with the new timestamps
-            header += f"{start_utc_seconds}\t {end_utc_seconds}\t {dict_header['vol_air_filt']}\n"
+            # Replace the old line with the new timestamps and altitudes if TBS filter
+            if "TBS" in dict_header["site"]:
+                header += (
+                    f"{start_utc_seconds},{end_utc_seconds},{dict_header['lower_altitude']},"
+                    f"{dict_header['upper_altitude']},{dict_header['vol_air_filt']}\n"
+                )
+            else:
+                header += f"{start_utc_seconds},{end_utc_seconds},{dict_header['vol_air_filt']}\n"
+
             if save_file is not None:
                 with open(save_file, "w", newline="") as f:
                     f.write(header)
@@ -150,7 +180,7 @@ class FinalFileCreation:
     def _final_check(self, df):
         """
         Final check for the dataframe. If lower_CI (TOTAL VALUE) is below 0, set it to
-        error signal.
+        error signal. Sets any nan value or negative INP value to ERROR_SIGNAL.
         """
 
         # NOTE: completely redundant when removing all zero values
@@ -158,6 +188,11 @@ class FinalFileCreation:
         # Remove all the rows at the start where n_INP_STP (per L) is 0
         # Find where n_INP_STP is not zero
         non_zero_mask = abs(df["n_INP_STP (per L)"]) > 1e-10
+
+        # Find nan values in INP/L and upper and lower CL
+        nan_mask_inp = pd.isna(df["n_INP_STP (per L)"])
+        nan_mask_lower = pd.isna(df["lower_CL (per L)"])
+        nan_mask_upper = pd.isna(df["upper_CL (per L)"])
 
         if non_zero_mask.any():
             # Get index of first non-zero value
@@ -168,4 +203,14 @@ class FinalFileCreation:
         # If any lower_CL (per L) is below 0, then set all that go below to error signal
         if df["lower_CL (per L)"].min() < 0:
             df.loc[df["lower_CL (per L)"] < 0, "lower_CL (per L)"] = ERROR_SIGNAL
+
+        # Edge case to remove negative INP values
+        if df["n_INP_STP (per L)"].min() < 0:
+            df.loc[df["n_INP_STP (per L)"] < 0, "n_INP_STP (per L)"] = ERROR_SIGNAL
+
+        # Set nan values to ERROR_SIGNAL
+        df.loc[nan_mask_inp, "n_INP_STP (per L)"] = ERROR_SIGNAL
+        df.loc[nan_mask_lower, "lower_CL (per L)"] = ERROR_SIGNAL
+        df.loc[nan_mask_upper, "upper_CL (per L)"] = ERROR_SIGNAL
+
         return df
