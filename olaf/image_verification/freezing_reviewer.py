@@ -117,6 +117,14 @@ class FreezingReviewer(ButtonHandler):
         return
 
     def _display_current_temp(self, current_index: int) -> None:
+        """
+        Display the number of frozen wells for each sample in the current image.
+        Args:
+             current_index: index in the dataframe corresponding to the current image.
+
+        Returns:
+             None
+        """
         current_temp = self.data.loc[current_index, "Avg_Temp"]
         temp_text = f"Current Temp (C)"
         temp_frame = tk.LabelFrame(self.root,text=temp_text)

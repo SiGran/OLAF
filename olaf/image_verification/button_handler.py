@@ -102,7 +102,7 @@ class ButtonHandler(DataLoader):
             # Update the window title with the current image name
             self.root.title(f"Well Freezing Reviewer - {photo_path.name}")
 
-            # Display num of frozen wells from the data
+            # Display num of frozen wells and current temp from the data
             self._display_num_frozen(photo_path.name)
             current_index = self.data.index[self.data["Picture"] == photo_path.name].tolist()[0]
             self._display_current_temp(current_index)
@@ -153,8 +153,8 @@ class ButtonHandler(DataLoader):
 
     def _advance_10_images(self) -> None:
         """
-        Go to the previous photo in the list. If there are no photos to go back to,
-        do nothing.
+        Goes forward ten photos in the list. If there are no more photos, call the closing
+        sequence. Otherwise, show the next photo.
         Returns:
             None
         """
@@ -168,7 +168,7 @@ class ButtonHandler(DataLoader):
 
     def _reverse_10_images(self) -> None:
         """
-        Go to the previous photo in the list. If there are no photos to go back to,
+        Go back ten photos in the list. If there are less than ten photos to go back to,
         do nothing.
         Returns:
             None
@@ -189,6 +189,18 @@ class ButtonHandler(DataLoader):
             None
         """
         return
+    def _display_current_temp(self, current_index):
+        """
+        (Placeholder to) Display the number of frozen wells for each sample in the
+        current image.
+        Args:
+            current_index: index in the dataframe corresponding to the current image.
+
+        Returns:
+            None
+        """
+        pass
+        return
 
     def closing_sequence(self) -> None:
         """
@@ -201,6 +213,4 @@ class ButtonHandler(DataLoader):
         self.save_to_new_file(prefix="reviewed", sep="\t")
         return
 
-    def _display_current_temp(self, current_index):
-        pass
-        return
+
