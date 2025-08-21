@@ -44,6 +44,9 @@ class FreezingReviewer(ButtonHandler):
         # Get the index of the current image in the data frame
         current_index = self.data.index[self.data["Picture"] == picture_name].tolist()[0]
 
+        # Show current temperature at top of GUI
+        self._display_current_temp(current_index)
+
         # Apply change to current and later; keep the value between 0 and max wells_per_sample
         if change < 0:  # go back to were this went last up
             # Check if the change would go below 0
@@ -111,4 +114,13 @@ class FreezingReviewer(ButtonHandler):
                 label.pack(padx=10, pady=5)
         else:
             print(f"Error: No data found for {pic_file_name}")
+        return
+
+    def _display_current_temp(self, current_index: int) -> None:
+        current_temp = self.data.loc[current_index, "Avg_Temp"]
+        temp_text = f"Current Temp (C)"
+        temp_frame = tk.LabelFrame(self.root,text=temp_text)
+        temp_frame.place(relx=0.5, y=30, anchor=tk.CENTER)
+        label = tk.Label(temp_frame, text=str(current_temp))
+        label.pack(padx=10, pady=5)
         return
