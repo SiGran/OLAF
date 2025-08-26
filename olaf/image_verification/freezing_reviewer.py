@@ -26,6 +26,9 @@ class FreezingReviewer(ButtonHandler):
         """
         self.dict_samples_to_dilution = dict_samples_to_dilution
         self.wells_per_sample = wells_per_sample
+        # Initialize temperature display widget references
+        self.temp_frame: tk.LabelFrame | None = None
+        self.temp_label: tk.Label | None = None
         super().__init__(root, folder_path, num_samples, includes)
         return
 
@@ -118,7 +121,7 @@ class FreezingReviewer(ButtonHandler):
 
     def _display_current_temp(self, current_index: int) -> None:
         """
-        Display the number of frozen wells for each sample in the current image.
+        Display the current temperature for the image.
         Args:
              current_index: index in the dataframe corresponding to the current image.
 
@@ -126,9 +129,14 @@ class FreezingReviewer(ButtonHandler):
              None
         """
         current_temp = self.data.loc[current_index, "Avg_Temp"]
-        temp_text = "Current Temp (C)"
-        temp_frame = tk.LabelFrame(self.root, text=temp_text)
-        temp_frame.place(relx=0.5, y=30, anchor=tk.CENTER)
-        label = tk.Label(temp_frame, text=str(current_temp))
-        label.pack(padx=10, pady=5)
+
+        # Create widgets only if they don't exist yet
+        if self.temp_label is None:
+            temp_text = "Current Temp (C)"
+            self.temp_frame = tk.LabelFrame(self.root, text=temp_text)
+            self.temp_frame.place(relx=0.5, y=30, anchor=tk.CENTER)
+            self.temp_label = tk.Label(self.temp_frame, text=str(current_temp))
+            self.temp_label.pack(padx=10, pady=5)
+        else:
+            self.temp_label.config(text=str(current_temp))
         return
