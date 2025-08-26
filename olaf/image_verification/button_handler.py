@@ -175,7 +175,7 @@ class ButtonHandler(DataLoader):
         Returns:
             None
         """
-        if self.current_photo_index > 10:
+        if self.current_photo_index >= 10:
             self.current_photo_index -= 10
             self.show_photo()
         return
