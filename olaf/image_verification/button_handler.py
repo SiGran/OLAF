@@ -192,7 +192,7 @@ class ButtonHandler(DataLoader):
         """
         return
 
-    def _display_current_temp(self, current_index):
+    def _display_current_temp(self, current_index: int):
         """
         (Placeholder to) Display the number of frozen wells for each sample in the
         current image.
