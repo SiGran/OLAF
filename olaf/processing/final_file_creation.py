@@ -92,18 +92,22 @@ class FinalFileCreation:
                 temp_df["Treatment_flag"] = treatment_flag
 
                 # find ERROR SIGNAl for confidence intervals L in df_inps
-                error_mask = (df_inps["lower_CI"]==ERROR_SIGNAL) | (df_inps["upper_CI"]==ERROR_SIGNAL)
+                error_mask = (df_inps["lower_CI"] == ERROR_SIGNAL) | (
+                    df_inps["upper_CI"] == ERROR_SIGNAL
+                )
                 no_error_mask = ~error_mask
 
                 # Keep error confidence intervals as errors
-                temp_df.loc[error_mask, "lower_CI"]= df_inps.loc[error_mask, "lower_CI"]
-                temp_df.loc[error_mask, "upper_CI"]= df_inps.loc[error_mask, "upper_CI"]
+                temp_df.loc[error_mask, "lower_CI"] = df_inps.loc[error_mask, "lower_CI"]
+                temp_df.loc[error_mask, "upper_CI"] = df_inps.loc[error_mask, "upper_CI"]
 
                 # Convert non-error confidence intervals to confidence limits
-                temp_df.loc[no_error_mask, "lower_CI"] = (df_inps.loc[no_error_mask, "INPS_L"]
-                                                          - df_inps.loc[no_error_mask, "lower_CI"])
-                temp_df.loc[no_error_mask, "upper_CI"] = (df_inps.loc[no_error_mask, "INPS_L"] +
-                                                          df_inps.loc[no_error_mask, "upper_CI"])
+                temp_df.loc[no_error_mask, "lower_CI"] = (
+                    df_inps.loc[no_error_mask, "INPS_L"] - df_inps.loc[no_error_mask, "lower_CI"]
+                )
+                temp_df.loc[no_error_mask, "upper_CI"] = (
+                    df_inps.loc[no_error_mask, "INPS_L"] + df_inps.loc[no_error_mask, "upper_CI"]
+                )
 
                 temp_df.rename(
                     columns={
@@ -137,7 +141,7 @@ class FinalFileCreation:
             # Add all the notes to the header
             header += f"Sample notes: {notes}\n"
             # Add the columns manually with two options for either TBS or non TBS samples
-            if "TBS" in dict_header['site']:
+            if "TBS" in dict_header["site"]:
                 header += (
                     "Start (UTC); Stop (UTC); Lower altitude range (m AGL); "
                     "Upper altitude range (m AGL); Total_vol (L)\n"
@@ -158,9 +162,10 @@ class FinalFileCreation:
             end_utc_seconds = int(end_dt_obj.timestamp())
 
             # Replace the old line with the new timestamps and altitudes if TBS filter
-            if "TBS" in dict_header['site']:
-                header += (f"{start_utc_seconds},{end_utc_seconds},{dict_header['lower_altitude']},"
-                           f"{dict_header['upper_altitude']},{dict_header['vol_air_filt']}\n"
+            if "TBS" in dict_header["site"]:
+                header += (
+                    f"{start_utc_seconds},{end_utc_seconds},{dict_header['lower_altitude']},"
+                    f"{dict_header['upper_altitude']},{dict_header['vol_air_filt']}\n"
                 )
             else:
                 header += f"{start_utc_seconds},{end_utc_seconds},{dict_header['vol_air_filt']}\n"

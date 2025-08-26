@@ -126,8 +126,8 @@ class FreezingReviewer(ButtonHandler):
              None
         """
         current_temp = self.data.loc[current_index, "Avg_Temp"]
-        temp_text = f"Current Temp (C)"
-        temp_frame = tk.LabelFrame(self.root,text=temp_text)
+        temp_text = "Current Temp (C)"
+        temp_frame = tk.LabelFrame(self.root, text=temp_text)
         temp_frame.place(relx=0.5, y=30, anchor=tk.CENTER)
         label = tk.Label(temp_frame, text=str(current_temp))
         label.pack(padx=10, pady=5)
