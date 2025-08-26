@@ -14,7 +14,11 @@ class ButtonHandler(DataLoader):
         """
         super().__init__(root, folder_path, num_samples, includes)
         self.num_samples = num_samples
-        self.photo_image_ref, self.back_button, self.minus_10_button = tk.PhotoImage(), tk.Button(), tk.Button()
+        self.photo_image_ref, self.back_button, self.minus_10_button = (
+            tk.PhotoImage(),
+            tk.Button(),
+            tk.Button(),
+        )
         self.create_buttons()
         self.show_photo()
         return
@@ -28,7 +32,7 @@ class ButtonHandler(DataLoader):
         self.minus_10_button = tk.Button(
             self.button_frame,
             text="- 10 images",
-            command=lambda:self._reverse_10_images(),
+            command=lambda: self._reverse_10_images(),
         )
         self.minus_10_button.pack(side=tk.LEFT, padx=5)
         self.minus_10_button.config(state=tk.DISABLED)
@@ -76,8 +80,6 @@ class ButtonHandler(DataLoader):
         plus_10_button.pack(side=tk.LEFT, padx=5)
 
         return
-
-
 
     def show_photo(self) -> None:
         """
@@ -189,6 +191,7 @@ class ButtonHandler(DataLoader):
             None
         """
         return
+
     def _display_current_temp(self, current_index):
         """
         (Placeholder to) Display the number of frozen wells for each sample in the
@@ -212,5 +215,3 @@ class ButtonHandler(DataLoader):
         """
         self.save_to_new_file(prefix="reviewed", sep="\t")
         return
-
-
