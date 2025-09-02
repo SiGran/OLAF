@@ -1,4 +1,5 @@
 import operator
+from datetime import datetime
 from pathlib import Path
 
 import numpy as np
@@ -295,9 +296,10 @@ class GraphDataCSV(DataHandler):
         # Plotting option
         if show_plot:
             header_dict = header_to_dict(header)
+            current_time = datetime.now().strftime("%Y%m%d_%H%M%S")
             save_path = self.folder_path / (
                 f"plot_{header_dict['site']}_{header_dict['start_time'][:10]}_"
-                f"{header_dict['treatment']}_INPs_L.png"
+                f"{header_dict['treatment']}_INPs_L_generated-{current_time}.png"
             )
             plot_INPS_L(result_df, save_path, header_dict)
 
