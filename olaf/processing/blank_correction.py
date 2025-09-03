@@ -29,7 +29,7 @@ class BlankCorrector:
         potential_blank_files = []
         for experiment_folder in self.project_folder.iterdir():
             if experiment_folder.is_dir() and ("blank" in experiment_folder.name.lower()):
-                for file_path in experiment_folder.rglob("INPs_L*.csv"):
+                for file_path in experiment_folder.rglob("INPs_L*blank*.csv"):
                     potential_blank_files.append(file_path)
 
         # Group the files by date

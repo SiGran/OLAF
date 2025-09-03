@@ -124,6 +124,7 @@ def plot_blank_corrected_vs_pre_corrected_inps(
         fmt="o",
         capsize=2,
         color="darkred",
+        alpha=0.8,
     )
     # Plot formatting
     site = plot_header_info["site"]
