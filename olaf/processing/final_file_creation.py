@@ -70,7 +70,7 @@ class FinalFileCreation:
                 notes += f"{dict_header['notes']}"
                 if save_file is None:  # on First read, set save_file and extend header
                     save_file = final_file_folder / (
-                        f"{dict_header['site']}"
+                        f"{dict_header['site']}_"
                         f"{dict_header['start_time'][0:10]}_"
                         f"{dict_header['start_time'][11:].replace(':', '')}.csv"
                     )
