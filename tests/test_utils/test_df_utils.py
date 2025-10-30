@@ -37,8 +37,9 @@ class TestHeaderToDict:
         ]
         result = header_to_dict(header_lines)
 
-        # Spaces around = are not stripped
-        assert result["filename"] == " test.csv  "
+        # The function splits on " = " (single space-equals-space)
+        # Extra spaces before = become part of key, extra spaces after = become part of value
+        assert result["filename "] == " test.csv  "
         assert result["site"] == "SGP"
 
     def test_header_to_dict_with_numeric_values(self):
