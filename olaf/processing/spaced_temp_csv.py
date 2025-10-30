@@ -63,6 +63,14 @@ class SpacedTempCSV(DataHandler):
         Returns:
             Dataframe, and saves the data in a .csv file if save is True
         """
+        # If using IS data look for "Avg_Temp" or if using cold plate data look for "Sample_Temp"
+        if temp_col not in self.data.columns:
+            alternative_col = "Sample_Temp" if temp_col == "Avg_Temp" else "Avg_Temp"
+            if alternative_col in self.data.columns:
+                temp_col = alternative_col
+            else:
+                raise KeyError(f"Neither '{temp_col}' nor '{alternative_col}' found in dataframe")
+
         # initialize the temp_frozen_df with temperature column and sample columns
         # step 1 and 2: Find least diluted sample from dict_to_sample_dilution
         least_diluted_sample = min(
