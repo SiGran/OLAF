@@ -2,7 +2,16 @@ import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.patches import Patch
 
-from olaf.CONSTANTS import THRESHOLD_ERROR
+from olaf.CONSTANTS import (
+    AXIS_LOWER_LIMIT_FACTOR,
+    AXIS_UPPER_LIMIT_FACTOR,
+    PLOT_SKIP_FIRST_N_POINTS,
+    TEMP_AXIS_MAX,
+    TEMP_AXIS_MIN,
+    TEMP_MAJOR_TICK_INTERVAL,
+    TEMP_MINOR_TICK_INTERVAL,
+    THRESHOLD_ERROR,
+)
 
 
 def plot_INPS_L(result_df, save_path, header_dict):
@@ -22,9 +31,12 @@ def plot_INPS_L(result_df, save_path, header_dict):
     # Plotting the INP concentrations
     plt.figure(figsize=(10, 6))
     plt.errorbar(
-        result_df["degC"][4:],
-        result_df["INPS_L"][4:],
-        yerr=[result_df["lower_CI"][4:], result_df["upper_CI"][4:]],
+        result_df["degC"][PLOT_SKIP_FIRST_N_POINTS:],
+        result_df["INPS_L"][PLOT_SKIP_FIRST_N_POINTS:],
+        yerr=[
+            result_df["lower_CI"][PLOT_SKIP_FIRST_N_POINTS:],
+            result_df["upper_CI"][PLOT_SKIP_FIRST_N_POINTS:],
+        ],
         fmt="o",
         label="INP Concentration",
         capsize=2,
@@ -39,11 +51,21 @@ def plot_INPS_L(result_df, save_path, header_dict):
     plt.ylabel("INP Concentration (per L STP)")
     plt.yscale("log")
     plt.ylim(
-        result_df[result_df["lower_CI"] > 0]["lower_CI"].min() * 0.1, result_df["INPS_L"].max() * 3
+        result_df[result_df["lower_CI"] > 0]["lower_CI"].min() * AXIS_LOWER_LIMIT_FACTOR,
+        result_df["INPS_L"].max() * AXIS_UPPER_LIMIT_FACTOR
     )
-    plt.xlim(-30, 0)
-    plt.xticks(np.arange(0, -35, -5))
-    plt.gca().set_xticks(np.arange(0, -31, -1), minor=True)
+    plt.xlim(TEMP_AXIS_MIN, TEMP_AXIS_MAX)
+    plt.xticks(
+        np.arange(
+            TEMP_AXIS_MAX, TEMP_AXIS_MIN - TEMP_MAJOR_TICK_INTERVAL, -TEMP_MAJOR_TICK_INTERVAL
+        )
+    )
+    plt.gca().set_xticks(
+        np.arange(
+            TEMP_AXIS_MAX, TEMP_AXIS_MIN - TEMP_MINOR_TICK_INTERVAL, -TEMP_MINOR_TICK_INTERVAL
+        ),
+        minor=True,
+    )
     plt.grid(True, linestyle="--", color="gray", linewidth=0.5)
     plt.grid(True, which="major", alpha=0.5)  # Major grid lines
     plt.grid(True, which="minor", alpha=0.1)
@@ -105,10 +127,13 @@ def plot_blank_corrected_vs_pre_corrected_inps(
     # Add pre-corrected data to the plot
     plt.figure(figsize=(10, 6))
     plt.errorbar(
-        df_original["degC"][4:],
-        df_original["INPS_L"][4:],
+        df_original["degC"][PLOT_SKIP_FIRST_N_POINTS:],
+        df_original["INPS_L"][PLOT_SKIP_FIRST_N_POINTS:],
         label="Pre-corrected INP Concentration",
-        yerr=[df_original["lower_CI"][4:], df_original["upper_CI"][4:]],
+        yerr=[
+            df_original["lower_CI"][PLOT_SKIP_FIRST_N_POINTS:],
+            df_original["upper_CI"][PLOT_SKIP_FIRST_N_POINTS:],
+        ],
         fmt="o",
         capsize=2,
         color="lightsteelblue",
@@ -137,12 +162,21 @@ def plot_blank_corrected_vs_pre_corrected_inps(
     plt.ylabel("INP Concentration (per L STP)")
     plt.yscale("log")
     plt.ylim(
-        df_corrected[df_corrected["lower_CI"] > 0]["lower_CI"].min() * 0.1,
-        df_corrected["INPS_L"].max() * 3,
+        df_corrected[df_corrected["lower_CI"] > 0]["lower_CI"].min() * AXIS_LOWER_LIMIT_FACTOR,
+        df_corrected["INPS_L"].max() * AXIS_UPPER_LIMIT_FACTOR,
     )
-    plt.xlim(-30, 0)
-    plt.xticks(np.arange(0, -35, -5))
-    plt.gca().set_xticks(np.arange(0, -31, -1), minor=True)
+    plt.xlim(TEMP_AXIS_MIN, TEMP_AXIS_MAX)
+    plt.xticks(
+        np.arange(
+            TEMP_AXIS_MAX, TEMP_AXIS_MIN - TEMP_MAJOR_TICK_INTERVAL, -TEMP_MAJOR_TICK_INTERVAL
+        )
+    )
+    plt.gca().set_xticks(
+        np.arange(
+            TEMP_AXIS_MAX, TEMP_AXIS_MIN - TEMP_MINOR_TICK_INTERVAL, -TEMP_MINOR_TICK_INTERVAL
+        ),
+        minor=True,
+    )
     plt.grid(True, linestyle="--", color="gray", linewidth=0.5)
     plt.grid(True, which="major", alpha=0.5)  # Major grid lines
     plt.grid(True, which="minor", alpha=0.1)

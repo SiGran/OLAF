@@ -3,6 +3,11 @@ from pathlib import Path
 
 import pandas as pd
 
+from olaf.CONSTANTS import (
+    INITIAL_ROWS_FOR_TEMP,
+    TEMP_ROUNDING_INTERVAL,
+    TEMP_TOLERANCE,
+)
 from olaf.utils.data_handler import DataHandler
 
 
@@ -81,14 +86,17 @@ class SpacedTempCSV(DataHandler):
         )
         first_frozen_id = self.data[least_diluted_sample].ne(0).idxmax()
         temp_frozen = round(pd.to_numeric(self.data.loc[first_frozen_id, temp_col]), 1)
-        # step 3: round down to nearest 0.5
-        round_temp_frozen = ceil((temp_frozen * 2)) / 2
-        # step 5: Initialize with three rows for the first two and zeros for the samples
+        # step 3: round down to nearest temperature interval
+        round_temp_frozen = ceil((temp_frozen / TEMP_ROUNDING_INTERVAL)) * TEMP_ROUNDING_INTERVAL
+        # step 5: Initialize with initial rows for the first temperatures and zeros for the samples
         temp_first_frozen_row = [temp_frozen] + [
             self.data.loc[first_frozen_id, f"Sample_{i}"] for i in range(self.num_samples)
         ]
         temp_frozen_df = pd.DataFrame(
-            data=[[round_temp_frozen + j * 0.5] + [0] * self.num_samples for j in range(4, 0, -1)],
+            data=[
+                [round_temp_frozen + j * TEMP_ROUNDING_INTERVAL] + [0] * self.num_samples
+                for j in range(INITIAL_ROWS_FOR_TEMP, 0, -1)
+            ],
             columns=[temp_col] + [f"Sample_{i}" for i in range(self.num_samples)],
         )
         temp_frozen_df.loc[len(temp_frozen_df)] = temp_first_frozen_row
@@ -96,8 +104,8 @@ class SpacedTempCSV(DataHandler):
             # Step 6: increment the temperature by temp_step until the end of the data
             round_temp_frozen -= temp_step
             # Step 7: find the frozen wells for each temp
-            round_temp_frozen_upper = round_temp_frozen + 0.01
-            round_temp_frozen_lower = round_temp_frozen - 0.01
+            round_temp_frozen_upper = round_temp_frozen + TEMP_TOLERANCE
+            round_temp_frozen_lower = round_temp_frozen - TEMP_TOLERANCE
             # If no line is found within this range, it puts in NaN values. If there's
             # a NaN value, we want it to take the first temperature  below the range.
 

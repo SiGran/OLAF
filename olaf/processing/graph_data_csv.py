@@ -5,7 +5,13 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from olaf.CONSTANTS import AGRESTI_COULL_UNCERTAIN_VALUES, NUM_TO_REPLACE_D1, VOL_WELL, Z
+from olaf.CONSTANTS import (
+    AGRESTI_COULL_UNCERTAIN_VALUES,
+    MICROLITERS_TO_ML,
+    NUM_TO_REPLACE_D1,
+    VOL_WELL,
+    Z,
+)
 from olaf.utils.data_handler import DataHandler
 from olaf.utils.df_utils import header_to_dict
 from olaf.utils.plot_utils import plot_INPS_L
@@ -211,8 +217,9 @@ class GraphDataCSV(DataHandler):
 
         "--------------- Step 3: INP/L calc + Confidence Intervals ----------------------"
         # With the samples columns and the N_total column, we can calculate the INPs/L
+        vol_well_ml = VOL_WELL * MICROLITERS_TO_ML
         INPs_p_mL_test_water = adjusted_samples.apply(
-            lambda col: (-np.log((N_total_series - col) / N_total_series) / (VOL_WELL / 1000))
+            lambda col: (-np.log((N_total_series - col) / N_total_series) / vol_well_ml)
             * float(col.name)
         )
         all_INPs_p_L = self._INP_ml_to_L(INPs_p_mL_test_water)
