@@ -3,7 +3,7 @@ name = "olaf"
 version = "0.1.0"
 description = "OpenSource Library for Automating Freezing data acquisition from Ice Nucleation Spectrometer (OLAF DaQ INS)"
 authors = [
-    {name = "SiGran", email = "simongrannetia@gmail.com"}
+    {name = "SiGran"}
 ]
 license = "AGPL-3.0"
 readme = "README.md"
@@ -18,6 +18,7 @@ dependencies = [
 
 [project.urls]
 "Repository" = "https://github.com/SiGran/OLAF"
+"Organization" = "https://www.linkedin.com/company/trackdat"
 
 [project.optional-dependencies]
 dev = [
