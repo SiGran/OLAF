@@ -91,7 +91,7 @@ class GraphDataCSV(DataHandler):
         With the formula from <insert reference>:
         (INP/mL) = =(-LN((Dx-Ex)/Dx)/(Cx/1000))*Fx
         Dx = total number of wells minus the background
-        Ex = number of frozen wells
+        Ex = number of frozen wells minus the background
         Cx = vol/well (microLiter)
         Fx = dilution factor
         4. Prune the data by removing the INF's and values that correspond with frozen wells
