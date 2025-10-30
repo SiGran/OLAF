@@ -7,6 +7,20 @@ from olaf.utils.data_handler import DataHandler
 
 
 class SpacedTempCSV(DataHandler):
+    """Creates temperature-binned CSV files from Ice Nucleation Spectrometer data.
+
+    This class processes reviewed/verified .dat files from freezing experiments and
+    converts them into CSV files with temperature-stepped data. Each temperature
+    step (default 0.5°C) shows how many wells were frozen at that temperature
+    for each sample. This binning is necessary for calculating INP concentrations
+    as a function of temperature.
+
+    Inherits from DataHandler for file loading and data management.
+
+    Attributes:
+        Inherits all attributes from DataHandler parent class.
+    """
+
     def __init__(
         self,
         folder_path: Path,
@@ -15,17 +29,14 @@ class SpacedTempCSV(DataHandler):
         excludes: tuple = ("frozen",),
         date_col: str = "Date",
     ) -> None:
-        """
-        Class that has functionality to read a (processed ("verified")) well experiments
-         .dat file from an experiment folder and process it into a .csv.
-         This .csv contains temperature ranges with the number of frozen wells per sample.
+        """Initialize the SpacedTempCSV processor.
 
         Args:
-            folder_path: location of the experiment folder
-            rev_name: list of strings to identify the revision name in the .dat file
-
-        Returns:
-            The data file and the data as a pandas DataFrame
+            folder_path: Path to the experiment folder containing data files.
+            num_samples: Number of samples in the experiment.
+            includes: Tuple of strings that must be in filename (default: ("base",)).
+            excludes: Tuple of strings to exclude from filename (default: ("frozen",)).
+            date_col: Name of the date column in the data (default: "Date").
         """
         includes = includes + ("reviewed",)
         super().__init__(

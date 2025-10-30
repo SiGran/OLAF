@@ -7,6 +7,20 @@ from olaf.utils.path_utils import find_latest_file
 
 
 class DataHandler:
+    """Base class for loading and handling Ice Nucleation Spectrometer data files.
+
+    This class provides functionality to locate and load .dat files from experiment
+    folders, parse temperature and sample data, and prepare it for further processing.
+    It handles flexible file selection with include/exclude patterns and manages
+    date-time column parsing.
+
+    Attributes:
+        folder_path: Path to the experiment folder containing data files.
+        num_samples: Number of samples in the experiment.
+        data_file: Path to the loaded data file.
+        data: Loaded data as a pandas DataFrame.
+    """
+
     def __init__(self, folder_path: Path, num_samples: int, **kwargs) -> None:
         kwargs.setdefault("suffix", ".dat")
         kwargs.setdefault("includes", ())

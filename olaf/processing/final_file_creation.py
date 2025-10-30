@@ -9,8 +9,32 @@ from olaf.utils.df_utils import header_to_dict, read_with_flexible_header
 
 
 class FinalFileCreation:
+    """Creates final combined CSV files in ARM standard format.
+
+    This class aggregates processed INP data from multiple treatments (base, heat,
+    peroxide, etc.) for the same sample date and combines them into a single
+    CSV file following the Atmospheric Radiation Measurement (ARM) program format.
+    This facilitates integration with ARM data repositories and downstream analysis.
+
+    The final files include:
+    - Unified temperature ranges across all treatments
+    - Treatment-specific INP concentrations with confidence intervals
+    - Standardized metadata headers
+    - Unix timestamps for integration with other datasets
+
+    Attributes:
+        project_folder: Path to the project folder containing experiment subfolders.
+        files_per_date: Dictionary mapping dates to lists of file paths.
+    """
+
     def __init__(self, project_folder: Path, includes, excludes) -> None:
-        """ """
+        """Initialize the FinalFileCreation processor.
+
+        Args:
+            project_folder: Path to project folder with processed experiment data.
+            includes: Tuple of strings that must be in filenames to process.
+            excludes: Tuple of strings to exclude from filenames.
+        """
         self.project_folder = project_folder
         self.files_per_date = self._get_files_per_date(includes, excludes)
 

@@ -28,6 +28,8 @@ dev = [
     "bandit>=1.7.9",
     "pandas-stubs>=2.2.2.240603",
     "sphinx-autoapi>=3.2.1",
+    "furo>=2024.1.29",
+    "pytest-cov>=4.1.0",
 ]
 
 [tool.ruff]

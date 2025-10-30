@@ -59,6 +59,21 @@ def find_latest_file(file_paths):
 
 
 def save_df_file(clean_df, save_file, header_info, index=False):
+    """Save a pandas DataFrame to CSV with custom header metadata.
+
+    If the target file already exists, appends a number suffix (N) to create
+    a unique filename. The header metadata is written as key-value pairs
+    before the CSV data.
+
+    Args:
+        clean_df: Pandas DataFrame to save.
+        save_file: Path object for the output file.
+        header_info: Dictionary of metadata to write as header (key=value format).
+        index: Whether to include DataFrame index in CSV (default: False).
+
+    Returns:
+        None. File is written to disk.
+    """
     counter = 0
     output_stem = save_file.stem
     while save_file.exists():
@@ -107,6 +122,19 @@ def is_within_dates(dates, folder_name):
 
 
 def sort_files_by_date(file_paths):
+    """Sort and group file paths by date extracted from filename.
+
+    Extracts dates from filenames using DATE_PATTERN and groups files
+    by date. Also extracts trailing numbers from filenames (before .csv)
+    to track file versions.
+
+    Args:
+        file_paths: List of Path objects to sort.
+
+    Returns:
+        Dictionary mapping date strings to lists of (file_path, number) tuples,
+        where number is the trailing version number (0 if not present).
+    """
     # Group files by date
     files_by_date = defaultdict(list)
     for file_path in file_paths:

@@ -7,6 +7,25 @@ from .button_handler import ButtonHandler
 
 
 class FreezingReviewer(ButtonHandler):
+    """GUI application for manual validation of frozen well counts in INS experiments.
+
+    This class creates an interactive Tkinter GUI that displays microscope images
+    of 96-well plates and allows researchers to manually verify and adjust the
+    number of frozen wells in each sample. The GUI provides:
+    - Image-by-image review with navigation (back/forward buttons)
+    - Per-sample adjustment buttons (+1/-1 for each sample)
+    - Temperature display for current freezing point
+    - Automatic data saving upon completion
+
+    Inherits from ButtonHandler (event handling) and DataLoader (data management).
+
+    Attributes:
+        dict_samples_to_dilution: Mapping of sample names to their dilution factors.
+        wells_per_sample: Maximum number of wells per sample (typically 32).
+        temp_frame: Tkinter frame widget displaying temperature information.
+        temp_label: Tkinter label widget showing current temperature.
+    """
+
     def __init__(
         self,
         root: tk.Tk,
@@ -16,13 +35,15 @@ class FreezingReviewer(ButtonHandler):
         dict_samples_to_dilution: dict,
         includes: tuple,
     ) -> None:
-        """
-        Class that creates a GUI for reviewing well freezing images and
-        updating the number of frozen wells.
-        Class inherited from ButtonHandler and DataLoader.
+        """Initialize the FreezingReviewer GUI.
+
         Args:
-            root: tkinter root object
-            folder_path: path to the project folder containing the images and .dat file
+            root: Tkinter root window object.
+            folder_path: Path to the experiment folder containing images and .dat file.
+            num_samples: Number of samples in the experiment.
+            wells_per_sample: Maximum wells per sample (caps adjustment range).
+            dict_samples_to_dilution: Dictionary mapping sample names to dilution factors.
+            includes: Tuple of strings that must be in the data filename.
         """
         self.dict_samples_to_dilution = dict_samples_to_dilution
         self.wells_per_sample = wells_per_sample
@@ -45,7 +66,10 @@ class FreezingReviewer(ButtonHandler):
         picture_name = self.photos[self.current_photo_index].name
 
         # Get the index of the current image in the data frame
-        current_index = self.data.index[self.data["Picture"] == picture_name].tolist()[0]
+        matching_indices = self.data.index[self.data["Picture"] == picture_name].tolist()
+        if not matching_indices:
+            raise ValueError(f"No data found for picture: {picture_name}")
+        current_index = matching_indices[0]
 
         # Show current temperature at top of GUI
         self._display_current_temp(current_index)

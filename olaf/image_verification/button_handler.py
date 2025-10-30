@@ -106,7 +106,10 @@ class ButtonHandler(DataLoader):
 
             # Display num of frozen wells and current temp from the data
             self._display_num_frozen(photo_path.name)
-            current_index = self.data.index[self.data["Picture"] == photo_path.name].tolist()[0]
+            matching_indices = self.data.index[self.data["Picture"] == photo_path.name].tolist()
+            if not matching_indices:
+                raise ValueError(f"No data found for picture: {photo_path.name}")
+            current_index = matching_indices[0]
             self._display_current_temp(current_index)
         else:
             self.label.config(text="No images found")

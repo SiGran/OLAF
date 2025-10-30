@@ -125,8 +125,7 @@ if __name__ == "__main__":
         # Compare the two dates
         if date_obj.date() != start_time_obj.date():
             print(f"Date {date} does not match with the specified start time: {start_time}")
-            ValueError("Date does not match with the specified start time")
-            continue
+            raise ValueError("Date does not match with the specified start time")
         # add date to includes
         print(f"Processing data for: {site} {date}")
         includes = (date,) + treatment

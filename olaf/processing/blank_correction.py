@@ -17,6 +17,26 @@ from olaf.utils.plot_utils import plot_blank_corrected_vs_pre_corrected_inps
 
 
 class BlankCorrector:
+    """Manages blank/background correction for Ice Nucleating Particle data.
+
+    This class handles the complete blank correction workflow:
+    1. Finds and loads blank experiment files from the project folder
+    2. Averages blank measurements across multiple blank runs
+    3. Extrapolates blank values across temperature ranges
+    4. Applies blank correction to experimental INP data
+    5. Adjusts confidence intervals after correction
+    6. Validates corrected data for monotonicity and error thresholds
+
+    The blank correction removes background ice nucleation signal, improving
+    the accuracy of INP quantification at low concentrations.
+
+    Attributes:
+        project_folder: Path to the project folder containing experiment subfolders.
+        blank_files: List of paths to blank experiment CSV files.
+        combined_blank: Dictionary mapping (start_date, end_date) tuples to
+            averaged blank DataFrames.
+    """
+
     def __init__(self, project_folder: Path, multiple_per_day=False) -> None:
         self.project_folder = project_folder
         self.blank_files = self._find_blank_files(multiple_per_day)
