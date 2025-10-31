@@ -43,8 +43,15 @@ class ColdPlateDi(DataHandler):
 
     def append_di_to_sample_reviewed_file(
         self,
+        dict_samples_to_dilution: dict,
         save: bool = True,
         ) -> pd.DataFrame:
+
+        # Look in the dictionary where the user has designated they want the DI column to be
+        for key, value in dict_samples_to_dilution.items():
+            if value == float("inf"):
+                desired_di_column = key
+                break
 
         # Look for di frozen_at_temp_reviewed files from this day
         potential_di_files = []
@@ -53,27 +60,26 @@ class ColdPlateDi(DataHandler):
                 for file_path in experiment_day_folder.rglob("frozen_at_temp_reviewed*csv"):
                     potential_di_files.append(file_path)
 
-        # Read all DI files
+        # Read all DI files, group them into one df and average each
+        # temperature bin's frozen droplet values
         di_dfs = [pd.read_csv(file) for file in potential_di_files]
-        if len(potential_di_files) > 1:
-            # Use first file as base (keeps temperature column)
-            df_di_avg = di_dfs[0].copy()
-
-            # Get second column name
-            # TODO: breaks down here, need to figure out why
-            freezing_data_col = df_di_avg.columns["Sample_0"]
-
-            # Average the second column values from all dataframes
-            df_di_avg[freezing_data_col] = sum(df[freezing_data_col] for df in di_dfs) / len(di_dfs)
-            print(f"Averaged {len(potential_di_files)} DI files (column: {freezing_data_col})")
+        if di_dfs:
+            combined_di_df = pd.concat(di_dfs)
         else:
-            df_di_avg = di_dfs[0]
+            raise ValueError("No valid DI data found in the provided files.")
+        grouped_di_df = combined_di_df.groupby("degC").agg({"Sample_0": "mean"})
 
-        appended_frozen_df = self.data.copy # this is the sample file
-        appended_frozen_df["Sample_5"] = df_di_avg["Sample_0"]
+        # Replace designated DI column in sample data with the di data
+        sample_reviewed_df = self.data # sample data file
+        sample_reviewed_df[desired_di_column] = (sample_reviewed_df["degC"]
+                                          .map(grouped_di_df["Sample_0"])
+                                          .round(decimals=1))
+        # If the first freezer from the sample is not in the di column,
+        # fill nan with previous temp bin di value
+        sample_reviewed_df[desired_di_column] = sample_reviewed_df[desired_di_column].ffill()
 
         if save:
             self.save_to_new_file(
-                appended_frozen_df, self.folder_path / f"{self.data_file.stem}.csv", "frozen_at_temp_di_appended"
+                sample_reviewed_df, self.folder_path / f"{self.data_file.stem}.csv", "_di_appended"
             )
 
