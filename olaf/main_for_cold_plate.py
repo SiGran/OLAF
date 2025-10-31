@@ -69,7 +69,7 @@ if __name__ == "__main__":
     if num_samples * wells_per_sample != 192:
         print(
             f"Number of samples * wells per sample ({num_samples}*{wells_per_sample} is "
-            f"not equal to 192"
+            f"not equal to 192)"
         )
 
     # Few automatic variable assignments and optional header additions
@@ -98,16 +98,16 @@ if __name__ == "__main__":
     spaced_temp_csv = SpacedTempCSV(test_folder, num_samples, includes=treatment)
     spaced_temp_csv.create_temp_csv(dict_samples_to_dilution)
 
-    # TODO: Insert if "di" in treatment, stop code here
+    # # DI file creation
+    # # Appending the day's DI run (or average DI) to sample
     if "di" in treatment:
         print("DI background processing complete")
     else:
-    # TODO: Insert class or function here that reads in DI data and appends it to spaced_temp_csv output
         append_di = ColdPlateDi(test_folder, num_samples, includes=treatment)
-        append_di.append_di_to_sample_reviewed_file()
+        append_di.append_di_to_sample_reviewed_file(dict_samples_to_dilution)
 
-    # Processing to create INPs/L
-    # Use regular expression to check for dates in folder name:
+        # Processing to create INPs/L
+        # Use regular expression to check for dates in folder name:
         found_dates = re.findall(DATE_PATTERN, test_folder.name)
         if not found_dates:
             print("No date found in folder name")
@@ -125,7 +125,7 @@ if __name__ == "__main__":
                 continue
             # add date to includes
             print(f"Processing data for: {site} {date}")
-            includes = (date,) + treatment + ("di",)
+            includes = (date,) + treatment + ("di_appended",)
             # TODO: make the changes work for sample_type see issue #18 on github
             graph_data_csv = GraphDataCSV(
                 test_folder,
