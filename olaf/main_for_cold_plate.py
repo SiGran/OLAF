@@ -30,6 +30,8 @@ treatment = (
     # "blank",
 )  # uncomment the one you want to use
 
+## REMEMBER TO CHANGE DROPLET VOLUME IN CONSTANTS
+
 # Use for cold plate
 dict_samples_to_dilution = {
     "Sample_0": 1,
