@@ -10,7 +10,7 @@ There will be a folder within the parent folder of the sample folder that contai
 This is how the day will be started before doing any cold plate runs
 Within that folder there will be a frozen_at_temp_reviewed file.
 
-Now, when we have a sample
+Now, when we have a an example sample
     ie path = Path.cwd().parent / cold plate runs 10.30.25 / Mosaic 06.02.20 base
     
 we want this cold_plate_di function/class to do a couple of things:
@@ -21,6 +21,13 @@ we want this cold_plate_di function/class to do a couple of things:
 """
 
 class ColdPlateDi(DataHandler):
+    """
+    This class is called after the last image is reviewed in the GUI closes,
+    and after the .csv file with the temperature ranges and frozen wells is created.
+    It has a function that reads in an above-mentioned sample .csv file and the same .csv
+    file for any de-ionized water (DI) backgrounds. It then averages the DI backgrounds
+    and appends those backgrounds to the sample .csv file.
+    """
     def __init__(
             self,
             folder_path: Path,
@@ -45,7 +52,21 @@ class ColdPlateDi(DataHandler):
         self,
         dict_samples_to_dilution: dict,
         save: bool = True,
-        ) -> pd.DataFrame:
+        ) -> None:
+
+        """
+        1. Determine which column in the sample .csv file is designated as the "DI column."
+        2. Look for DI files within the parent of the sample folder and read them into one df.
+        3. Append the DI column to the sample .csv file
+        4. Save the new sample file.
+
+        Args:
+            dict_samples_to_dilution: from main_for_cold_plate.py
+            save: whether to save the data to a .csv file (default: True)
+
+        Returns: None
+
+        """
 
         # Look in the dictionary where the user has designated they want the DI column to be
         for key, value in dict_samples_to_dilution.items():
@@ -74,6 +95,7 @@ class ColdPlateDi(DataHandler):
         sample_reviewed_df[desired_di_column] = (sample_reviewed_df["degC"]
                                           .map(grouped_di_df["Sample_0"])
                                           .round(decimals=1))
+
         # If the first freezer from the sample is not in the di column,
         # fill nan with previous temp bin di value
         sample_reviewed_df[desired_di_column] = sample_reviewed_df[desired_di_column].ffill()
