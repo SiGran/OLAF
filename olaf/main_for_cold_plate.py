@@ -66,7 +66,7 @@ if __name__ == "__main__":
             f"your selection for treatment: {treatment} does not match with the specified "
             f"folder: {test_folder.name}"
         )
-    if num_samples * wells_per_sample != 192:
+    if num_samples * wells_per_sample != 100:
         print(
             f"Number of samples * wells per sample ({num_samples}*{wells_per_sample} is "
             f"not equal to 192)"
