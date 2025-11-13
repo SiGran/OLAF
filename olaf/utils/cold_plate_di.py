@@ -57,8 +57,9 @@ class ColdPlateDi(DataHandler):
         """
         1. Determine which column in the sample .csv file is designated as the "DI column."
         2. Look for DI files within the parent of the sample folder and read them into one df.
-        3. Append the DI column to the sample .csv file
-        4. Save the new sample file.
+        3. Average DIs
+        4. Append the DI column to the sample .csv file
+        5. Save the new sample file.
 
         Args:
             dict_samples_to_dilution: from main_for_cold_plate.py
