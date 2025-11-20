@@ -11,54 +11,15 @@ class Analyze:
     def __init__(self, project_folder: Path, treatment_plot = False,
                  comparison_plot = False, timeline_plot = False) -> None:
         self.project_folder = project_folder
-        self.desired_files = self.find_desired_files(
+        self.desired_files = self._find_desired_files(
             treatment_plot=treatment_plot,
             comparison_plot=comparison_plot,
             timeline_plot=timeline_plot
         )
 
-    def find_desired_files(self, treatment_plot = False, comparison_plot = False, timeline_plot=False):
-        if treatment_plot or timeline_plot:
-            base_files = []
-            heat_files = []
-            peroxide_files = []
-
-            # Single iteration through directories
-            for experiment_folder in self.project_folder.iterdir():
-                if not experiment_folder.is_dir():
-                    continue
-
-                folder_name_lower = experiment_folder.name.lower()
-                matching_files = list(experiment_folder.rglob("INPs_L*.csv"))
-                most_recent_files = find_latest_file(matching_files)
-
-                if "base" in folder_name_lower:
-                    base_files.append(most_recent_files)
-                elif "heat" in folder_name_lower:
-                    heat_files.append(most_recent_files)
-                elif "peroxide" in folder_name_lower:
-                    peroxide_files.append(most_recent_files)
-
-            return base_files, heat_files, peroxide_files
-        if comparison_plot:
-            comparison_files = []
-            for experiment_folder in self.project_folder.iterdir():
-                if not experiment_folder.is_dir():
-                    continue
-
-                matching_files = list(experiment_folder.rglob("INPs_L*.csv"))
-                comparison_files.extend(matching_files)
-            return comparison_files
-        return None
-    
-    def plot_treatment_data(self, base_files, heat_files, peroxide_files, treatment_plot=True):
+    def plot_treatment_data(self, treatment_plot=True):
         if treatment_plot:
-            for file in base_files:
-                self.read_inp_data(file)
-            for file in heat_files:
-                self.read_inp_data(file)
-            for file in peroxide_files:
-                self.read_inp_data(file)
+            
 
 
     def read_inp_data(self, files):
@@ -99,3 +60,26 @@ class Analyze:
                     header_info["end_time"] = date_obj
             else:
                 print(f"end_time not found in {file.name}")
+
+    def _find_desired_files(self):
+        base_files = []
+        heat_files = []
+        peroxide_files = []
+
+        # Single iteration through directories
+        for experiment_folder in self.project_folder.iterdir():
+            if not experiment_folder.is_dir():
+                continue
+
+            folder_name_lower = experiment_folder.name.lower()
+            matching_files = list(experiment_folder.rglob("INPs_L*.csv"))
+            most_recent_files = find_latest_file(matching_files)
+
+            if "base" in folder_name_lower:
+                base_files.append(most_recent_files)
+            elif "heat" in folder_name_lower:
+                heat_files.append(most_recent_files)
+            elif "peroxide" in folder_name_lower:
+                peroxide_files.append(most_recent_files)
+
+        return base_files, heat_files, peroxide_files
