@@ -7,9 +7,9 @@ project_folder =  Path.cwd().parent / "tests" / "test_data" / "plotting_tests"
 includes = ("INPs_L", "frozen_at_temp", "reviewed")
 excludes = ("blanks",)
 start_date = "08.22.24"
-end_date = "08.26.25"
+end_date = "01.30.25"
 
 
 
 plot = Plots(project_folder, includes, excludes, start_date, end_date)
-plot.find_desired_files(includes, excludes, start_date=start_date, end_date=end_date)
+plot.plot_data(subplots=True)
