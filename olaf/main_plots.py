@@ -13,6 +13,8 @@ end_date = "04.30.25"
 num_columns = 3
 
 # TODO: Add option for site comparison plotting for co-located projects
+site_1 = "M1"
+site_2 = "S2"
 
 # Creates images of INP spectra for each date in project folder.
 # Plots treatments for same date on one plot.

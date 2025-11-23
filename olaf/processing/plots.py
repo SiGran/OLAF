@@ -13,7 +13,14 @@ from olaf.utils.plot_utils import apply_plot_settings, PLOT_SETTINGS
 # TODO: Add documentation for everything
 
 class Plots:
-    def __init__(self, project_folder: Path, includes, excludes, start_date, end_date, num_columns) -> None:
+    def __init__(self,
+                 project_folder: Path,
+                 includes,
+                 excludes,
+                 start_date,
+                 end_date,
+                 num_columns
+                ) -> None:
         """
 
         Args:
@@ -36,6 +43,7 @@ class Plots:
         all_inp_data_df = self.desired_files_df.copy()
 
         unique_site_dates = all_inp_data_df["site_date"].unique()
+
         n_dates = len(unique_site_dates)
         current_time = datetime.now().strftime("%Y%m%d_%H%M%S")
 
@@ -58,16 +66,6 @@ class Plots:
                                      dpi=PLOT_SETTINGS['figure']['dpi'],
                                      squeeze=False)
 
-            # fig, axes = plt.subplots(n_rows, n_cols, figsize = (
-            #     PLOT_SETTINGS['figure']['figsize'][0]* n_cols/2,
-            #     PLOT_SETTINGS['figure']['figsize'][1]* n_rows/2),
-            #                          dpi=PLOT_SETTINGS['figure']['dpi'],
-            #                          squeeze=False)
-            # if n_dates == 1:
-            #     axes = [axes]
-            # elif n_rows == 1 or n_cols == 1:
-            #     axes = axes.flatten()  # Flatten 1D arrays
-            # else:
             axes = axes.flatten()
 
             for idx, site_date in enumerate(unique_site_dates):
@@ -97,9 +95,6 @@ class Plots:
                 axes[idx].set_visible(False)
 
             plt.tight_layout()
-            # trying to manually fix overall figure size to fit all subplots
-            # plt.set_figheight(100)
-            # plt.set_figwidth(100)
 
             plt.savefig(f'{save_path}/all_dates_combined_created_on-{current_time}.png', **PLOT_SETTINGS['save'])
 
@@ -186,6 +181,15 @@ class Plots:
                 treatment_str = dict_header["treatment"]
             else:
                 print(f"treatment not found in {file.name}")
+
+            ## TODO: Add site comparison code here
+            """
+            This should be something that says for date_str.unique, if site is not equal, don't combine 
+            site and date? Or should I just not combine site_date_str at all and leave them as 
+            separate columns in the combined_df. This might actually make things a lot more flexible?
+            If they are all the same site, all you have to worry about is unique dates.
+            One thing to think about in different locations is the timestamp being different.
+            """
 
             site_date_str = site_str + " " + date_str
             df["site_date"] = site_date_str
