@@ -7,7 +7,7 @@ project_folder =  Path.cwd().parent / "tests" / "test_data" / "plotting_tests"
 includes = ("INPs_L", "frozen_at_temp", "reviewed")
 excludes = ("blanks",)
 start_date = "08.22.24"
-end_date = "01.30.25"
+end_date = "04.30.25"
 
 
 

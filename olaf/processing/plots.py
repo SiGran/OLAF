@@ -40,14 +40,16 @@ class Plots:
 
         if subplots:
             # Create one figure with multiple subplots
-            n_cols = min(3, n_dates)  # Max 3 columns
+            # TODO: This is what causes the index error. Need to see if we
+            # TODO: can make this work if you have an uneven amount of files
+            n_cols = min(2, n_dates)  # Max 2 columns
             n_rows = int(np.ceil(n_dates) / n_cols)
 
 
             width_per_subplot = PLOT_SETTINGS['figure']['figsize'][0]
             height_per_subplot = PLOT_SETTINGS['figure']['figsize'][1]
 
-            scale = PLOT_SETTINGS['figure'].get('subplot_scale', 1.0)
+            scale = PLOT_SETTINGS['figure']['subplot_scale']
             total_width = width_per_subplot * n_cols * scale
             total_height = height_per_subplot * n_rows * scale
 
@@ -95,6 +97,9 @@ class Plots:
                 axes[idx].set_visible(False)
 
             plt.tight_layout()
+            # trying to manually fix overall figure size to fit all subplots
+            # plt.set_figheight(100)
+            # plt.set_figwidth(100)
 
             plt.savefig(f'{save_path}/all_dates_combined_created_on-{current_time}.png', **PLOT_SETTINGS['save'])
 
