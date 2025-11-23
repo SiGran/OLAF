@@ -10,10 +10,10 @@ from olaf.utils.path_utils import find_latest_file, is_within_dates
 from olaf.utils.data_handler import DataHandler
 from olaf.utils.plot_utils import apply_plot_settings, PLOT_SETTINGS
 
-
+# TODO: Add documentation for everything
 
 class Plots:
-    def __init__(self, project_folder: Path, includes, excludes, start_date, end_date) -> None:
+    def __init__(self, project_folder: Path, includes, excludes, start_date, end_date, num_columns) -> None:
         """
 
         Args:
@@ -24,6 +24,7 @@ class Plots:
             end_date:
         """
         self.project_folder = project_folder
+        self.num_columns = num_columns
         self.desired_files_df = self.find_desired_files(includes, excludes, start_date, end_date)
 
     def plot_data(self, subplots = False):
@@ -40,10 +41,9 @@ class Plots:
 
         if subplots:
             # Create one figure with multiple subplots
-            # TODO: This is what causes the index error. Need to see if we
-            # TODO: can make this work if you have an uneven amount of files
-            n_cols = min(2, n_dates)  # Max 2 columns
-            n_rows = int(np.ceil(n_dates) / n_cols)
+            # need to make this a variable on main or a stop thing
+            n_cols = min(self.num_columns, n_dates)
+            n_rows = int(np.ceil(n_dates / n_cols))
 
 
             width_per_subplot = PLOT_SETTINGS['figure']['figsize'][0]
