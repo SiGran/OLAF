@@ -34,7 +34,7 @@ class Plots:
         self.num_columns = num_columns
         self.desired_files_df = self.find_desired_files(includes, excludes, start_date, end_date)
 
-    def plot_data(self, subplots = False):
+    def plot_data(self, subplots = False, site_comparison = False):
         plots_folder = self.project_folder / "plots"
         if not plots_folder.exists():
             plots_folder.mkdir()
@@ -42,7 +42,10 @@ class Plots:
 
         all_inp_data_df = self.desired_files_df.copy()
 
-        unique_site_dates = all_inp_data_df["site_date"].unique()
+        unique_site_dates = all_inp_data_df["site_date"].unique() # note changed this come back
+        # unique_site_dates = all_inp_data_df["date_time"].unique()
+        # if site_comparison:
+            # stuff
 
         n_dates = len(unique_site_dates)
         current_time = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -194,6 +197,11 @@ class Plots:
             site_date_str = site_str + " " + date_str
             df["site_date"] = site_date_str
             df["treatment"] = treatment_str
+
+            # idea for just keeping these separate for the whole df to streamline
+            # df["site"] = site_str
+            # df["date_time"] = date_str
+            # df["treatment"] = treatment_str
 
             all_data.append(df)
 

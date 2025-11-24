@@ -12,9 +12,9 @@ end_date = "04.30.25"
 # if making subplots, designate number of desired columns here
 num_columns = 3
 
-# TODO: Add option for site comparison plotting for co-located projects
-site_1 = "M1"
-site_2 = "S2"
+# TODO: Figure out if dictionary or list of sites is better
+site_dict = {"site_1": "M1", "site_2": "S2"}
+site_markers = {"site_1": "o", "site_2": "x"}
 
 # Creates images of INP spectra for each date in project folder.
 # Plots treatments for same date on one plot.
@@ -26,5 +26,6 @@ plot = Plots(
     excludes,
     start_date,
     end_date,
-    num_columns)
+    num_columns,
+    )
 plot.plot_data(subplots=True)
