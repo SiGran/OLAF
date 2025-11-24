@@ -10,7 +10,6 @@ from olaf.utils.path_utils import find_latest_file, is_within_dates
 from olaf.utils.data_handler import DataHandler
 from olaf.utils.plot_utils import apply_plot_settings, PLOT_SETTINGS
 
-# TODO: Add documentation for everything
 
 class Plots:
     def __init__(self,
@@ -24,13 +23,16 @@ class Plots:
                  save_name: str
                 ) -> None:
         """
-        This class is used for plotting
-        Can make lots of individual plots with or without site comparisons
-        Can make a figure with lots of subplots with or without site comparisons
+        This class is used for plotting INP spectra and can make lots of individual plots
+        with or without site comparisons, or a single figure of subplots with or without
+        site comparisons. Future additions may include timeline plots using plotly for
+        publication or poster ready figures.
+        TODO: "site" might be best changed to "identifier" so the user can use whatever
+        TODO: organizer they want. Would need to be a variable accessible to all functions.
         Args:
-            project_folder:
-            includes:
-            excludes:
+            project_folder: Path variable
+            includes: tuple, generally "INPS_L" and other strings
+            excludes: tuple, generally "blank" and other strings
             start_date: User defined starting date from which to pull data. mm.dd.yy format
             end_date: User defined date from which to pull data. mm.dd.yy format
             num_columns: Integer set by user if creating subplots
@@ -46,7 +48,7 @@ class Plots:
 
     def plot_data(self, subplots = False, site_comparison = False):
         """
-        Fucntion for plotting data
+        Function with multiple options for plotting INP data.
         Args:
             subplots: bool
             site_comparison: bool
@@ -123,7 +125,7 @@ class Plots:
                             label = f"{site} - {treatment}"
                         else:
                             label = treatment
-
+                        # Manually add marker setting
                         line_settings = PLOT_SETTINGS['line'].copy()
                         line_settings['marker'] = marker
 
@@ -208,12 +210,15 @@ class Plots:
         """
 
         Args:
-            includes:
-            excludes:
+            includes: User defined on main. INPS_L is primary, can specify specific treatments,
+            blank corrected, sites, etc.
+            excludes: User defined on main. Blanks excluded, can be customized like includes.
             start_date: In mm.dd.yy format
             end_date: In mm.dd.yy format
 
-        Returns:
+        Returns: combined_df. Df with columns of degC, INPS_L, lower_CI, upper_CI,
+        site_date, site, date_time and treatment. Site_date is the site and full date_time
+        strings combined.
 
         """
         start_date = datetime.strptime(start_date, "%m.%d.%y")

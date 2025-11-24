@@ -2,17 +2,17 @@ from pathlib import Path
 
 from olaf.processing.plots import Plots
 
-project_folder =  Path.cwd().parent / "tests" / "test_data" / "plotting_tests"
-includes = ("INPs_L", "frozen_at_temp", "reviewed")
-excludes = ("blanks",)
-start_date = "08.22.24" #earliest date you want as part of the analysis
-end_date = "04.30.25" # latest date
+project_folder =  Path.cwd().parent / "data" / "CRG" / "Ground"
+includes = ("INPs_L", "frozen_at_temp", "reviewed", "base")
+excludes = ("blank","heat","peroxide")
+start_date = "03.23.24" #earliest date you want as part of the analysis
+end_date = "07.25.25" # latest date
 
 # if making subplots, designate number of desired columns here
-num_columns = 2
+num_columns = 4
 
 # how you want the image saved
-save_name = "1Courage site comparison Dec 2024 thru Apr 2025"
+save_name = "CRG site comparison 12.01.24 thru 7.25.25 BASE ONLY"
 
 # if you are doing a site comparison, type them here and decide on marker style
 site_markers = {"CRG_M1": "o", "CRG_S2": "^"}
