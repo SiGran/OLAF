@@ -15,26 +15,46 @@ from olaf.utils.plot_utils import apply_plot_settings, PLOT_SETTINGS
 class Plots:
     def __init__(self,
                  project_folder: Path,
-                 includes,
-                 excludes,
-                 start_date,
-                 end_date,
-                 num_columns
+                 includes: tuple,
+                 excludes: tuple,
+                 start_date: str,
+                 end_date: str,
+                 num_columns: int,
+                 site_markers: dict,
+                 save_name: str
                 ) -> None:
         """
-
+        This class is used for plotting
+        Can make lots of individual plots with or without site comparisons
+        Can make a figure with lots of subplots with or without site comparisons
         Args:
             project_folder:
             includes:
             excludes:
-            start_date:
-            end_date:
+            start_date: User defined starting date from which to pull data. mm.dd.yy format
+            end_date: User defined date from which to pull data. mm.dd.yy format
+            num_columns: Integer set by user if creating subplots
+            site_markers: Dictionary of site markers
+            save_name: String of user desired save name if creating subplots
         """
         self.project_folder = project_folder
         self.num_columns = num_columns
+        self.site_markers = site_markers
+        self.save_name = save_name
         self.desired_files_df = self.find_desired_files(includes, excludes, start_date, end_date)
 
+
     def plot_data(self, subplots = False, site_comparison = False):
+        """
+        Fucntion for plotting data
+        Args:
+            subplots: bool
+            site_comparison: bool
+
+        Returns: None, saves image(s)
+
+        """
+        # Create folder to store images within project folder
         plots_folder = self.project_folder / "plots"
         if not plots_folder.exists():
             plots_folder.mkdir()
@@ -42,56 +62,80 @@ class Plots:
 
         all_inp_data_df = self.desired_files_df.copy()
 
-        unique_site_dates = all_inp_data_df["site_date"].unique() # note changed this come back
-        # unique_site_dates = all_inp_data_df["date_time"].unique()
-        # if site_comparison:
-            # stuff
+        # Remove timestamps in case they are slightly different for site comparisons
+        if site_comparison:
+            date_version = "date_time"
+            all_inp_data_df[date_version] = all_inp_data_df[date_version].astype(str).str[0:10]
+        else:
+            date_version = "site_date"
 
+        # Obtain unique dates or site dates depending on plot
+        unique_site_dates = all_inp_data_df[date_version].unique()
+
+        # for sizing and saving
         n_dates = len(unique_site_dates)
         current_time = datetime.now().strftime("%Y%m%d_%H%M%S")
 
         if subplots:
-            # Create one figure with multiple subplots
-            # need to make this a variable on main or a stop thing
-            n_cols = min(self.num_columns, n_dates)
+            n_cols = min(self.num_columns, n_dates) #user chooses num_columns on main_plots
             n_rows = int(np.ceil(n_dates / n_cols))
 
-
+            # sizing of subplots
             width_per_subplot = PLOT_SETTINGS['figure']['figsize'][0]
             height_per_subplot = PLOT_SETTINGS['figure']['figsize'][1]
 
+            # sizing of figure
             scale = PLOT_SETTINGS['figure']['subplot_scale']
             total_width = width_per_subplot * n_cols * scale
             total_height = height_per_subplot * n_rows * scale
 
+            # make figure
             fig, axes = plt.subplots(n_rows, n_cols,
                                      figsize=(total_width, total_height),
                                      dpi=PLOT_SETTINGS['figure']['dpi'],
                                      squeeze=False)
-
+            # flatten to 1D array
             axes = axes.flatten()
 
-            for idx, site_date in enumerate(unique_site_dates):
+            for idx, date in enumerate(unique_site_dates):
                 ax = axes[idx]
-                date_data = all_inp_data_df[all_inp_data_df["site_date"] == site_date]
+
+                date_data = all_inp_data_df[all_inp_data_df[date_version] == date]
+
+                sites = date_data["site"].unique()
+
+                for site in sites:
+                    if site_comparison:
+                        site_data = date_data[date_data["site"] == site]
+                    else: site_data = date_data
+
+                    marker = self.site_markers.get(site) # not sure if the 'o' is needed
 
                 # Plot each treatment
-                for treatment in date_data["treatment"].unique():
-                    treatment_data = date_data[date_data["treatment"] == treatment]
+                    for treatment in site_data["treatment"].unique():
+                        treatment_data = site_data[site_data["treatment"] == treatment]
 
-                    # Calculate error bars (asymmetric)
-                    yerr= [treatment_data["lower_CI"], treatment_data["upper_CI"]]
-                    color = PLOT_SETTINGS['treatment_colors'].get(treatment, None)
+                        # Calculate error bars (asymmetric)
+                        yerr= [treatment_data["lower_CI"], treatment_data["upper_CI"]]
+                        color = PLOT_SETTINGS['treatment_colors'].get(treatment, None)
 
-                    ax.errorbar(treatment_data["degC"],
-                                treatment_data["INPS_L"],
-                                yerr=yerr,
-                                label=treatment,
-                                color = color,
-                                **PLOT_SETTINGS['line'])
+                        if site_comparison and site != 'default':
+                            label = f"{site} - {treatment}"
+                        else:
+                            label = treatment
 
-                ax.set_title(f'{site_date}')
-                apply_plot_settings(ax, settings=PLOT_SETTINGS)
+                        line_settings = PLOT_SETTINGS['line'].copy()
+                        line_settings['marker'] = marker
+
+                        ax.errorbar(treatment_data["degC"],
+                                    treatment_data["INPS_L"],
+                                    yerr=yerr,
+                                    label=label,
+                                    color = color,
+                                    **line_settings)
+
+                        ax.set_title(f'{date}')
+                    apply_plot_settings(ax, settings=PLOT_SETTINGS)
 
                 # Hide extra subplots if any
             for idx in range(n_dates, len(axes)):
@@ -99,38 +143,64 @@ class Plots:
 
             plt.tight_layout()
 
-            plt.savefig(f'{save_path}/all_dates_combined_created_on-{current_time}.png', **PLOT_SETTINGS['save'])
+            plt.savefig(f'{save_path}/{self.save_name}_created_on-{current_time}.png', **PLOT_SETTINGS['save'])
 
         else:
             # Create separate figure for each date
-            for site_date in unique_site_dates:
+            for date in unique_site_dates:
                 fig, ax = plt.subplots(figsize=PLOT_SETTINGS['figure']['figsize'],
                                        dpi=PLOT_SETTINGS['figure']['dpi'])
 
-                date_data = all_inp_data_df[all_inp_data_df["site_date"] == site_date]
+                date_data = all_inp_data_df[all_inp_data_df[date_version] == date]
 
-                # Plot each treatment
-                for treatment in date_data["treatment"].unique():
-                    treatment_data = date_data[date_data["treatment"] == treatment]
+                sites = date_data["site"].unique()
 
-                    # Calculate error bars (asymmetric)
-                    yerr = [treatment_data["lower_CI"], treatment_data["upper_CI"]]
-                    color = PLOT_SETTINGS['treatment_colors'].get(treatment, None)
+                for site in sites:
+                    if site_comparison:
+                        site_data = date_data[date_data["site"] == site]
+                    else:
+                        site_data = date_data
 
-                    ax.errorbar(treatment_data["degC"],
-                                treatment_data["INPS_L"],
-                                yerr=yerr,
-                                label=treatment,
-                                color = color,
-                                **PLOT_SETTINGS['line'])
+                    marker = self.site_markers.get(site)
 
-                ax.set_title(f'{site_date}')
-                apply_plot_settings(ax, settings=PLOT_SETTINGS)
+                    # Plot each treatment
+                    for treatment in site_data["treatment"].unique():
+                        treatment_data = site_data[site_data["treatment"] == treatment]
+
+                        # Calculate error bars (asymmetric)
+                        yerr = [treatment_data["lower_CI"], treatment_data["upper_CI"]]
+                        color = PLOT_SETTINGS['treatment_colors'].get(treatment, None)
+
+                        if site_comparison and site != 'default':
+                            label = f"{site} - {treatment}"
+                        else:
+                            label = treatment
+
+                        line_settings = PLOT_SETTINGS['line'].copy()
+                        line_settings['marker'] = marker
+
+                        ax.errorbar(treatment_data["degC"],
+                                    treatment_data["INPS_L"],
+                                    yerr=yerr,
+                                    label=label,
+                                    color = color,
+                                    **line_settings)
+
+                    if site_comparison:
+                        ax.set_title(f'{date}')
+                    else:
+                        ax.set_title(f'{site} {date}')
+                    apply_plot_settings(ax, settings=PLOT_SETTINGS)
                 plt.tight_layout()
 
+                if site_comparison:
+                    save_site = site + "_"
+                else:
+                    save_site = ""
+
                 if save_path:
-                    safe_date = str(site_date).replace('/', '_').replace(' ', '_').replace(':', '-')
-                    plt.savefig(f'{save_path}/{safe_date}_created_on-{current_time}.png', **PLOT_SETTINGS['save'])
+                    safe_date = str(date).replace('/', '_').replace(' ', '_').replace(':', '-')
+                    plt.savefig(f'{save_path}/{save_site}{safe_date}_created_on-{current_time}.png', **PLOT_SETTINGS['save'])
 
 
 
@@ -140,8 +210,8 @@ class Plots:
         Args:
             includes:
             excludes:
-            start_date:
-            end_date:
+            start_date: In mm.dd.yy format
+            end_date: In mm.dd.yy format
 
         Returns:
 
@@ -166,6 +236,7 @@ class Plots:
             header_lines, df = read_with_flexible_header(file)
             dict_header = header_to_dict(header_lines)
 
+            # Remove zero or ERROR_SIGNAL (if below zero)
             df = df[df["INPS_L"] > 0]
 
             # Parse dates directly from the header dictionary
@@ -174,7 +245,7 @@ class Plots:
             else:
                 print(f"start_time not found in {file.name}")
 
-            # Find site from header dictionary
+            # Find site and treatment from header dictionary
             if "site" in dict_header:
                 site_str = dict_header["site"]
             else:
@@ -185,23 +256,12 @@ class Plots:
             else:
                 print(f"treatment not found in {file.name}")
 
-            ## TODO: Add site comparison code here
-            """
-            This should be something that says for date_str.unique, if site is not equal, don't combine 
-            site and date? Or should I just not combine site_date_str at all and leave them as 
-            separate columns in the combined_df. This might actually make things a lot more flexible?
-            If they are all the same site, all you have to worry about is unique dates.
-            One thing to think about in different locations is the timestamp being different.
-            """
-
+            # Creating df columns for easier access by the plot_data function
             site_date_str = site_str + " " + date_str
             df["site_date"] = site_date_str
+            df["site"] = site_str
+            df["date_time"] = date_str
             df["treatment"] = treatment_str
-
-            # idea for just keeping these separate for the whole df to streamline
-            # df["site"] = site_str
-            # df["date_time"] = date_str
-            # df["treatment"] = treatment_str
 
             all_data.append(df)
 
