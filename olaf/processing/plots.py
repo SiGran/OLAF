@@ -46,7 +46,7 @@ class Plots:
         self.desired_files_df = self.find_desired_files(includes, excludes, start_date, end_date)
 
 
-    def plot_data(self, subplots = False, site_comparison = False):
+    def plot_data(self, subplots = False, site_comparison = False, tbs = False):
         """
         Function with multiple options for plotting INP data.
         Args:
@@ -67,7 +67,10 @@ class Plots:
         # Remove timestamps in case they are slightly different for site comparisons
         if site_comparison:
             date_version = "date_time"
-            all_inp_data_df[date_version] = all_inp_data_df[date_version].astype(str).str[0:10]
+            if tbs:
+                all_inp_data_df[date_version] = all_inp_data_df[date_version].astype(str).str[0:10]
+            else:
+                all_inp_data_df[date_version] = all_inp_data_df[date_version].astype(str).str[0:10]
         else:
             date_version = "site_date"
 
@@ -125,6 +128,14 @@ class Plots:
                             label = f"{site} - {treatment}"
                         else:
                             label = treatment
+
+                        if tbs:
+                            lower_alt = treatment_data["lower_altitude"].iloc[0]
+                            upper_alt = treatment_data["upper_altitude"].iloc[0]
+                            label = label + f" {lower_alt}m - {upper_alt}m"
+                        else:
+                            label = label
+
                         # Manually add marker setting
                         line_settings = PLOT_SETTINGS['line'].copy()
                         line_settings['marker'] = marker
@@ -178,6 +189,13 @@ class Plots:
                         else:
                             label = treatment
 
+                        if tbs:
+                            lower_alt = treatment_data["lower_altitude"].iloc[0]
+                            upper_alt = treatment_data["upper_altitude"].iloc[0]
+                            label = label + f" {lower_alt}m - {upper_alt}m"
+                        else:
+                            label = label
+
                         line_settings = PLOT_SETTINGS['line'].copy()
                         line_settings['marker'] = marker
 
@@ -195,7 +213,7 @@ class Plots:
                     apply_plot_settings(ax, settings=PLOT_SETTINGS)
                 plt.tight_layout()
 
-                if site_comparison:
+                if site_comparison or tbs:
                     save_site = site + "_"
                 else:
                     save_site = ""
@@ -262,11 +280,17 @@ class Plots:
                 print(f"treatment not found in {file.name}")
 
             # Creating df columns for easier access by the plot_data function
+            # Can add more from dict_header if desired
             site_date_str = site_str + " " + date_str
             df["site_date"] = site_date_str
             df["site"] = site_str
             df["date_time"] = date_str
             df["treatment"] = treatment_str
+
+            if "TBS" in site_str:
+                df["lower_altitude"] = dict_header["lower_altitude"]
+                df["upper_altitude"] = dict_header["upper_altitude"]
+
 
             all_data.append(df)
 
