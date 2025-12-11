@@ -38,9 +38,10 @@ def plot_INPS_L(result_df, save_path, header_dict):
     plt.xlabel("Temperature (degC)")
     plt.ylabel("INP Concentration (per L STP)")
     plt.yscale("log")
-    plt.ylim(
-        result_df[result_df["lower_CI"] > 0]["lower_CI"].min() * 0.1, result_df["INPS_L"].max() * 3
-    )
+    plt.ylim(1e-4,1e4)
+    # plt.ylim(
+    #     result_df[result_df["lower_CI"] > 0]["lower_CI"].min() * 0.1, result_df["INPS_L"].max() * 3
+    # )
     plt.xlim(-30, 0)
     plt.xticks(np.arange(0, -35, -5))
     plt.gca().set_xticks(np.arange(0, -31, -1), minor=True)
@@ -136,10 +137,11 @@ def plot_blank_corrected_vs_pre_corrected_inps(
     plt.xlabel("Temperature (degC)")
     plt.ylabel("INP Concentration (per L STP)")
     plt.yscale("log")
-    plt.ylim(
-        df_corrected[df_corrected["lower_CI"] > 0]["lower_CI"].min() * 0.1,
-        df_corrected["INPS_L"].max() * 3,
-    )
+    plt.ylim(1e-4, 1e4)
+    # plt.ylim(
+    #     df_corrected[df_corrected["lower_CI"] > 0]["lower_CI"].min() * 0.1,
+    #     df_corrected["INPS_L"].max() * 3,
+    # )
     plt.xlim(-30, 0)
     plt.xticks(np.arange(0, -35, -5))
     plt.gca().set_xticks(np.arange(0, -31, -1), minor=True)
@@ -216,3 +218,100 @@ def filter_non_error_signal(df_corrected):
     error_signal_mask = df_corrected["INPS_L"] < 0
     plot_eligible_data = df_corrected[~error_signal_mask]
     return plot_eligible_data
+
+def apply_plot_settings(ax, settings):
+    """
+    Apply plot settings to ax
+    Args:
+        ax: matplotlib object
+        settings: PLOT_SETTINGS
+
+    Returns: none
+
+    """
+    ax.grid(settings['grid']['major'])
+    ax.grid(settings['grid']['minor'])
+    ax.set_xlabel(settings['axes']['xlabel'])
+    ax.set_ylabel(settings['axes']['ylabel'])
+    ax.set_yscale(settings['axes']['yscale'])
+    # Set x-axis limits
+    if 'xlim' in settings['axes']:
+        ax.set_xlim(settings['axes']['xlim'])
+
+    # Set y-axis limits (optional)
+    if 'ylim' in settings['axes']:
+        ax.set_ylim(settings['axes']['ylim'])
+
+    # Set x-axis tick positions
+    if 'xticks_major' in settings['axes']:
+        ax.set_xticks(settings['axes']['xticks_major'])
+
+    if 'xticks_minor' in settings['axes']:
+        ax.set_xticks(settings['axes']['xticks_minor'], minor=True)
+
+    # Set y-axis tick positions (optional)
+    if 'yticks_major' in settings['axes']:
+        ax.set_yticks(settings['axes']['yticks_major'])
+
+    if 'yticks_minor' in settings['axes']:
+        ax.set_yticks(settings['axes']['yticks_minor'], minor=True)
+    ax.legend(**settings['legend'])
+
+# This is used for the Plot class but can be used for anything else
+# TODO: apply general plot settings to other plot functions in plot_utils for less lines of code
+PLOT_SETTINGS = {
+        'figure': {
+            'figsize': (10, 6),
+            'dpi': 100,
+            'subplot_scale': 0.8
+        },
+        'axes': {
+            'xlabel': 'Temp (deg C)',
+            'ylabel': 'INP/L',
+            'yscale': 'log',
+            'xticks_major': np.arange(0, -35, -5),
+            'xticks_minor': np.arange(0, -31, -1),
+            'xlim': (-30, 0),
+            'ylim': (1e-4, 1e3)
+        },
+        'grid': {
+                'major': {
+                    'visible': True,
+                    'which': 'major',
+                    'linestyle': '--',
+                    'color': 'gray',
+                    'linewidth': 0.5,
+                    'alpha': 0.5
+                },
+                'minor': {
+                    'visible': True,
+                    'which': 'minor',
+                    'linestyle': '--',
+                    'color': 'gray',
+                    'linewidth': 0.5,
+                    'alpha': 0.1
+                }
+        },
+        'line': {
+            'linestyle': 'none',
+            'marker': 'o',
+            'markersize': 6,
+            'capsize': 4,
+            'capthick': 1.5,
+            'elinewidth': 1.5
+        },
+        'treatment_colors': {
+            'base': 'black',
+            'heat': 'darkred',
+            'peroxide': 'purple'
+        },
+        'legend': {
+            'loc': 'best',
+            'framealpha': 0.9
+        },
+        'save': {
+            'dpi': 300,
+            'bbox_inches': 'tight',
+            'format': 'png'
+        }
+    }
