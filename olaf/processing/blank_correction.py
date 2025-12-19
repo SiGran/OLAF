@@ -373,6 +373,10 @@ class BlankCorrector:
         # Get sorted temperatures for monotonic check
         indices = sorted(df_corrected.index)  # Higher to lower temp
 
+        # adding a qc flag column
+        df_corrected["qc_flag"] = int
+        df_corrected.loc[indices[0], "qc_flag"] = 0
+
         # Loop through temperatures, starting from the second one
         for i in range(1, len(indices)):
             current_temp = indices[i]
@@ -394,6 +398,9 @@ class BlankCorrector:
                 print(f"Correcting value at temperature {current_temp} due to non-monotonicity.")
                 df_corrected.loc[current_temp, "INPS_L"] = df_corrected.loc[prev_temp, "INPS_L"]
 
+                # if correction occurs, add 1 to qc column
+                df_corrected.loc[current_temp, "qc_flag"] = 1
+
                 # Upper error is rmse of the one we are removing and previous error
                 df_corrected.loc[current_temp, "upper_CI"] = rms(
                     [
@@ -403,6 +410,9 @@ class BlankCorrector:
                 )
                 # Lower CI is just the lower CI
                 df_corrected.loc[current_temp, "lower_CI"] = df_corrected.loc[prev_temp, "lower_CI"]
+
+            else:
+                df_corrected.loc[current_temp, "qc_flag"] = 0
 
         return df_corrected
 
