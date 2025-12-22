@@ -256,7 +256,11 @@ class Plots:
         all_data = []
 
         for file in file_paths:
-            header_lines, df = read_with_flexible_header(file)
+            # probably a cleaner way to do this
+            if "blank_corrected" in includes:
+                header_lines, df = read_with_flexible_header(file, expected_columns=("degC", "dilution", "INPS_L", "lower_CI", "upper_CI", "qc_flag"))
+            else:
+                header_lines, df = read_with_flexible_header(file)
             dict_header = header_to_dict(header_lines)
 
             # Remove zero or ERROR_SIGNAL (if below zero)
