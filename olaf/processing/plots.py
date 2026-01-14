@@ -1,3 +1,4 @@
+import itertools
 from datetime import datetime
 from pathlib import Path
 import matplotlib.pyplot as plt
@@ -12,6 +13,7 @@ from olaf.utils.plot_utils import apply_plot_settings, PLOT_SETTINGS
 
 
 class Plots:
+    DEFAULT_MARKERS = ['o', 's', '^', 'v', 'D', 'p', '*', 'h', 'X', 'P', '<', '>', 'd']
     def __init__(self,
                  project_folder: Path,
                  includes: tuple,
@@ -41,7 +43,9 @@ class Plots:
         """
         self.project_folder = project_folder
         self.num_columns = num_columns
-        self.site_markers = site_markers
+        self.site_markers = site_markers if site_markers is not None else {}
+        self._marker_cycle = itertools.cycle(self.DEFAULT_MARKERS)
+        self._auto_markers = {}
         self.save_name = save_name
         self.desired_files_df = self.find_desired_files(includes, excludes, start_date, end_date)
 
@@ -67,10 +71,7 @@ class Plots:
         # Remove timestamps in case they are slightly different for site comparisons
         if site_comparison:
             date_version = "date_time"
-            if tbs:
-                all_inp_data_df[date_version] = all_inp_data_df[date_version].astype(str).str[0:10]
-            else:
-                all_inp_data_df[date_version] = all_inp_data_df[date_version].astype(str).str[0:10]
+            all_inp_data_df[date_version] = all_inp_data_df[date_version].astype(str).str[0:10]
         else:
             date_version = "site_date"
 
@@ -107,14 +108,20 @@ class Plots:
 
                 date_data = all_inp_data_df[all_inp_data_df[date_version] == date]
 
-                sites = date_data["site"].unique()
+                if tbs:
+                    sites = date_data["altitude_range"].unique()
+                else:
+                    sites = date_data["site"].unique()
 
                 for site in sites:
                     if site_comparison:
-                        site_data = date_data[date_data["site"] == site]
+                        if tbs:
+                            site_data = date_data[date_data["altitude_range"] == site]
+                        else:
+                            site_data = date_data[date_data["site"] == site]
                     else: site_data = date_data
 
-                    marker = self.site_markers.get(site) # not sure if the 'o' is needed
+                    marker = self.get_marker(site)
 
                 # Plot each treatment
                     for treatment in site_data["treatment"].unique():
@@ -122,19 +129,17 @@ class Plots:
 
                         # Calculate error bars (asymmetric)
                         yerr= [treatment_data["lower_CI"], treatment_data["upper_CI"]]
-                        color = PLOT_SETTINGS['treatment_colors'].get(treatment, None)
+
+                        if tbs: # this is not robust if we do treatments on TBS data but rather a quick fix
+                            color = None
+                        else:
+                            color = PLOT_SETTINGS['treatment_colors'].get(treatment, None)
+
 
                         if site_comparison and site != 'default':
                             label = f"{site} - {treatment}"
                         else:
                             label = treatment
-
-                        if tbs:
-                            lower_alt = treatment_data["lower_altitude"].iloc[0]
-                            upper_alt = treatment_data["upper_altitude"].iloc[0]
-                            label = label + f" {lower_alt}m - {upper_alt}m"
-                        else:
-                            label = label
 
                         # Manually add marker setting
                         line_settings = PLOT_SETTINGS['line'].copy()
@@ -166,35 +171,39 @@ class Plots:
 
                 date_data = all_inp_data_df[all_inp_data_df[date_version] == date]
 
-                sites = date_data["site"].unique()
+                if tbs:
+                    sites = date_data["altitude_range"].unique()
+                else:
+                    sites = date_data["site"].unique()
 
                 for site in sites:
                     if site_comparison:
-                        site_data = date_data[date_data["site"] == site]
+                        if tbs:
+                            site_data = date_data[date_data["altitude_range"] == site]
+                        else:
+                            site_data = date_data[date_data["site"] == site]
                     else:
                         site_data = date_data
 
-                    marker = self.site_markers.get(site)
+                    #marker = self.site_markers.get(site)
+                    marker = self.get_marker(site)
 
                     # Plot each treatment
                     for treatment in site_data["treatment"].unique():
                         treatment_data = site_data[site_data["treatment"] == treatment]
 
                         # Calculate error bars (asymmetric)
+
                         yerr = [treatment_data["lower_CI"], treatment_data["upper_CI"]]
-                        color = PLOT_SETTINGS['treatment_colors'].get(treatment, None)
+                        if tbs:
+                            color = None
+                        else:
+                            color = PLOT_SETTINGS['treatment_colors'].get(treatment, None)
 
                         if site_comparison and site != 'default':
                             label = f"{site} - {treatment}"
                         else:
                             label = treatment
-
-                        if tbs:
-                            lower_alt = treatment_data["lower_altitude"].iloc[0]
-                            upper_alt = treatment_data["upper_altitude"].iloc[0]
-                            label = label + f" {lower_alt}m - {upper_alt}m"
-                        else:
-                            label = label
 
                         line_settings = PLOT_SETTINGS['line'].copy()
                         line_settings['marker'] = marker
@@ -213,7 +222,9 @@ class Plots:
                     apply_plot_settings(ax, settings=PLOT_SETTINGS)
                 plt.tight_layout()
 
-                if site_comparison or tbs:
+                if site_comparison and tbs:
+                    save_site = site + "_"
+                elif site_comparison:
                     save_site = site + "_"
                 else:
                     save_site = ""
@@ -292,9 +303,8 @@ class Plots:
             df["treatment"] = treatment_str
 
             if "TBS" in site_str:
-                df["lower_altitude"] = dict_header["lower_altitude"]
-                df["upper_altitude"] = dict_header["upper_altitude"]
-
+                altitude_string = f"{dict_header['lower_altitude']}m - {dict_header['upper_altitude']}m"
+                df["altitude_range"] = altitude_string
 
             all_data.append(df)
 
@@ -303,4 +313,21 @@ class Plots:
             else:
                 raise ValueError("No valid data found in the provided files.")
         return combined_df
+
+    def get_marker(self, site):
+
+        # Check if user defined this marker
+        if site in self.site_markers:
+            return self.site_markers[site]
+
+        # Check if we've already auto-generated a marker for this site
+        if site in self._auto_markers:
+            return self._auto_markers[site]
+
+        # Auto-generate a new marker
+        marker = next(self._marker_cycle)
+        self._auto_markers[site] = marker
+        return marker
+
+
 
