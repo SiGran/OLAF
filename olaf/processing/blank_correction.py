@@ -17,20 +17,26 @@ from olaf.utils.plot_utils import plot_blank_corrected_vs_pre_corrected_inps
 
 
 class BlankCorrector:
-    def __init__(self, project_folder: Path, multiple_per_day=False) -> None:
+    def __init__(
+        self, project_folder: Path, includes: tuple, excludes: tuple, multiple_per_day=False
+    ) -> None:
         self.project_folder = project_folder
-        self.blank_files = self._find_blank_files(multiple_per_day)
+        self.blank_files = self._find_blank_files(multiple_per_day, includes, excludes)
         self.combined_blank: dict[tuple[str, str], pd.DataFrame] = {}
 
-    def _find_blank_files(self, multiple_per_day):
+    def _find_blank_files(self, multiple_per_day, includes, excludes):
         """Find all blank files in the project folder."""
 
         # First collect all potential blank files
         potential_blank_files = []
         for experiment_folder in self.project_folder.iterdir():
             if experiment_folder.is_dir() and ("blank" in experiment_folder.name.lower()):
-                for file_path in experiment_folder.rglob("INPs_L*blank*.csv"):
-                    potential_blank_files.append(file_path)
+                potential_blank_files = [
+                    file
+                    for file in self.folder_path.iterdir()
+                    if all(name in file.name for name in includes)
+                    and not any(excl in file.name for excl in excludes)
+                ]
 
         # Group the files by date
         files_by_date = sort_files_by_date(potential_blank_files)
