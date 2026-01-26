@@ -31,12 +31,14 @@ class BlankCorrector:
         potential_blank_files = []
         for experiment_folder in self.project_folder.iterdir():
             if experiment_folder.is_dir() and ("blank" in experiment_folder.name.lower()):
-                potential_blank_files = [
-                    file
-                    for file in self.folder_path.iterdir()
-                    if all(name in file.name for name in includes)
-                    and not any(excl in file.name for excl in excludes)
-                ]
+                potential_blank_files.extend(
+                    [
+                        file
+                        for file in experiment_folder.iterdir()
+                        if all(name in file.name for name in includes)
+                        and not any(excl in file.name for excl in excludes)
+                    ]
+                )
 
         # Group the files by date
         files_by_date = sort_files_by_date(potential_blank_files)
