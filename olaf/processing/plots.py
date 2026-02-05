@@ -7,7 +7,7 @@ import numpy as np
 import pandas as pd
 
 from olaf.utils.df_utils import read_with_flexible_header, header_to_dict
-from olaf.utils.path_utils import find_latest_file, is_within_dates
+from olaf.utils.path_utils import find_latest_file, is_within_dates, sort_files_by_date
 from olaf.utils.data_handler import DataHandler
 from olaf.utils.plot_utils import apply_plot_settings, PLOT_SETTINGS
 
@@ -214,11 +214,8 @@ class Plots:
                                     label=label,
                                     color = color,
                                     **line_settings)
+                    ax.set_title(f'{date}')
 
-                    if site_comparison:
-                        ax.set_title(f'{date}')
-                    else:
-                        ax.set_title(f'{site} {date}')
                     apply_plot_settings(ax, settings=PLOT_SETTINGS)
                 plt.tight_layout()
 
@@ -263,6 +260,10 @@ class Plots:
                     if data_handler.data_file and data_handler.data_file not in file_paths:
                         file_paths.append(data_handler.data_file)
 
+        if len(file_paths) == 0:
+            print("No files found. Check includes, excludes and date range.")
+
+        file_paths = sorted(file_paths)
         combined_df = pd.DataFrame()
         all_data = []
 
