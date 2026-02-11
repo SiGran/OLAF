@@ -3,7 +3,7 @@ from pathlib import Path
 from olaf.CONSTANTS import ERROR_SIGNAL
 from olaf.processing.final_file_creation import FinalFileCreation
 
-project_folder = Path.cwd().parent / "data" / "BNF" / "TBS" / "test3"
+project_folder = Path.cwd().parent / "tests" / "test_data" / "NSA_qc_flag_test"
 includes = ("INPs_L", "frozen_at_temp", "reviewed", "blank_corrected", "10%")
 excludes = ("blanks",)
 treatment_dict = {"base": 0, "heat": 1, "peroxide": 2}
@@ -15,6 +15,8 @@ header_start = (
     f"For access to all filter metadata (e.g. flows times sites notes etc.) visit "
     f"https://docs.arm.gov/share/s/BkJRSN5mR1mcZKjZm13Vtw\n"
     f"Treatment flags: 0 = untreated; 1 = heat treated; and 2 = peroxide treated\n"
+    f"QC flag: 0 = no correction applied; 1 = correction applied. "
+    f"For more details visit: doi.org/10.5194/essd-17-6943-2025\n"
     f"Missing values or values below detection limit are denoted as {ERROR_SIGNAL}\n"
 )
 

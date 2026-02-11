@@ -1,17 +1,19 @@
-from datetime import datetime
-from pathlib import Path
+import itertools
 import matplotlib.pyplot as plt
-
 import numpy as np
 import pandas as pd
 
+from datetime import datetime
+from pathlib import Path
+
 from olaf.utils.df_utils import read_with_flexible_header, header_to_dict
-from olaf.utils.path_utils import find_latest_file, is_within_dates
+from olaf.utils.path_utils import is_within_dates
 from olaf.utils.data_handler import DataHandler
 from olaf.utils.plot_utils import apply_plot_settings, PLOT_SETTINGS
 
 
 class Plots:
+    DEFAULT_MARKERS = ['o', 's', '^', 'v', 'D', 'p', '*', 'h', 'X', 'P', '<', '>', 'd']
     def __init__(self,
                  project_folder: Path,
                  includes: tuple,
@@ -41,12 +43,14 @@ class Plots:
         """
         self.project_folder = project_folder
         self.num_columns = num_columns
-        self.site_markers = site_markers
+        self.site_markers = site_markers if site_markers is not None else {}
+        self._marker_cycle = itertools.cycle(self.DEFAULT_MARKERS)
+        self._auto_markers = {}
         self.save_name = save_name
         self.desired_files_df = self.find_desired_files(includes, excludes, start_date, end_date)
 
 
-    def plot_data(self, subplots = False, site_comparison = False):
+    def plot_data(self, subplots = False, site_comparison = False, tbs = False):
         """
         Function with multiple options for plotting INP data.
         Args:
@@ -104,14 +108,21 @@ class Plots:
 
                 date_data = all_inp_data_df[all_inp_data_df[date_version] == date]
 
-                sites = date_data["site"].unique()
+                if tbs:
+                    sites = date_data["altitude_range"].unique()
+                else:
+                    sites = date_data["site"].unique()
 
                 for site in sites:
                     if site_comparison:
-                        site_data = date_data[date_data["site"] == site]
-                    else: site_data = date_data
+                        if tbs:
+                            site_data = date_data[date_data["altitude_range"] == site]
+                        else:
+                            site_data = date_data[date_data["site"] == site]
+                    else:
+                        site_data = date_data
 
-                    marker = self.site_markers.get(site) # not sure if the 'o' is needed
+                    marker = self.get_marker(site)
 
                 # Plot each treatment
                     for treatment in site_data["treatment"].unique():
@@ -119,12 +130,18 @@ class Plots:
 
                         # Calculate error bars (asymmetric)
                         yerr= [treatment_data["lower_CI"], treatment_data["upper_CI"]]
-                        color = PLOT_SETTINGS['treatment_colors'].get(treatment, None)
+
+                        if tbs:
+                            color = None
+                        else:
+                            color = PLOT_SETTINGS['treatment_colors'].get(treatment, None)
+
 
                         if site_comparison and site != 'default':
                             label = f"{site} - {treatment}"
                         else:
                             label = treatment
+
                         # Manually add marker setting
                         line_settings = PLOT_SETTINGS['line'].copy()
                         line_settings['marker'] = marker
@@ -145,7 +162,8 @@ class Plots:
 
             plt.tight_layout()
 
-            plt.savefig(f'{save_path}/{self.save_name}_created_on-{current_time}.png', **PLOT_SETTINGS['save'])
+            plt.savefig(f'{save_path}/{self.save_name}_created_on-'
+                        f'{current_time}.png', **PLOT_SETTINGS['save'])
 
         else:
             # Create separate figure for each date
@@ -155,23 +173,34 @@ class Plots:
 
                 date_data = all_inp_data_df[all_inp_data_df[date_version] == date]
 
-                sites = date_data["site"].unique()
+                if tbs:
+                    sites = date_data["altitude_range"].unique()
+                else:
+                    sites = date_data["site"].unique()
 
                 for site in sites:
                     if site_comparison:
-                        site_data = date_data[date_data["site"] == site]
+                        if tbs:
+                            site_data = date_data[date_data["altitude_range"] == site]
+                        else:
+                            site_data = date_data[date_data["site"] == site]
                     else:
                         site_data = date_data
 
-                    marker = self.site_markers.get(site)
+                    #marker = self.site_markers.get(site)
+                    marker = self.get_marker(site)
 
                     # Plot each treatment
                     for treatment in site_data["treatment"].unique():
                         treatment_data = site_data[site_data["treatment"] == treatment]
 
                         # Calculate error bars (asymmetric)
+
                         yerr = [treatment_data["lower_CI"], treatment_data["upper_CI"]]
-                        color = PLOT_SETTINGS['treatment_colors'].get(treatment, None)
+                        if tbs:
+                            color = None
+                        else:
+                            color = PLOT_SETTINGS['treatment_colors'].get(treatment, None)
 
                         if site_comparison and site != 'default':
                             label = f"{site} - {treatment}"
@@ -187,22 +216,23 @@ class Plots:
                                     label=label,
                                     color = color,
                                     **line_settings)
+                    ax.set_title(f'{date}')
 
-                    if site_comparison:
-                        ax.set_title(f'{date}')
-                    else:
-                        ax.set_title(f'{site} {date}')
                     apply_plot_settings(ax, settings=PLOT_SETTINGS)
                 plt.tight_layout()
 
-                if site_comparison:
+                if site_comparison and tbs:
+                    save_site = site + "_"
+                elif site_comparison:
                     save_site = site + "_"
                 else:
                     save_site = ""
 
                 if save_path:
-                    safe_date = str(date).replace('/', '_').replace(' ', '_').replace(':', '-')
-                    plt.savefig(f'{save_path}/{save_site}{safe_date}_created_on-{current_time}.png', **PLOT_SETTINGS['save'])
+                    safe_date = str(date).replace('/', '_').replace(
+                        ' ', '_').replace(':', '-')
+                    plt.savefig(f'{save_path}/{save_site}{safe_date}_created_on-'
+                                f'{current_time}.png', **PLOT_SETTINGS['save'])
 
 
 
@@ -229,16 +259,26 @@ class Plots:
             if is_within_dates(dates=(start_date, end_date), folder_name=folder.name):
                 if folder.is_dir() and not any(excl in folder.name for excl in excludes):
                     data_handler = DataHandler(
-                        folder, 0, suffix=".csv", includes=includes, excludes=excludes, date_col=None
+                        folder, 0, suffix=".csv", includes=includes,
+                        excludes=excludes, date_col=None
                     )
                     if data_handler.data_file and data_handler.data_file not in file_paths:
                         file_paths.append(data_handler.data_file)
 
+        if len(file_paths) == 0:
+            print("No files found. Check includes, excludes and date range.")
+
+        file_paths = sorted(file_paths)
         combined_df = pd.DataFrame()
         all_data = []
 
         for file in file_paths:
-            header_lines, df = read_with_flexible_header(file)
+            # probably a cleaner way to do this
+            if "blank_corrected" in includes:
+                header_lines, df = read_with_flexible_header(file, expected_columns=(
+                    "degC", "dilution", "INPS_L", "lower_CI", "upper_CI", "qc_flag"))
+            else:
+                header_lines, df = read_with_flexible_header(file)
             dict_header = header_to_dict(header_lines)
 
             # Remove zero or ERROR_SIGNAL (if below zero)
@@ -262,11 +302,17 @@ class Plots:
                 print(f"treatment not found in {file.name}")
 
             # Creating df columns for easier access by the plot_data function
+            # Can add more from dict_header if desired
             site_date_str = site_str + " " + date_str
             df["site_date"] = site_date_str
             df["site"] = site_str
             df["date_time"] = date_str
             df["treatment"] = treatment_str
+
+            if "TBS" in site_str:
+                altitude_string = (f"{dict_header['lower_altitude']}m - "
+                                   f"{dict_header['upper_altitude']}m")
+                df["altitude_range"] = altitude_string
 
             all_data.append(df)
 
@@ -275,4 +321,21 @@ class Plots:
             else:
                 raise ValueError("No valid data found in the provided files.")
         return combined_df
+
+    def get_marker(self, site):
+
+        # Check if user defined this marker
+        if site in self.site_markers:
+            return self.site_markers[site]
+
+        # Check if we've already auto-generated a marker for this site
+        if site in self._auto_markers:
+            return self._auto_markers[site]
+
+        # Auto-generate a new marker
+        marker = next(self._marker_cycle)
+        self._auto_markers[site] = marker
+        return marker
+
+
 
