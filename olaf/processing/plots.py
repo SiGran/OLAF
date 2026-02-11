@@ -7,7 +7,7 @@ import numpy as np
 import pandas as pd
 
 from olaf.utils.df_utils import read_with_flexible_header, header_to_dict
-from olaf.utils.path_utils import find_latest_file, is_within_dates, sort_files_by_date
+from olaf.utils.path_utils import is_within_dates
 from olaf.utils.data_handler import DataHandler
 from olaf.utils.plot_utils import apply_plot_settings, PLOT_SETTINGS
 

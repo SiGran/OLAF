@@ -31,7 +31,8 @@ class FinalFileCreation:
         files_per_date = {}
         for file in file_paths:
             # look for the "start_time" in the header of each blank_corrected .csv file
-            header_lines, _ = read_with_flexible_header(file, expected_columns=("degC", "dilution", "INPS_L", "lower_CI", "upper_CI", "qc_flag"))
+            header_lines, _ = read_with_flexible_header(file, expected_columns=(
+                "degC", "dilution", "INPS_L", "lower_CI", "upper_CI", "qc_flag"))
             dict_header = header_to_dict(header_lines)
             found_dates = dict_header["start_time"]
             if not found_dates:
@@ -65,7 +66,8 @@ class FinalFileCreation:
             # Go through each file and add it to the final df
             for file in files:
                 # Read the file and get the header data
-                header_lines, df_inps = read_with_flexible_header(file, expected_columns=("degC", "dilution", "INPS_L", "lower_CI", "upper_CI", "qc_flag"))
+                header_lines, df_inps = read_with_flexible_header(file, expected_columns=(
+                    "degC", "dilution", "INPS_L", "lower_CI", "upper_CI", "qc_flag"))
                 dict_header = header_to_dict(header_lines)
                 notes += f"{dict_header['notes']}"
                 if save_file is None:  # on First read, set save_file and extend header

@@ -15,7 +15,8 @@ header_start = (
     f"For access to all filter metadata (e.g. flows times sites notes etc.) visit "
     f"https://docs.arm.gov/share/s/BkJRSN5mR1mcZKjZm13Vtw\n"
     f"Treatment flags: 0 = untreated; 1 = heat treated; and 2 = peroxide treated\n"
-    f"QC flag: 0 = no correction applied; 1 = correction applied. For more details visit: doi.org/10.5194/essd-17-6943-2025\n"
+    f"QC flag: 0 = no correction applied; 1 = correction applied. "
+    f"For more details visit: doi.org/10.5194/essd-17-6943-2025\n"
     f"Missing values or values below detection limit are denoted as {ERROR_SIGNAL}\n"
 )
 
