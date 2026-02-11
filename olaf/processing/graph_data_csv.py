@@ -262,8 +262,9 @@ class GraphDataCSV(DataHandler):
                             f"check frozen_at_temp file!"
                         )
 
-                    # Check if both options are smaller
-                    if result_df["INPS_L"][i] < prev_val and next_dilution_INP[i] < prev_val:
+                    # Check if both options are smaller, constrained by lower bound
+                    prev_val_ci = prev_val - result_df["lower_CI"][i]
+                    if result_df["INPS_L"][i] < prev_val_ci and next_dilution_INP[i] < prev_val_ci:
                         # throw them out/error, no value for that temperature, whatever
                         result_df.loc[i, :] = np.nan
                         # Both are bigger:
