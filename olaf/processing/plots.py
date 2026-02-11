@@ -1,10 +1,10 @@
 import itertools
+import numpy as np
+import matplotlib.pyplot as plt
+import pandas as pd
+
 from datetime import datetime
 from pathlib import Path
-import matplotlib.pyplot as plt
-
-import numpy as np
-import pandas as pd
 
 from olaf.utils.df_utils import read_with_flexible_header, header_to_dict
 from olaf.utils.path_utils import is_within_dates
@@ -119,7 +119,8 @@ class Plots:
                             site_data = date_data[date_data["altitude_range"] == site]
                         else:
                             site_data = date_data[date_data["site"] == site]
-                    else: site_data = date_data
+                    else:
+                        site_data = date_data
 
                     marker = self.get_marker(site)
 
@@ -130,7 +131,7 @@ class Plots:
                         # Calculate error bars (asymmetric)
                         yerr= [treatment_data["lower_CI"], treatment_data["upper_CI"]]
 
-                        if tbs: # this is not robust if we do treatments on TBS data but rather a quick fix
+                        if tbs:
                             color = None
                         else:
                             color = PLOT_SETTINGS['treatment_colors'].get(treatment, None)
@@ -161,7 +162,8 @@ class Plots:
 
             plt.tight_layout()
 
-            plt.savefig(f'{save_path}/{self.save_name}_created_on-{current_time}.png', **PLOT_SETTINGS['save'])
+            plt.savefig(f'{save_path}/{self.save_name}_created_on-'
+                        f'{current_time}.png', **PLOT_SETTINGS['save'])
 
         else:
             # Create separate figure for each date
@@ -227,8 +229,10 @@ class Plots:
                     save_site = ""
 
                 if save_path:
-                    safe_date = str(date).replace('/', '_').replace(' ', '_').replace(':', '-')
-                    plt.savefig(f'{save_path}/{save_site}{safe_date}_created_on-{current_time}.png', **PLOT_SETTINGS['save'])
+                    safe_date = str(date).replace('/', '_').replace(
+                        ' ', '_').replace(':', '-')
+                    plt.savefig(f'{save_path}/{save_site}{safe_date}_created_on-'
+                                f'{current_time}.png', **PLOT_SETTINGS['save'])
 
 
 
@@ -255,7 +259,8 @@ class Plots:
             if is_within_dates(dates=(start_date, end_date), folder_name=folder.name):
                 if folder.is_dir() and not any(excl in folder.name for excl in excludes):
                     data_handler = DataHandler(
-                        folder, 0, suffix=".csv", includes=includes, excludes=excludes, date_col=None
+                        folder, 0, suffix=".csv", includes=includes,
+                        excludes=excludes, date_col=None
                     )
                     if data_handler.data_file and data_handler.data_file not in file_paths:
                         file_paths.append(data_handler.data_file)
@@ -270,7 +275,8 @@ class Plots:
         for file in file_paths:
             # probably a cleaner way to do this
             if "blank_corrected" in includes:
-                header_lines, df = read_with_flexible_header(file, expected_columns=("degC", "dilution", "INPS_L", "lower_CI", "upper_CI", "qc_flag"))
+                header_lines, df = read_with_flexible_header(file, expected_columns=(
+                    "degC", "dilution", "INPS_L", "lower_CI", "upper_CI", "qc_flag"))
             else:
                 header_lines, df = read_with_flexible_header(file)
             dict_header = header_to_dict(header_lines)
@@ -304,7 +310,8 @@ class Plots:
             df["treatment"] = treatment_str
 
             if "TBS" in site_str:
-                altitude_string = f"{dict_header['lower_altitude']}m - {dict_header['upper_altitude']}m"
+                altitude_string = (f"{dict_header['lower_altitude']}m - "
+                                   f"{dict_header['upper_altitude']}m")
                 df["altitude_range"] = altitude_string
 
             all_data.append(df)
