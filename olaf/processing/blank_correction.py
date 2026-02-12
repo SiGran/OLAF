@@ -1,3 +1,4 @@
+
 from datetime import datetime
 from pathlib import Path
 
@@ -18,13 +19,19 @@ from olaf.utils.plot_utils import plot_blank_corrected_vs_pre_corrected_inps
 
 class BlankCorrector:
     def __init__(
-        self, project_folder: Path, includes: tuple, excludes: tuple, multiple_per_day=False
+        self,
+        project_folder: Path,
+        blank_includes: tuple,
+        blank_excludes: tuple,
+        sample_excludes: tuple,
+        multiple_per_day=False
     ) -> None:
         self.project_folder = project_folder
-        self.blank_files = self._find_blank_files(multiple_per_day, includes, excludes)
+        self.blank_files = self._find_blank_files(multiple_per_day, blank_includes, blank_excludes)
         self.combined_blank: dict[tuple[str, str], pd.DataFrame] = {}
+        self.sample_excludes = sample_excludes
 
-    def _find_blank_files(self, multiple_per_day, includes, excludes):
+    def _find_blank_files(self, multiple_per_day, blank_includes, blank_excludes):
         """Find all blank files in the project folder."""
 
         # First collect all potential blank files
@@ -35,8 +42,8 @@ class BlankCorrector:
                     [
                         file
                         for file in experiment_folder.iterdir()
-                        if all(name in file.name for name in includes)
-                        and not any(excl in file.name for excl in excludes)
+                        if all(name in file.name for name in blank_includes)
+                        and not any(excl in file.name for excl in blank_excludes)
                     ]
                 )
 
@@ -168,9 +175,10 @@ class BlankCorrector:
         for dates, data in self.combined_blank.items():
             df_blanks, header_info_blanks = data
             for experiment_folder in self.project_folder.iterdir():
-                if "blank" not in experiment_folder.name and (
-                    is_within_dates(dates, experiment_folder.name) or not only_within_dates
-                ):
+                if ("blank" not in experiment_folder.name
+                        and not any(excl in experiment_folder.name for excl in self.sample_excludes)
+                        and (is_within_dates(dates, experiment_folder.name) or not only_within_dates
+                )):
                     # Collect all INPs/L files in the experiment folder
                     input_files = list(experiment_folder.rglob("INPs_L*.csv"))
                     # Process the latest INPS file (assumes one relevant per folder)
