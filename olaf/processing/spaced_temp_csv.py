@@ -3,6 +3,7 @@ from pathlib import Path
 
 import pandas as pd
 
+from olaf.CONSTANTS import TEMP_STEP
 from olaf.utils.data_handler import DataHandler
 
 
@@ -36,7 +37,7 @@ class SpacedTempCSV(DataHandler):
     def create_temp_csv(
         self,
         dict_to_sample_dilution: dict,
-        temp_step: float = 0.5,
+        temp_step: float = TEMP_STEP,
         temp_col: str = "Avg_Temp",
         save: bool = True,
     ) -> pd.DataFrame:

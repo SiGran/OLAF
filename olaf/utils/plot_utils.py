@@ -36,7 +36,14 @@ def plot_INPS_L(result_df, save_path, header_dict):
         f"{header_dict['start_time'][:10]}"
     )
     plt.xlabel("Temperature (degC)")
-    plt.ylabel("INP Concentration (per L STP)")
+    if "blank" in header_dict["treatment"]:
+        plt.ylabel("INP Concentration (per filter)")
+    elif header_dict["sample_type"] != "air" or "soil":
+        plt.ylabel("INP Concentration (per mL)")
+    elif "soil" in header_dict["sample_type"]:
+        plt.ylabel("INP Concentration (per g)")
+    else:
+        plt.ylabel("INP Concentration (per L STP)")
     plt.yscale("log")
     plt.ylim(1e-4,1e4)
     plt.xlim(-30, 0)

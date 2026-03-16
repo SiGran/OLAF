@@ -9,48 +9,49 @@ from olaf.processing.graph_data_csv import GraphDataCSV
 from olaf.processing.spaced_temp_csv import SpacedTempCSV
 
 # -----------------------------    USER INPUTS    -------------------------------------
-test_folder = Path.cwd().parent / "tests" / "test_data" / "KCG 09.23.24 base"
-site = "CRG_S7_TBS"  # If this is ARM data use the official, full site
-start_time = "2025-02-22 21:09:00"
-end_time = "2025-02-22 22:08:00"
+#test_folder = Path.cwd().parent / "tests" /"test_data" / "fpd" / "NSA no.2 05.22.25 base"
+test_folder = Path("D:/INP Mentor/Long term sites/NSA/data/NSA 12.01.25 peroxide")
+site = "NSA_C1"  # If this is ARM data use the official, full site
+start_time = "2025-12-01 18:45:00"
+end_time = "2025-12-02 18:45:00"
 filter_color = "white"
-notes = "Battery was over-discharged - programmed to operational max mode limited to two altitudes."
+notes = "none"
 user = "Carson"
-IS = "IS3a"
+IS = "IS1b"
 num_samples = 6  # In the file
 sample_type = "air"  # air, liquid or soil
-vol_air_filt = 620.48  # L
+vol_air_filt = 23665.7 # L
 wells_per_sample = 32
 proportion_filter_used = 1.0  # between 0 and 1.0
 vol_susp = 10  # mL
 treatment = (
-    "base",
+    # "base",
     # "heat",
-    # "peroxide",
+     "peroxide",
     # "blank",
     # "blank heat",
     # "blank peroxide,"
 )  # uncomment the one you want to use
 
 # Use for side A or IS2
-dict_samples_to_dilution = {
-    "Sample_0": 1,
-    "Sample_1": 11,
-    "Sample_2": 121,
-    "Sample_3": 1331,
-    # "Sample_4": 1,
-    "Sample_5": float("inf"),
-}
+# dict_samples_to_dilution = {
+#     "Sample_0": 1,
+#     "Sample_1": 11,
+#     "Sample_2": 121,
+#     "Sample_3": 1331,
+#     #"Sample_4": 14641,
+#     "Sample_5": float("inf"),
+# }
 
 # Use for side B
-# dict_samples_to_dilution = {
-#     "Sample_5": 1,
-#     "Sample_4": 1,
-#     "Sample_3": 11,
-#     "Sample_2": 121,
-#     "Sample_1": 1331,
-#     "Sample_0": float("inf"),
-# }
+dict_samples_to_dilution = {
+    "Sample_5": 1.5,
+    "Sample_4": 16.5,
+    "Sample_3": 181.5,
+    "Sample_2": 1996.5,
+    #"Sample_5": 1,
+    "Sample_0": float("inf"),
+}
 
 # ----------------------------    EXTRA INFO IF NEEDED  ---------------------------------
 # if running filters from TBS
@@ -59,6 +60,10 @@ upper_altitude = 0  # m agl
 
 # if sample is soil
 dry_mass = 2  # dried mass of soil in g
+
+# if seawater or other salty sample, use this to estimate freezing point depression
+# use this formula: {dilution:adjustment}
+freezing_point_depression_dict = {1:2, 11:0.2}
 
 
 # ----------------------- Assembling the header for the CSV file -----------------------
@@ -106,7 +111,7 @@ if __name__ == "__main__":
     )
     window.mainloop()
 
-    # # Processing to create .csv file
+    # # # # Processing to create .csv file
     spaced_temp_csv = SpacedTempCSV(test_folder, num_samples, includes=treatment)
     spaced_temp_csv.create_temp_csv(dict_samples_to_dilution)
 
@@ -140,6 +145,7 @@ if __name__ == "__main__":
             proportion_filter_used,
             vol_susp,
             dict_samples_to_dilution,
+            freezing_point_depression_dict,
             includes=includes,
         )
         graph_data_csv.convert_INPs_L(header, show_plot=True)
