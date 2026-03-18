@@ -38,7 +38,7 @@ def plot_INPS_L(result_df, save_path, header_dict):
     plt.xlabel("Temperature (degC)")
     if "blank" in header_dict["treatment"]:
         plt.ylabel("INP Concentration (per filter)")
-    elif header_dict["sample_type"] != "air" or "soil":
+    elif header_dict["sample_type"] != "air":
         plt.ylabel("INP Concentration (per mL)")
     elif "soil" in header_dict["sample_type"]:
         plt.ylabel("INP Concentration (per g)")
@@ -276,7 +276,7 @@ PLOT_SETTINGS = {
             'xticks_major': np.arange(0, -35, -5),
             'xticks_minor': np.arange(0, -31, -1),
             'xlim': (-30, 0),
-            'ylim': (1e-4, 1e3)
+            'ylim': (1e-4, 1e4)
         },
         'grid': {
                 'major': {

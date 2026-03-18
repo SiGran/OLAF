@@ -311,6 +311,11 @@ class GraphDataCSV(DataHandler):
         "---------------------- Step 7: Save and return the data ----------------------"
         if save:
             self.save_to_new_file(result_df, prefix="INPs_L", header=header)
+            # convert dilution dict to df then save as new csv file
+            dilution_dict_df = pd.DataFrame.from_dict(self.dict_to_samples_dilution, orient="index", columns=["dilution"])
+            dilution_dict_df.index.name = "sample"
+            dilution_dict_df = dilution_dict_df.reset_index()
+            self.save_to_new_file(dilution_dict_df, self.folder_path / f"{self.data_file}.csv", "dilution_dict")
         # Plotting option
         if show_plot:
             header_dict = header_to_dict(header)
