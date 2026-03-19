@@ -34,7 +34,7 @@ class GraphDataCSV(DataHandler):
         freezing_point_depression_dict: dict,
         suffix: str = ".csv",
         includes: tuple = ("base",),
-        excludes: tuple = ("INPs_L",),
+        excludes: tuple = ("INPs_L", "dilution_dict"),
         date_col=False,
     ) -> None:
         # Add class specific includes to make sure we get the right file
