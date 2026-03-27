@@ -1,6 +1,4 @@
-import json
-import csv
-import re, os
+import re
 import tkinter as tk
 from datetime import datetime
 from pathlib import Path
@@ -12,49 +10,49 @@ from olaf.processing.spaced_temp_csv import SpacedTempCSV
 
 # -----------------------------    USER INPUTS    -------------------------------------
 #test_folder = Path.cwd().parent / "tests" /"test_data" / "fpd" / "NSA no.2 05.22.25 base"
-test_folder = Path("D:/INP Mentor/Long term sites/NSA/data/NSA 09.10.25 blank rerun")
-#test_folder = Path("G:/Shared drives/INP Mentor/Current Data Processing/NSA/Raw OLAF file upload")
-site = "NSA_C1"  # If this is ARM data use the official, full site
-start_time = "2025-09-10 00:00:00"
-end_time = "2025-09-10 00:00:00"
+test_folder = Path("D:/OLAF/Freezing point depression tests/capek mock test 12.31.24 base")
+#test_folder = Path("G:/Shared drives/INP Mentor/Current Data Processing/CAPE_k/QAQC as of 03.04.26_CH/2024/KCG 09.23.24 peroxide bl")
+site = "na"
+start_time = "2024-12-31 04:05:00"
+end_time = "2024-12-31 04:05:00"
 filter_color = "white"
-notes = "rerunning from Maria's contamination day"
+notes = "testing"
 user = "Carson"
-IS = "IS3b"
+IS = "na"
 num_samples = 6  # In the file
-sample_type = "air"  # air, liquid or soil
+sample_type = "salt"  # air, liquid or soil
 vol_air_filt = 1 # L
 wells_per_sample = 32
 proportion_filter_used = 1.0  # between 0 and 1.0
 vol_susp = 10  # mL
 treatment = (
-    # "base",
+     "base",
     # "heat",
     # "peroxide",
-     "blank",
+    # "blank",
     # "blank heat",
     # "blank peroxide,"
 )  # uncomment the one you want to use
 
 # Use for side A or IS2
-# dict_samples_to_dilution = {
-#     "Sample_0": 1,
-#     "Sample_1": 11,
-#     "Sample_2": 121,
-#     "Sample_3": 1331,
-#     "Sample_4": 14641,
-#     "Sample_5": float("inf"),
-# }
-
-# Use for side B
 dict_samples_to_dilution = {
-    "Sample_4": 1,
-    "Sample_3": 11,
-    #"Sample_3": 121,
-    #"Sample_0": 1331,
-    #"Sample_1": 14641,
+    "Sample_0": 1,
+    "Sample_1": 11,
+    "Sample_2": 121,
+    "Sample_3": 1331,
+    "Sample_4": 14641,
     "Sample_5": float("inf"),
 }
+
+# Use for side B
+# dict_samples_to_dilution = {
+#     "Sample_5": 1.5,
+#     "Sample_4": 16.5,
+#     "Sample_3": 181.5,
+#     "Sample_2": 1996.5,
+#     #"Sample_1": 14641,
+#     "Sample_0": float("inf"),
+# }
 
 # ----------------------------    EXTRA INFO IF NEEDED  ---------------------------------
 # if running filters from TBS
@@ -102,31 +100,22 @@ if __name__ == "__main__":
     if "TBS" in site:
         header += f"lower_altitude = {lower_altitude}\nupper_altitude = {upper_altitude}\n"
 
-    # if using, save freezing_point_depression_dict to test_folder
-    if "sea water" in sample_type or "salt" in sample_type:
-        timestamp = datetime.now().strftime("%m.%d.%y-%H:%M:%S")
-        output_path = os.path.join(test_folder, f"fpd_dict_{site}_{start_time[0:10]}_{timestamp}.csv")
-        with open(output_path, "w", newline="") as f:
-            writer = csv.DictWriter(f, fieldnames=freezing_point_depression_dict.keys())
-            writer.writeheader()
-            writer.writerow(freezing_point_depression_dict)
-
 
     # GUI
-    # window = tk.Tk()
-    # app = FreezingReviewer(
-    #     window,
-    #     test_folder,
-    #     num_samples,
-    #     wells_per_sample,
-    #     dict_samples_to_dilution,
-    #     includes=treatment,
-    # )
-    # window.mainloop()
+    window = tk.Tk()
+    app = FreezingReviewer(
+        window,
+        test_folder,
+        num_samples,
+        wells_per_sample,
+        dict_samples_to_dilution,
+        includes=treatment,
+    )
+    window.mainloop()
 
-    # # # # Processing to create .csv file
-    # spaced_temp_csv = SpacedTempCSV(test_folder, num_samples, includes=treatment)
-    # spaced_temp_csv.create_temp_csv(dict_samples_to_dilution)
+    # # Processing to create .csv file
+    spaced_temp_csv = SpacedTempCSV(test_folder, num_samples, includes=treatment)
+    spaced_temp_csv.create_temp_csv(dict_samples_to_dilution)
 
     # Processing to create INPs/L
     # Use regular expression to check for dates in folder name:
