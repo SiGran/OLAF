@@ -46,6 +46,7 @@ def plot_INPS_L(result_df, save_path, header_dict):
         plt.ylabel("INP Concentration (per L STP)")
     plt.yscale("log")
     plt.ylim(1e-4,1e4)
+    # plt.ylim(1e-4,result_df["INPS_L"].max() * 10)
     plt.xlim(-30, 0)
     plt.xticks(np.arange(0, -35, -5))
     plt.gca().set_xticks(np.arange(0, -31, -1), minor=True)

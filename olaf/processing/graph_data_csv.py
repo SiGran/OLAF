@@ -34,7 +34,7 @@ class GraphDataCSV(DataHandler):
         freezing_point_depression_dict: dict,
         suffix: str = ".csv",
         includes: tuple = ("base",),
-        excludes: tuple = ("INPs_L", "dilution_dict"),
+        excludes: tuple = ("INPs_L", "dict"),
         date_col=False,
     ) -> None:
         # Add class specific includes to make sure we get the right file
@@ -300,12 +300,22 @@ class GraphDataCSV(DataHandler):
             result_df["degC"] = result_df["degC"].round(decimals=1)
             # this currently just picks the higher INP value where temps overlap
             #TODO: Decide if we make dilution decision a function to call again here
-            #TODO: Add variable to set desired degree interval in final data file
             result_df = (result_df
                          .sort_values("INPS_L", ascending=False)
                          .drop_duplicates(subset="degC", keep="first")
                          .sort_values("degC", ascending=False)
                          .reset_index(drop=True))
+            # filter dataframe to take 0.5 temp intervals beside first freezer
+            first_five_rows = result_df.iloc[:5]
+            remaining_rows = result_df.iloc[5:]
+            filtered_rows = remaining_rows[remaining_rows.loc[:,"degC"] % 0.5 == 0]
+            result_df = pd.concat([first_five_rows, filtered_rows]).reset_index(drop=True)
+            # save freezing point depression dictionary to csv file
+            fpd_dict_df = pd.DataFrame.from_dict(self.freezing_point_depression_dict, orient="index",
+                                                      columns=["temp_adjustment"])
+            fpd_dict_df.index.name = "dilution"
+            fpd_dict_df = fpd_dict_df.reset_index()
+            self.save_to_new_file(fpd_dict_df, self.folder_path / f"{self.data_file}.csv", "frz_pnt_dep_dict")
 
 
         "---------------------- Step 7: Save and return the data ----------------------"
