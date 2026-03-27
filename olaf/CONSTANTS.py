@@ -1,5 +1,8 @@
 VOL_WELL = 50  # microL
 
+# Temperature step used for creating frozen_at_temp_reviewed file
+TEMP_STEP = 0.5
+
 # Number of temperature samples that the highest dilution needs to have more frozen wells
 # to replace the background
 NUM_TO_REPLACE_D1 = 10

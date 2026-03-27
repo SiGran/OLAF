@@ -36,9 +36,17 @@ def plot_INPS_L(result_df, save_path, header_dict):
         f"{header_dict['start_time'][:10]}"
     )
     plt.xlabel("Temperature (degC)")
-    plt.ylabel("INP Concentration (per L STP)")
+    if "blank" in header_dict["treatment"]:
+        plt.ylabel("INP Concentration (per filter)")
+    elif header_dict["sample_type"] != "air":
+        plt.ylabel("INP Concentration (per mL)")
+    elif "soil" in header_dict["sample_type"]:
+        plt.ylabel("INP Concentration (per g)")
+    else:
+        plt.ylabel("INP Concentration (per L STP)")
     plt.yscale("log")
     plt.ylim(1e-4,1e4)
+    # plt.ylim(1e-4,result_df["INPS_L"].max() * 10)
     plt.xlim(-30, 0)
     plt.xticks(np.arange(0, -35, -5))
     plt.gca().set_xticks(np.arange(0, -31, -1), minor=True)
@@ -269,7 +277,7 @@ PLOT_SETTINGS = {
             'xticks_major': np.arange(0, -35, -5),
             'xticks_minor': np.arange(0, -31, -1),
             'xlim': (-30, 0),
-            'ylim': (1e-4, 1e3)
+            'ylim': (1e-4, 1e4)
         },
         'grid': {
                 'major': {

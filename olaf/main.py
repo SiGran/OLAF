@@ -9,22 +9,24 @@ from olaf.processing.graph_data_csv import GraphDataCSV
 from olaf.processing.spaced_temp_csv import SpacedTempCSV
 
 # -----------------------------    USER INPUTS    -------------------------------------
-test_folder = Path.cwd().parent / "tests" / "test_data" / "KCG 09.23.24 base"
-site = "CRG_S7_TBS"  # If this is ARM data use the official, full site
-start_time = "2025-02-22 21:09:00"
-end_time = "2025-02-22 22:08:00"
+#test_folder = Path.cwd().parent / "tests" /"test_data" / "fpd" / "NSA no.2 05.22.25 base"
+test_folder = Path("D:/OLAF/Freezing point depression tests/capek mock test 12.31.24 base")
+#test_folder = Path("G:/Shared drives/INP Mentor/Current Data Processing/CAPE_k/QAQC as of 03.04.26_CH/2024/KCG 09.23.24 peroxide bl")
+site = "na"
+start_time = "2024-12-31 04:05:00"
+end_time = "2024-12-31 04:05:00"
 filter_color = "white"
-notes = "Battery was over-discharged - programmed to operational max mode limited to two altitudes."
+notes = "testing"
 user = "Carson"
-IS = "IS3a"
+IS = "na"
 num_samples = 6  # In the file
-sample_type = "air"  # air, liquid or soil
-vol_air_filt = 620.48  # L
+sample_type = "salt"  # air, liquid or soil
+vol_air_filt = 1.0 # L
 wells_per_sample = 32
 proportion_filter_used = 1.0  # between 0 and 1.0
 vol_susp = 10  # mL
 treatment = (
-    "base",
+     "base",
     # "heat",
     # "peroxide",
     # "blank",
@@ -38,17 +40,17 @@ dict_samples_to_dilution = {
     "Sample_1": 11,
     "Sample_2": 121,
     "Sample_3": 1331,
-    # "Sample_4": 1,
+    "Sample_4": 14641,
     "Sample_5": float("inf"),
 }
 
 # Use for side B
 # dict_samples_to_dilution = {
-#     "Sample_5": 1,
-#     "Sample_4": 1,
-#     "Sample_3": 11,
-#     "Sample_2": 121,
-#     "Sample_1": 1331,
+#     "Sample_5": 1.5,
+#     "Sample_4": 16.5,
+#     "Sample_3": 181.5,
+#     "Sample_2": 1996.5,
+#     #"Sample_1": 14641,
 #     "Sample_0": float("inf"),
 # }
 
@@ -59,6 +61,10 @@ upper_altitude = 0  # m agl
 
 # if sample is soil
 dry_mass = 2  # dried mass of soil in g
+
+# if seawater or other salty sample, use this to estimate freezing point depression
+# use this formula: {dilution:adjustment}
+freezing_point_depression_dict = {1:2, 11:0.2}
 
 
 # ----------------------- Assembling the header for the CSV file -----------------------
@@ -93,6 +99,7 @@ if __name__ == "__main__":
 
     if "TBS" in site:
         header += f"lower_altitude = {lower_altitude}\nupper_altitude = {upper_altitude}\n"
+
 
     # GUI
     window = tk.Tk()
@@ -140,6 +147,7 @@ if __name__ == "__main__":
             proportion_filter_used,
             vol_susp,
             dict_samples_to_dilution,
+            freezing_point_depression_dict,
             includes=includes,
         )
         graph_data_csv.convert_INPs_L(header, show_plot=True)
