@@ -22,7 +22,6 @@ class Plots:
                  end_date: str,
                  num_columns: int,
                  site_markers: dict,
-                 _auto_markers: dict,
                  save_name: str
                 ) -> None:
         """
