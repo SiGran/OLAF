@@ -15,6 +15,6 @@ def rms(x):
 def freezing_point_depression(freezing_point_depression_dict, result_df):
     for key, value in freezing_point_depression_dict.items():
         mask = result_df["dilution"] == key
-        result_df.loc[mask, "degC"] -= value
+        result_df.loc[mask, "degC"] += value
     return result_df
 
