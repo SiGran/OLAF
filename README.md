@@ -2,6 +2,7 @@
 # OLAF
 OpenSource Library for Automating Freezing data acquisition from Ice Nucleation Spectrometer (OLAF DaQ INS).
 Documentation can be found [here](https://sigran.github.io/OLAF/).
+DOI: https://doi.org/10.5281/zenodo.17509699
 ## Getting Started
  This project's virtual environment and dependencies are managed by [uv](https://docs.astral.sh/uv/). 
 
