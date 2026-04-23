@@ -10,18 +10,19 @@ from olaf.processing.spaced_temp_csv import SpacedTempCSV
 
 # -----------------------------    USER INPUTS    -------------------------------------
 #test_folder = Path.cwd().parent / "tests" /"test_data" / "fpd" / "NSA no.2 05.22.25 base"
-test_folder = Path("D:/OLAF/Freezing point depression tests/capek mock test 12.31.24 base")
-#test_folder = Path("G:/Shared drives/INP Mentor/Current Data Processing/CAPE_k/QAQC as of 03.04.26_CH/2024/KCG 09.23.24 peroxide bl")
-site = "na"
-start_time = "2024-12-31 04:05:00"
-end_time = "2024-12-31 04:05:00"
+#test_folder = Path("D:/INP Mentor/IOPs/TRACER/Swarup China S3 Heat treatments/HOU S3 07.25.22 base")
+#test_folder = Path("G:/Shared drives/INP Mentor/Current Data Processing/CoURAGE/Ground/QAQC as of 04.10.26 CH/(M1) 08.12.25 base rerun")
+test_folder = Path("D:OLAF/Freezing point depression tests/RAM_CINC A12 07.16.25 base")
+site = "CRG_M1"
+start_time = "2025-07-16 16:20:00"
+end_time = " 2025-07-16 17:52:00"
 filter_color = "white"
-notes = "testing"
-user = "Carson"
-IS = "na"
+notes = "none"
+user = "Oren/Carson"
+IS = "IS2"
 num_samples = 6  # In the file
 sample_type = "salt"  # air, liquid or soil
-vol_air_filt = 1.0 # L
+vol_air_filt = 1 # L
 wells_per_sample = 32
 proportion_filter_used = 1.0  # between 0 and 1.0
 vol_susp = 10  # mL
@@ -47,10 +48,10 @@ dict_samples_to_dilution = {
 # Use for side B
 # dict_samples_to_dilution = {
 #     "Sample_5": 1.5,
-#     "Sample_4": 16.5,
-#     "Sample_3": 181.5,
-#     "Sample_2": 1996.5,
-#     #"Sample_1": 14641,
+#     "Sample_4": 19.5,
+#     "Sample_3": 253.5,
+#     "Sample_2": 3295.5,
+#     "Sample_1": 42841.5,
 #     "Sample_0": float("inf"),
 # }
 
@@ -64,7 +65,7 @@ dry_mass = 2  # dried mass of soil in g
 
 # if seawater or other salty sample, use this to estimate freezing point depression
 # use this formula: {dilution:adjustment}
-freezing_point_depression_dict = {1:2, 11:0.2}
+freezing_point_depression_dict = {"Sample_0":2, "Sample_1":0.2}
 
 
 # ----------------------- Assembling the header for the CSV file -----------------------
@@ -100,22 +101,25 @@ if __name__ == "__main__":
     if "TBS" in site:
         header += f"lower_altitude = {lower_altitude}\nupper_altitude = {upper_altitude}\n"
 
-
-    # GUI
-    window = tk.Tk()
-    app = FreezingReviewer(
-        window,
-        test_folder,
-        num_samples,
-        wells_per_sample,
-        dict_samples_to_dilution,
-        includes=treatment,
-    )
-    window.mainloop()
-
+    #GUI
+    # window = tk.Tk()
+    # app = FreezingReviewer(
+    #     window,
+    #     test_folder,
+    #     num_samples,
+    #     wells_per_sample,
+    #     dict_samples_to_dilution,
+    #     includes=treatment,
+    # )
+    # window.mainloop()
+    #
     # # Processing to create .csv file
     spaced_temp_csv = SpacedTempCSV(test_folder, num_samples, includes=treatment)
-    spaced_temp_csv.create_temp_csv(dict_samples_to_dilution)
+    spaced_temp_csv.create_temp_csv(
+        dict_samples_to_dilution,
+        freezing_point_depression_dict,
+        wells_per_sample,
+        sample_type)
 
     # Processing to create INPs/L
     # Use regular expression to check for dates in folder name:

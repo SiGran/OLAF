@@ -86,7 +86,7 @@ class GraphDataCSV(DataHandler):
         """
         Convert from # frozen wells at temperature for certain dilution to INPs/L.
         The steps involved in this function are:
-        1. Seperate the temperature and # frozen well values.
+        1. Separate the temperature and # frozen well values.
         2. Create a column with the total number of wells per temperature
         as affected by the background.
         3. Calculate the INPs/L and the confidence intervals. It does this by using the
@@ -114,7 +114,9 @@ class GraphDataCSV(DataHandler):
 
         """
 
-        # Internal logic function for later use
+
+
+            # Internal logic function for later use
         def error_logic_selecting_values(i, col_name, next_dilution_INP):
             """
             Logic for selecting the values to keep in the result_df when both current
@@ -295,30 +297,32 @@ class GraphDataCSV(DataHandler):
         result_df.insert(0, "degC", temps)
 
         "--------- Step 6: Correct for freezing point depression if necessary----------"
-        if "salt" in self.sample_type or "sea water" in self.sample_type:
-            freezing_point_depression(self.freezing_point_depression_dict, result_df)
-            result_df["degC"] = result_df["degC"].round(decimals=1)
-            # this currently just picks the higher INP value where temps overlap
-            #TODO: Decide if we make dilution decision a function to call again here
-            result_df = (result_df
-                         .sort_values("INPS_L", ascending=False)
-                         .drop_duplicates(subset="degC", keep="first")
-                         .sort_values("degC", ascending=False)
-                         .reset_index(drop=True))
-            # filter dataframe to take 0.5 temp intervals beside first freezer
-            first_five_rows = result_df.iloc[:5]
-            remaining_rows = result_df.iloc[5:]
-            filtered_rows = remaining_rows[remaining_rows.loc[:,"degC"] % 0.5 == 0]
-            result_df = pd.concat([first_five_rows, filtered_rows]).reset_index(drop=True)
+        # if "salt" in self.sample_type or "sea water" in self.sample_type:
+        #     freezing_point_depression(self.freezing_point_depression_dict, result_df)
+        #     result_df["degC"] = result_df["degC"].round(decimals=1)
+        #     # this currently just picks the higher INP value where temps overlap
+        #     #TODO: Figure out why the dicts are being saved weird
+            #  TODO: Reinstate the 0.5 degree clean up
+            #  TODO: Make sure there are only four rows of empty data once this is finished
+        #     result_df = (result_df
+        #                  .sort_values("INPS_L", ascending=False)
+        #                  .drop_duplicates(subset="degC", keep="first")
+        #                  .sort_values("degC", ascending=False)
+        #                  .reset_index(drop=True))
+        #     # filter dataframe to take 0.5 temp intervals beside first freezer
+        #     first_five_rows = result_df.iloc[:5]
+        #     remaining_rows = result_df.iloc[5:]
+        #     filtered_rows = remaining_rows[remaining_rows.loc[:,"degC"] % 0.5 == 0]
+        #     result_df = pd.concat([first_five_rows, filtered_rows]).reset_index(drop=True)
             # save freezing point depression dictionary to csv file
-            fpd_dict_df = pd.DataFrame.from_dict(
-                self.freezing_point_depression_dict,
-                orient="index",
-                columns=["temp_adjustment"])
-            fpd_dict_df.index.name = "dilution"
-            fpd_dict_df = fpd_dict_df.reset_index()
-            self.save_to_new_file(fpd_dict_df, self.folder_path /
-                                  f"{self.data_file}.csv", "frz_pnt_dep_dict")
+        fpd_dict_df = pd.DataFrame.from_dict(
+            self.freezing_point_depression_dict,
+            orient="index",
+            columns=["temp_adjustment"])
+        fpd_dict_df.index.name = "dilution"
+        fpd_dict_df = fpd_dict_df.reset_index()
+        self.save_to_new_file(fpd_dict_df, self.folder_path /
+                              f"{self.data_file}.csv", "frz_pnt_dep_dict")
 
 
         "---------------------- Step 7: Save and return the data ----------------------"

@@ -15,6 +15,7 @@ class SpacedTempCSV(DataHandler):
         includes: tuple = ("base",),
         excludes: tuple = ("frozen",),
         date_col: str = "Date",
+        sample_type: str = "salt",
     ) -> None:
         """
         Class that has functionality to read a (processed ("verified")) well experiments
@@ -37,6 +38,9 @@ class SpacedTempCSV(DataHandler):
     def create_temp_csv(
         self,
         dict_to_sample_dilution: dict,
+        freezing_point_depression_dict: dict,
+        wells_per_sample: int,
+        sample_type: str,
         temp_step: float = TEMP_STEP,
         temp_col: str = "Avg_Temp",
         save: bool = True,
@@ -58,6 +62,10 @@ class SpacedTempCSV(DataHandler):
         8. Save the data in a separate .csv file with the same name as the experiment.
         The data is saved in a separate .csv file with the same name as the experiment
         Args:
+            dict_to_sample_dilution:
+            freezing_point_depression_dict:
+            wells_per_sample:
+            sample_type:
             temp_step: The interval of temperatures to save (default: 0.5)
             temp_col: The column in the data file that contains the temperature values
             save: Whether to save the data to a .csv file (default: True)
@@ -77,10 +85,18 @@ class SpacedTempCSV(DataHandler):
         temp_first_frozen_row = [temp_frozen] + [
             self.data.loc[first_frozen_id, f"Sample_{i}"] for i in range(self.num_samples)
         ]
+        if sample_type == "salt" or sample_type == "sea water":
+            least_diluted_sample_adjustment = freezing_point_depression_dict.get(least_diluted_sample)
+            num_empty_rows = round(10 * least_diluted_sample_adjustment)
+        else:
+            num_empty_rows = 4
+
         temp_frozen_df = pd.DataFrame(
-            data=[[round_temp_frozen + j * 0.5] + [0] * self.num_samples for j in range(4, 0, -1)],
+            data=[[round_temp_frozen + j * TEMP_STEP] + [0] *
+                  self.num_samples for j in range(num_empty_rows, 0, -1)],
             columns=[temp_col] + [f"Sample_{i}" for i in range(self.num_samples)],
         )
+
         temp_frozen_df.loc[len(temp_frozen_df)] = temp_first_frozen_row
         while round_temp_frozen - temp_step > min(self.data[temp_col]):
             # Step 6: increment the temperature by temp_step until the end of the data
@@ -108,10 +124,20 @@ class SpacedTempCSV(DataHandler):
 
             temp_frozen_df.loc[len(temp_frozen_df)] = new_row
 
+        temp_frozen_df["Avg_Temp"] = temp_frozen_df["Avg_Temp"].round(decimals=1)
+        # TODO: add fpd stuff here
+        if sample_type == "salt" or sample_type == "sea water":
+            for key, value in freezing_point_depression_dict.items():
+                df_index_adjustment = value * 10
+                temp_frozen_df[key] = temp_frozen_df[key].shift(-int(df_index_adjustment))
+
+
         # Change temperature column to standard name of degC
         temp_frozen_df.rename(columns={temp_col: "degC"}, inplace=True)
         # Set sample columns to ints
         for i in range(self.num_samples):
+            mask = temp_frozen_df[f"Sample_{i}"].isna()
+            temp_frozen_df.loc[mask, f"Sample_{i}"] = wells_per_sample
             temp_frozen_df[f"Sample_{i}"] = temp_frozen_df[f"Sample_{i}"].astype("int64")
         # step 8
         if save:
