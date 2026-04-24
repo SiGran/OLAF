@@ -8,7 +8,6 @@ import pandas as pd
 from olaf.CONSTANTS import AGRESTI_COULL_UNCERTAIN_VALUES, NUM_TO_REPLACE_D1, VOL_WELL, Z
 from olaf.utils.data_handler import DataHandler
 from olaf.utils.df_utils import header_to_dict
-from olaf.utils.math_utils import freezing_point_depression
 from olaf.utils.plot_utils import plot_INPS_L
 
 
@@ -31,7 +30,6 @@ class GraphDataCSV(DataHandler):
         filter_used: float,
         vol_susp: float,
         dict_samples_to_dilution: dict,
-        freezing_point_depression_dict: dict,
         suffix: str = ".csv",
         includes: tuple = ("base",),
         excludes: tuple = ("INPs_L", "dict"),
@@ -54,7 +52,6 @@ class GraphDataCSV(DataHandler):
         self.filter_used = filter_used
         self.vol_susp = vol_susp
         self.dict_to_samples_dilution = dict_samples_to_dilution
-        self.freezing_point_depression_dict = freezing_point_depression_dict
         # change the headers of the data from samples to dilution factor
         try:
             # Store original column names for verification
@@ -86,7 +83,7 @@ class GraphDataCSV(DataHandler):
         """
         Convert from # frozen wells at temperature for certain dilution to INPs/L.
         The steps involved in this function are:
-        1. Seperate the temperature and # frozen well values.
+        1. Separate the temperature and # frozen well values.
         2. Create a column with the total number of wells per temperature
         as affected by the background.
         3. Calculate the INPs/L and the confidence intervals. It does this by using the
@@ -114,7 +111,9 @@ class GraphDataCSV(DataHandler):
 
         """
 
-        # Internal logic function for later use
+
+
+            # Internal logic function for later use
         def error_logic_selecting_values(i, col_name, next_dilution_INP):
             """
             Logic for selecting the values to keep in the result_df when both current
@@ -294,45 +293,10 @@ class GraphDataCSV(DataHandler):
         # Add the temperature back as first column
         result_df.insert(0, "degC", temps)
 
-        "--------- Step 6: Correct for freezing point depression if necessary----------"
-        if "salt" in self.sample_type or "sea water" in self.sample_type:
-            freezing_point_depression(self.freezing_point_depression_dict, result_df)
-            result_df["degC"] = result_df["degC"].round(decimals=1)
-            # this currently just picks the higher INP value where temps overlap
-            #TODO: Decide if we make dilution decision a function to call again here
-            result_df = (result_df
-                         .sort_values("INPS_L", ascending=False)
-                         .drop_duplicates(subset="degC", keep="first")
-                         .sort_values("degC", ascending=False)
-                         .reset_index(drop=True))
-            # filter dataframe to take 0.5 temp intervals beside first freezer
-            first_five_rows = result_df.iloc[:5]
-            remaining_rows = result_df.iloc[5:]
-            filtered_rows = remaining_rows[remaining_rows.loc[:,"degC"] % 0.5 == 0]
-            result_df = pd.concat([first_five_rows, filtered_rows]).reset_index(drop=True)
-            # save freezing point depression dictionary to csv file
-            fpd_dict_df = pd.DataFrame.from_dict(
-                self.freezing_point_depression_dict,
-                orient="index",
-                columns=["temp_adjustment"])
-            fpd_dict_df.index.name = "dilution"
-            fpd_dict_df = fpd_dict_df.reset_index()
-            self.save_to_new_file(fpd_dict_df, self.folder_path /
-                                  f"{self.data_file}.csv", "frz_pnt_dep_dict")
-
-
-        "---------------------- Step 7: Save and return the data ----------------------"
+        "---------------------- Step 6: Save and return the data ----------------------"
         if save:
             self.save_to_new_file(result_df, prefix="INPs_L", header=header)
-            # convert dilution dict to df then save as new csv file
-            dilution_dict_df = pd.DataFrame.from_dict(
-                self.dict_to_samples_dilution,
-                orient="index",
-                columns=["dilution"])
-            dilution_dict_df.index.name = "sample"
-            dilution_dict_df = dilution_dict_df.reset_index()
-            self.save_to_new_file(dilution_dict_df, self.folder_path /
-                                  f"{self.data_file}.csv", "dilution_dict")
+
         # Plotting option
         if show_plot:
             header_dict = header_to_dict(header)
