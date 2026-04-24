@@ -13,7 +13,7 @@ from olaf.processing.spaced_temp_csv import SpacedTempCSV
 #test_folder = Path("D:/INP Mentor/IOPs/TRACER/Swarup China S3 Heat treatments/HOU S3 07.25.22 base")
 #test_folder = Path("G:/Shared drives/INP Mentor/Current Data Processing/CoURAGE/Ground/QAQC as of 04.10.26 CH/(M1) 08.12.25 base rerun")
 test_folder = Path("D:OLAF/Freezing point depression tests/RAM_CINC A12 07.16.25 base")
-site = "CRG_M1"
+site = "RAM_CINC"
 start_time = "2025-07-16 16:20:00"
 end_time = " 2025-07-16 17:52:00"
 filter_color = "white"
@@ -151,7 +151,6 @@ if __name__ == "__main__":
             proportion_filter_used,
             vol_susp,
             dict_samples_to_dilution,
-            freezing_point_depression_dict,
             includes=includes,
         )
         graph_data_csv.convert_INPs_L(header, show_plot=True)

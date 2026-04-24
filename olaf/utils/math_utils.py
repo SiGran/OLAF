@@ -12,9 +12,4 @@ def inps_L_to_ml(inps_col, vol_air_filt, prop_filter_used, vol_susp):
 def rms(x):
     return np.sqrt(np.mean(np.square(x)))
 
-def freezing_point_depression(freezing_point_depression_dict, result_df):
-    for key, value in freezing_point_depression_dict.items():
-        mask = result_df["dilution"] == key
-        result_df.loc[mask, "degC"] += value
-    return result_df
 

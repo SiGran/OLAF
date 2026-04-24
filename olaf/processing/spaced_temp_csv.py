@@ -37,7 +37,7 @@ class SpacedTempCSV(DataHandler):
 
     def create_temp_csv(
         self,
-        dict_to_sample_dilution: dict,
+        dict_samples_to_dilution: dict,
         freezing_point_depression_dict: dict,
         wells_per_sample: int,
         sample_type: str,
@@ -62,10 +62,10 @@ class SpacedTempCSV(DataHandler):
         8. Save the data in a separate .csv file with the same name as the experiment.
         The data is saved in a separate .csv file with the same name as the experiment
         Args:
-            dict_to_sample_dilution:
-            freezing_point_depression_dict:
-            wells_per_sample:
-            sample_type:
+            dict_to_sample_dilution: dict from main
+            freezing_point_depression_dict: dict from main
+            wells_per_sample: variable from main
+            sample_type: variable from main
             temp_step: The interval of temperatures to save (default: 0.5)
             temp_col: The column in the data file that contains the temperature values
             save: Whether to save the data to a .csv file (default: True)
@@ -75,7 +75,7 @@ class SpacedTempCSV(DataHandler):
         # initialize the temp_frozen_df with temperature column and sample columns
         # step 1 and 2: Find least diluted sample from dict_to_sample_dilution
         least_diluted_sample = min(
-            dict_to_sample_dilution, key=lambda k: dict_to_sample_dilution[k]
+            dict_samples_to_dilution, key=lambda k: dict_samples_to_dilution[k]
         )
         first_frozen_id = self.data[least_diluted_sample].ne(0).idxmax()
         temp_frozen = round(pd.to_numeric(self.data.loc[first_frozen_id, temp_col]), 1)
@@ -87,7 +87,7 @@ class SpacedTempCSV(DataHandler):
         ]
         if sample_type == "salt" or sample_type == "sea water":
             least_diluted_sample_adjustment = freezing_point_depression_dict.get(least_diluted_sample)
-            num_empty_rows = round(10 * least_diluted_sample_adjustment)
+            num_empty_rows = round(10 * least_diluted_sample_adjustment + 4)
         else:
             num_empty_rows = 4
 
@@ -125,12 +125,13 @@ class SpacedTempCSV(DataHandler):
             temp_frozen_df.loc[len(temp_frozen_df)] = new_row
 
         temp_frozen_df["Avg_Temp"] = temp_frozen_df["Avg_Temp"].round(decimals=1)
-        # TODO: add fpd stuff here
+
+        # Move columns affected by freezing point depression to the corrected
+        # temperature indices
         if sample_type == "salt" or sample_type == "sea water":
             for key, value in freezing_point_depression_dict.items():
                 df_index_adjustment = value * 10
                 temp_frozen_df[key] = temp_frozen_df[key].shift(-int(df_index_adjustment))
-
 
         # Change temperature column to standard name of degC
         temp_frozen_df.rename(columns={temp_col: "degC"}, inplace=True)
@@ -139,10 +140,36 @@ class SpacedTempCSV(DataHandler):
             mask = temp_frozen_df[f"Sample_{i}"].isna()
             temp_frozen_df.loc[mask, f"Sample_{i}"] = wells_per_sample
             temp_frozen_df[f"Sample_{i}"] = temp_frozen_df[f"Sample_{i}"].astype("int64")
+
+        # filter dataframe to take 0.5 temp intervals beside first freezer
+        if sample_type == "salt" or sample_type == "sea water":
+            first_four_rows = temp_frozen_df.iloc[:4]
+            remaining_rows = temp_frozen_df.iloc[4:]
+            filtered_rows = remaining_rows[remaining_rows.loc[:,"degC"] % 0.5 == 0]
+            temp_frozen_df = pd.concat([first_four_rows, filtered_rows]).reset_index(drop=True)
+
         # step 8
         if save:
             self.save_to_new_file(
                 temp_frozen_df, self.folder_path / f"{self.data_file.stem}.csv", "frozen_at_temp"
             )
+            fpd_dict_df = pd.DataFrame.from_dict(
+                freezing_point_depression_dict,
+                orient="index",
+                columns=["temp_adjustment"])
+            fpd_dict_df.index.name = "dilution"
+            fpd_dict_df = fpd_dict_df.reset_index()
+            self.save_to_new_file(
+                fpd_dict_df, self.folder_path / f"{self.data_file.stem}.csv", "frz_pnt_dep_dict"
+            )
+            # convert dilution dict to df then save as new csv file
+            dilution_dict_df = pd.DataFrame.from_dict(
+                dict_samples_to_dilution,
+                orient="index",
+                columns=["dilution"])
+            dilution_dict_df.index.name = "sample"
+            dilution_dict_df = dilution_dict_df.reset_index()
+            self.save_to_new_file(dilution_dict_df, self.folder_path /
+                                  f"{self.data_file.stem}.csv", "dilution_dict")
 
         return temp_frozen_df
