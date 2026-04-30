@@ -3,21 +3,21 @@ from pathlib import Path
 from olaf.processing.plots import Plots
 
 #project_folder =  Path.cwd().parent / "data" / "PUFIN tests"
-#project_folder = Path("D:/INP Mentor/Long term sites/NSA/data/12.01.25 test")
-project_folder = Path("G:/Shared drives/INP Mentor/Current Data Processing/CAPE_k/QAQC as of 03.04.26_CH/2024")
-#project_folder = Path("D:/INP Mentor/Long term sites/BNF/TBS/Data/May-June 2025")
-## NOTE ^ this method works but plots everything in a strange order
+
+project_folder = Path("D:/INP Mentor/IOPs/TRACER/Swarup China S3 Heat treatments")
+#project_folder = test_folder = Path("G:/Shared drives/INP Mentor/Archived Data/CoURAGE/Ground/QAQC as of 04.28.26 CH")
+
 
 includes = ("INPs_L", "frozen_at_temp", "reviewed")
 excludes = ()
-start_date = "07.24.24" #earliest date you want as part of the analysis
-end_date = "07.24.24" # latest date
+start_date = "05.08.22" #earliest date you want as part of the analysis
+end_date = "10.08.22" # latest date
 
 # if making subplots, designate number of desired columns here
-num_columns = 3
+num_columns = 2
 
 # how you want the image saved
-save_name = "BNF spring 2025 TBS overview"
+save_name = "Swarup overview 2"
 
 # if you are doing a site comparison, type them here and decide on marker style
 #site_markers = {"CRG_M1": "o", "CRG_S2": "^", "CRG_S7_TBS": "o", "KCG_S3": "o"}
@@ -43,3 +43,7 @@ plot = Plots(
     site_markers,
     save_name=save_name)
 plot.plot_data(subplots=True, site_comparison=False, tbs = False)
+
+# temps = [-10.0, -15.0, -20.0, -25.0]
+# treatments = ["base"]
+# plot.desired_temp_csv(temps, treatments)

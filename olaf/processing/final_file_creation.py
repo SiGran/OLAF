@@ -34,7 +34,7 @@ class FinalFileCreation:
             header_lines, _ = read_with_flexible_header(file, expected_columns=(
                 "degC", "dilution", "INPS_L", "lower_CI", "upper_CI", "qc_flag"))
             dict_header = header_to_dict(header_lines)
-            found_dates = dict_header["start_time"]
+            found_dates = dict_header["site"] + "_" + dict_header["start_time"]
             if not found_dates:
                 print(f"No date found in file name: {file.name}")
                 continue
@@ -79,6 +79,7 @@ class FinalFileCreation:
 
                     header += f"Site: {dict_header['site']}\n"
                     header += f"Filter color: {dict_header['filter_color']}\n"
+                    header += f"Sample notes: {notes}\n"
 
                 # Get the treatment flag from the file name
                 treatment_flag = ERROR_SIGNAL
@@ -143,7 +144,7 @@ class FinalFileCreation:
                 )
 
             # Add all the notes to the header
-            header += f"Sample notes: {notes}\n"
+            #header += f"Sample notes: {notes}\n"
             # Add the columns manually with two options for either TBS or non TBS samples
             if "TBS" in dict_header["site"]:
                 header += (
