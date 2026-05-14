@@ -38,6 +38,11 @@ extend-select = ["I", "F", "E", "W"]
 
 [tool.pytest.ini_options]
 testpaths = "tests"
+addopts = "--strict-markers -ra"
+markers = [
+    "integration: uses real-data goldens; slower than unit tests",
+    "gui: requires DISPLAY; auto-skipped on headless runs",
+]
 
 [tool.bandit]
 exclude = ["tests"]

@@ -1,0 +1,4 @@
+# Golden CSVs for snapshot-style assertions live here.
+# Layout: tests/test_data/goldens/<test_module_name>/<case>.csv
+# Regenerate via: OLAF_REGEN_GOLDEN=1 pytest <test-path>
+
