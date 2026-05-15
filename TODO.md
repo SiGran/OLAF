@@ -26,7 +26,7 @@ Create stubs only. Every test ends with `pytest.skip("not implemented")` so suit
 
 ### 1.3 Verification
 - [x] `pytest tests/ -v` runs green: 0 failed, 0 errored, 93 skipped
-- [ ] Commit phase 1 as `test/regression-baseline` branch
+- [x] Commit phase 1 on branch `develop` (renamed from `renaming-samping`) — commit `0b3faad`
 
 ## Phase 2 — Fill Test Bodies (user-driven, one PR per file)
 Each test gets a body + golden file. Run `OLAF_REGEN_GOLDEN=1 pytest <test>` to (re)generate goldens.
@@ -46,8 +46,11 @@ Each test gets a body + golden file. Run `OLAF_REGEN_GOLDEN=1 pytest <test>` to 
 | `test_freezing_reviewer` | `tests/test_data/SGP 2.21.24 base/dat_Images/` | Skipped without `$DISPLAY` |
 
 ### Implementation order (recommended)
-- [ ] `test_utils/*` (fastest, simplest)
-- [ ] `test_data_handler.py`
+- [x] `test_utils/test_type_utils.py` (7 tests, all passing)
+- [x] `test_utils/test_math_utils.py` (11 tests, all passing)
+- [x] `test_utils/test_df_utils.py` (17 tests, all passing; surfaced: unique_dilutions can't handle lists)
+- [x] `test_utils/test_path_utils.py` (23 tests, all passing; surfaced: sort_files_by_date trailing-number regex doesn't match `(N).csv` versioning)
+- [x] `test_utils/test_data_handler.py` (10 tests, all passing; pins bug #9 silent-failure behavior)
 - [ ] `test_spaced_temp_csv.py`
 - [ ] `test_blank_correction.py` (largest, biggest payoff)
 - [ ] `test_final_file_creation.py`
@@ -109,4 +112,6 @@ The agent must never delete files. The following pre-existing files need manual 
 10. `iloc` with label index — `final_file_creation.py:205`
 11. `"blank" in treatment` doesn't match `"blank heat"` — `main.py:95`
 12. Malformed `Path("D:OLAF/...")` — `main.py:18`
+13. *(surfaced in Phase 2)* `unique_dilutions` can't handle lists — `pandas.Series.unique()` raises TypeError on unhashable types — `df_utils.py:50`
+14. *(surfaced in Phase 2)* `sort_files_by_date` trailing-number regex `(\d+)\.csv$` requires digit immediately before `.csv`; `(N).csv` versioning gives 0 for all versioned files — `path_utils.py:117`
 

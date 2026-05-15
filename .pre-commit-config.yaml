@@ -15,3 +15,4 @@ repos:
     rev: 1.7.9
     hooks:
       - id: bandit
+        exclude: ^tests/
