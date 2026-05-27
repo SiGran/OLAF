@@ -15,17 +15,9 @@ runs:
         python-version: ${{ inputs.python-version }}
 
     - name: Install uv
-      shell: bash
-      run: |
-        curl -LsSf https://astral.sh/uv/install.sh | sh
-        echo "$HOME/.local/bin" >> $GITHUB_PATH
-
-    - name: Cache uv
-      uses: actions/cache@v4
+      uses: astral-sh/setup-uv@v3
       with:
-        path: ~/.cache/uv
-        key: uv-${{ runner.os }}-${{ inputs.python-version }}-${{ hashFiles('uv.lock') }}
-        restore-keys: uv-${{ runner.os }}-${{ inputs.python-version }}-
+        enable-cache: true
 
     - name: Sync dependencies
       shell: bash

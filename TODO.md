@@ -82,6 +82,19 @@ Land focused commits. Each should flip exactly the goldens it claims to fix.
 Tasks the AI agent is NOT allowed to perform — must be done by the human.
 
 ### CI/CD modernization (from ci-modernize-consolidate-workflows branch)
+
+> **⚠️ First: allowlist third-party Actions** (required before new CI can run)
+> - [ ] **One-time repo Actions allowlist setup**: Settings → Actions → General → "Actions permissions" → select
+>   **"Allow SiGran, and select non-SiGran, actions and reusable workflows"**. In the
+>   "Allow specified actions and reusable workflows" textbox add:
+>   ```
+>   astral-sh/setup-uv@*,
+>   codecov/codecov-action@*
+>   ```
+>   Also tick **"Allow actions created by GitHub"** and **"Allow actions by Marketplace verified creators"**. Save.
+>   Then re-run CI on PR #45 (push an empty commit or click "Re-run all jobs") so the new workflows can start.
+>   Until this is done, all `ci.yml` jobs will fail at startup and `ci-success` won't appear in branch protection.
+
 The following superseded workflow files have been stubbed with a comment but must be deleted manually:
 - [ ] Delete `.github/workflows/CI.yml` (superseded by `ci.yml`)
 - [ ] Delete `.github/workflows/lint.yml` (superseded by `ci.yml`)
