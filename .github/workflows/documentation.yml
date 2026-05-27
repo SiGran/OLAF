@@ -31,6 +31,8 @@ jobs:
       - uses: ./.github/actions/setup-python-uv
       - name: Build Sphinx docs
         run: uv run sphinx-build -b html docs _build/html
+      - name: Create .nojekyll
+        run: touch _build/html/.nojekyll
       - name: Upload pages artifact
         uses: actions/upload-pages-artifact@v3
         with:
