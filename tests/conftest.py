@@ -152,6 +152,12 @@ def capek_golden_folder(goldens_root: Path) -> Path:
 
 
 @pytest.fixture(scope="session")
+def kcg_golden_folder(goldens_root: Path) -> Path:
+    """Curated KCG 09.23.24 base input under goldens/inputs/ (always present)."""
+    return goldens_root / "inputs" / "kcg_09_23_24_base"
+
+
+@pytest.fixture(scope="session")
 def test_project_folder(test_data_root: Path) -> Path:
     return test_data_root / "test_project"
 

@@ -49,18 +49,18 @@ class TestHeaderToDict:
         assert header_to_dict([]) == {}
         assert header_to_dict("") == {}
 
-    def test_real_header_from_capek_blank_corrected(self, capek_project_folder) -> None:
+    def test_real_header_from_capek_blank_corrected(self, capek_golden_folder) -> None:
         """
-        Given: header lines from a real blank_corrected_*.csv in capek.
+        Given: header lines from a real blank_corrected_*.csv in capek golden inputs.
         When:  header_to_dict is called.
         Then:  contains the expected metadata keys.
 
-        Real data: capek/KCG 7.09.24 base/blank_corrected_*.csv
+        Real data: goldens/inputs/capek/KCG 7.09.24 base/blank_corrected_10%_...csv
         """
         file = (
-            capek_project_folder
+            capek_golden_folder
             / "KCG 7.09.24 base"
-            / "blank_corrected_INPs_L_frozen_at_temp_reviewed_capek 7.09.24 a base(10).csv"
+            / "blank_corrected_10%_error_threshold_INPs_L_frozen_at_temp_reviewed_capek 7.09.24 a base.csv"
         )
         if not file.exists():
             pytest.skip(f"Real fixture missing: {file}")
@@ -73,14 +73,14 @@ class TestHeaderToDict:
 
 
 class TestReadWithFlexibleHeader:
-    def test_reads_file_with_short_header(self, sgp_test_folder) -> None:
+    def test_reads_file_with_short_header(self, sgp_golden_folder) -> None:
         """
         SGP INPs_L files have NO metadata header; column row is the first line.
         Then: header_lines is empty, df has expected columns.
 
-        Real data: SGP 2.21.24 base/INPs_L_*.csv
+        Real data: goldens/inputs/sgp_2_21_24_base/inps_L_expected.csv
         """
-        file = sgp_test_folder / "INPs_L_frozen_at_temp_test1_reviewed_sgp ment 02.21.24 a base.csv"
+        file = sgp_golden_folder / "inps_L_expected.csv"
         if not file.exists():
             pytest.skip(f"Real fixture missing: {file}")
         header_lines, df = read_with_flexible_header(file)
@@ -94,17 +94,17 @@ class TestReadWithFlexibleHeader:
         ]
         assert len(df) > 0
 
-    def test_reads_file_with_metadata_header(self, capek_project_folder) -> None:
+    def test_reads_file_with_metadata_header(self, capek_golden_folder) -> None:
         """
         Capek blank_corrected files DO have metadata header lines before the column row.
         Then: header_lines collected; df parsed correctly.
 
-        Real data: capek/KCG 7.09.24 base/blank_corrected_*.csv
+        Real data: goldens/inputs/capek/KCG 7.09.24 base/blank_corrected_10%_...csv
         """
         file = (
-            capek_project_folder
+            capek_golden_folder
             / "KCG 7.09.24 base"
-            / "blank_corrected_INPs_L_frozen_at_temp_reviewed_capek 7.09.24 a base(10).csv"
+            / "blank_corrected_10%_error_threshold_INPs_L_frozen_at_temp_reviewed_capek 7.09.24 a base.csv"
         )
         if not file.exists():
             pytest.skip(f"Real fixture missing: {file}")
