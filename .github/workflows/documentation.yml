@@ -28,6 +28,7 @@ jobs:
     name: Build docs
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
       - uses: ./.github/actions/setup-python-uv
       - name: Build Sphinx docs
         run: uv run sphinx-build -b html docs _build/html

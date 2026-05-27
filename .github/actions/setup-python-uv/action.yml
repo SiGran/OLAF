@@ -1,5 +1,5 @@
 name: Setup Python with uv
-description: Checkout, install uv with cache, and sync all extras from lockfile.
+description: Install uv with cache and sync all extras from lockfile.
 
 inputs:
   python-version:
@@ -9,9 +9,6 @@ inputs:
 runs:
   using: composite
   steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
-
     - name: Set up uv
       uses: astral-sh/setup-uv@v3
       with:
