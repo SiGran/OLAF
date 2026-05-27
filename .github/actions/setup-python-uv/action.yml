@@ -14,6 +14,8 @@ runs:
       with:
         python-version: ${{ inputs.python-version }}
 
+    # uv install is pinned to setup-uv@v3 (allowlisted in repo Actions policy);
+    # Dependabot will bump this on new releases.
     - name: Install uv
       uses: astral-sh/setup-uv@v3
       with:
@@ -21,4 +23,4 @@ runs:
 
     - name: Sync dependencies
       shell: bash
-      run: uv sync --all-extras --frozen
+      run: uv sync --all-extras --frozen --python "${{ inputs.python-version }}"
