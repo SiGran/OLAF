@@ -4,7 +4,7 @@ OpenSource Library for Automating Freezing data acquisition from Ice Nucleation 
 Documentation can be found [here](https://sigran.github.io/OLAF/).
 DOI: https://doi.org/10.5281/zenodo.17509699
 ## Getting Started
- This project's virtual environment and dependencies are managed by [uv](https://docs.astral.sh/uv/). 
+ This project's virtual environment and dependencies are managed by [uv](https://docs.astral.sh/uv/).
 
 ### Background information
 When working with many different Python projects, it is highly recommended to use a 1) virtual environment and 2) a package manager.
@@ -62,7 +62,7 @@ uv python install 3.11.12
 #### Install uv on MacOS & Linux
 On most Unix based distro's like MacOS and Ubuntu Python should already be installed.
 Adjust steps (2), (4), (5) to however you call python in the terminal.
-E.g. 
+E.g.
 ```
 pip install --user pipx
 ```
@@ -107,17 +107,17 @@ There are three main scripts to run in the `olaf` directory:
 3. `main_final_combine.py` - This script combines the different treatments for the same sample into one `.csv` file in a format that is preferred for further processing by Atmopheric Radiation Measurement (ARM).
 
 ### File Structure
-OLAF/  
-├── data/  
-├── olaf/  
-│   ├── __init__.py  
-│   ├── CONSTANTS.py  
-│   ├── main.py            # main script to process IS data and run the application  
-│   ├── main_for_blanks.py # 2nd script to average the blank data and apply to the processed INP data  
-│   ├── main_final_combine.py # combines all the treatments into one .csv file  
-│   ├── utils/               # Folder with utility/helper classes and functions  
-│   │   ├── __init__.py  
-│   │   ├── data_handler.py  
+OLAF/
+├── data/
+├── olaf/
+│   ├── __init__.py
+│   ├── CONSTANTS.py
+│   ├── main.py            # main script to process IS data and run the application
+│   ├── main_for_blanks.py # 2nd script to average the blank data and apply to the processed INP data
+│   ├── main_final_combine.py # combines all the treatments into one .csv file
+│   ├── utils/               # Folder with utility/helper classes and functions
+│   │   ├── __init__.py
+│   │   ├── data_handler.py
 │   │   ├── df_utils.py <br>
 │   │   ├── path_utils.py <br>
 │   │   ├── plot_utils.py <br>
@@ -142,12 +142,12 @@ OLAF/
 
 
 ### Running the `main.py` script
-This script is used to process the data from a single experiment. 
+This script is used to process the data from a single experiment.
 
 #### Prepare the file structure: name variables and location of the data
-With the above file structure, create folders for your experiments in the *data* directory. 
-Make sure you use the sample start date in the name of the experiment folder. 
-> The sample folder needs to contain a *.dat* file, and a folder with *images* in the name.  
+With the above file structure, create folders for your experiments in the *data* directory.
+Make sure you use the sample start date in the name of the experiment folder.
+> The sample folder needs to contain a *.dat* file, and a folder with *images* in the name.
 
 The program expects the .dat file to have the following headers:
 
@@ -178,7 +178,7 @@ proportion_filter_used = 1.0  # between 0 and 1.0
 vol_susp = 10  # mL
 treatment = (  # Type of treatment, e.g. "base", "heat", "peroxide", etc.
      "enclosed as string", # Keep the comma - it needs to be a tuple!
-    # 
+    #
 )  # uncomment the one you want to use
 
 # Specify the dilution factors for each sample
@@ -221,7 +221,7 @@ NOTE2: if you click the +1 or -1 button, all time/temperature points will reflec
 The `main.py` script creates the following files in the `specified experiment folder` inside the `data` directory:
 1. `reviewed_(original filename).dat` - This file contains the original data, with the corrections made in the GUI.
 2. `frozen_at_temp_reviewed_(original filename).csv` - This file contains the number of frozen wells at every half degree for each sample, including the first instance of freezing in the least dilute sample to the nearest 0.1 degree.
-3. `INPS_L_frozen_at_temp_reviewed_(original filename).csv` - This file contains the computed Ice Nucleating Particles per Liter at relevant temperatures. 
+3. `INPS_L_frozen_at_temp_reviewed_(original filename).csv` - This file contains the computed Ice Nucleating Particles per Liter at relevant temperatures.
 4. `plot_{site}_{start_time}_{treatment}_INPs_L.png` - This file is an optional plot of the INP spectrum and can be toggled on/off on `main.py` by designating `show_plot = True` or `False` when `graph_data_csv` is called.
    ```
    graph_data_csv.convert_INPs_L(header, show_plot = True)

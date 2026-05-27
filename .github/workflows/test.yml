@@ -1,1 +1,9 @@
-# Superseded by ci.yml — safe to delete
+# Superseded by ci.yml — safe to delete (see TODO.md)
+name: Deprecated (test.yml)
+on:
+  workflow_dispatch:
+jobs:
+  noop:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "This workflow has been superseded by ci.yml and is kept as a placeholder until manually deleted."

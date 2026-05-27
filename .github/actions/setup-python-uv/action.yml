@@ -1,5 +1,5 @@
 name: Setup Python with uv
-description: Install uv with cache and sync all extras from lockfile.
+description: Install Python, uv (with cache), and sync all extras from lockfile.
 
 inputs:
   python-version:
@@ -9,12 +9,24 @@ inputs:
 runs:
   using: composite
   steps:
-    - name: Set up uv
-      uses: astral-sh/setup-uv@v3
+    - name: Set up Python
+      uses: actions/setup-python@v5
       with:
         python-version: ${{ inputs.python-version }}
-        enable-cache: true
 
-    - name: Install dependencies
+    - name: Install uv
+      shell: bash
+      run: |
+        curl -LsSf https://astral.sh/uv/install.sh | sh
+        echo "$HOME/.local/bin" >> $GITHUB_PATH
+
+    - name: Cache uv
+      uses: actions/cache@v4
+      with:
+        path: ~/.cache/uv
+        key: uv-${{ runner.os }}-${{ inputs.python-version }}-${{ hashFiles('uv.lock') }}
+        restore-keys: uv-${{ runner.os }}-${{ inputs.python-version }}-
+
+    - name: Sync dependencies
       shell: bash
       run: uv sync --all-extras --frozen

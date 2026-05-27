@@ -8,8 +8,8 @@ from olaf.processing.spaced_temp_csv import SpacedTempCSV
 
 # -----------------------------    USER INPUTS    -------------------------------------
 # test_folder = Path.cwd().parent / "tests" /"test_data" / "fpd" / "NSA no.2 05.22.25 base"
-# test_folder = Path("D:/INP Mentor/IOPs/TRACER/Swarup China S3 Heat treatments/HOU S3 07.25.22 base")
-# test_folder = Path("G:/Shared drives/INP Mentor/Current Data Processing/CoURAGE/Ground/QAQC as of 04.10.26 CH/(M1) 08.12.25 base rerun")
+# test_folder = Path("D:/INP Mentor/IOPs/TRACER/Swarup China S3 Heat treatments/HOU S3 07.25.22 base")  # noqa: E501
+# test_folder = Path("G:/Shared drives/INP Mentor/Current Data Processing/CoURAGE/Ground/QAQC as of 04.10.26 CH/(M1) 08.12.25 base rerun")  # noqa: E501
 test_folder = Path("D:OLAF/Freezing point depression tests/RAM_CINC A12 07.16.25 base")
 site = "RAM_CINC"
 start_time = "2025-07-16 16:20:00"
@@ -20,7 +20,7 @@ user = "Oren/Carson"
 IS = "IS2"
 num_samples = 6  # In the file
 sample_type = "salt"  # air, liquid or soil
-vol_air_filt = 1  # L
+vol_air_filt = 1.0  # L
 wells_per_sample = 32
 proportion_filter_used = 1.0  # between 0 and 1.0
 vol_susp = 10  # mL
