@@ -13,10 +13,7 @@ blank_excludes = ()
 sample_excludes = ("05.22.25",)
 # Make sure to have an individual "INPS_L_frozen_at_temp..." for each date
 corrector = BlankCorrector(
-    project_folder,
-    blank_includes,
-    blank_excludes,
-    sample_excludes,
-    multiple_per_day=True)
+    project_folder, blank_includes, blank_excludes, sample_excludes, multiple_per_day=True
+)
 avg_blanks = corrector.average_blanks()
 corrector.apply_blanks(only_within_dates=False, show_comp_plot=True)

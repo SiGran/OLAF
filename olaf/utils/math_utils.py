@@ -11,5 +11,3 @@ def inps_L_to_ml(inps_col, vol_air_filt, prop_filter_used, vol_susp):
 
 def rms(x):
     return np.sqrt(np.mean(np.square(x)))
-
-

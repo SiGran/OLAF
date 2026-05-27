@@ -111,9 +111,7 @@ class GraphDataCSV(DataHandler):
 
         """
 
-
-
-            # Internal logic function for later use
+        # Internal logic function for later use
         def error_logic_selecting_values(i, col_name, next_dilution_INP):
             """
             Logic for selecting the values to keep in the result_df when both current
