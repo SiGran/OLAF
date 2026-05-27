@@ -74,6 +74,16 @@ Land focused commits. Each should flip exactly the goldens it claims to fix.
 ## Human-Needs-To-Do
 Tasks the AI agent is NOT allowed to perform — must be done by the human.
 
+### CI/CD modernization (from ci-modernize-consolidate-workflows branch)
+The following superseded workflow files have been stubbed with a comment but must be deleted manually:
+- [ ] Delete `.github/workflows/CI.yml` (superseded by `ci.yml`)
+- [ ] Delete `.github/workflows/lint.yml` (superseded by `ci.yml`)
+- [ ] Delete `.github/workflows/test.yml` (superseded by `ci.yml`)
+
+External setup required:
+- [ ] Enable the [Codecov GitHub App](https://github.com/apps/codecov) on the `SiGran/OLAF` repository for coverage PR comments and badge.
+- [ ] Update branch protection rules to require only the `CI success` status check (the `ci-success` job) instead of the old per-workflow checks.
+
 ### File / directory deletions
 The agent must never delete files. The following pre-existing files need manual deletion or replacement; agent will only create replacement content alongside or ask the human to remove the original.
 
