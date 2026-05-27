@@ -102,7 +102,8 @@ The following superseded workflow files have been stubbed with a comment but mus
 
 External setup required:
 - [ ] Enable the [Codecov GitHub App](https://github.com/apps/codecov) on the `SiGran/OLAF` repository for coverage PR comments and badge.
-- [ ] Update branch protection rules to require only the `CI success` status check (the `ci-success` job) instead of the old per-workflow checks.
+- [ ] Update branch protection on **`develop`**: require only the `CI success` status check (the `ci-success` job) instead of the old per-workflow checks.
+- [ ] After the first `develop → main` release PR is opened: configure branch protection on **`main`** to require the `Release gate success` status check (the `release-gate-success` job from `.github/workflows/release-gate.yml`). This check only runs on PRs targeting `main`, so it won't appear in the picker until at least one such PR has run.
 
 ### File / directory deletions
 The agent must never delete files. The following pre-existing files need manual deletion or replacement; agent will only create replacement content alongside or ask the human to remove the original.
