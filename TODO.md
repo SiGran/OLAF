@@ -162,7 +162,7 @@ release is well-formed.
 ### Required
 - [ ] **Decide initial main-tracking version.** Currently `pyproject.toml` says
       `0.1.0`. Pick a target (e.g. `0.2.0` for a minor bump or `1.0.0` if this
-      counts as the first stable release). The `version-bump-check` release-gate
+      counts as the first stable release). The version-bump-check release-gate
       job will fail if the version in the release PR is unchanged from `main`.
 - [ ] **Local docs build with warnings as errors.** Run
       `uv run sphinx-build -W -b html docs _build` from the repo root and fix any
