@@ -1,0 +1,23 @@
+name: Setup Python with uv
+description: Checkout, install uv with cache, and sync all extras from lockfile.
+
+inputs:
+  python-version:
+    description: Python version to use
+    default: "3.11"
+
+runs:
+  using: composite
+  steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Set up uv
+      uses: astral-sh/setup-uv@v3
+      with:
+        python-version: ${{ inputs.python-version }}
+        enable-cache: true
+
+    - name: Install dependencies
+      shell: bash
+      run: uv sync --all-extras --frozen
