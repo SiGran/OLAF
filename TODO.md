@@ -139,3 +139,21 @@ The agent must never delete files. The following pre-existing files need manual 
 14. *(surfaced in Phase 2)* `sort_files_by_date` trailing-number regex `(\d+)\.csv$` requires digit immediately before `.csv`; `(N).csv` versioning gives 0 for all versioned files — `path_utils.py:117`
 15. *(surfaced in Phase 2.c)* `_extrapolate_blanks` raises `ValueError: setting an array element with a sequence` when the input `df_blanks` has a numeric-dtype `dilution` column: `df_blanks.loc[temp] = {"dilution": (1,), ...}` cannot inject a tuple into a single int/float cell. Real combined-blank CSVs ship with object-dtype tuple cells so this never triggers in production, but it's an unguarded invariant — `blank_correction.py:506`
 16. *(surfaced in Phase 2.d)* `FinalFileCreation._get_files_per_date` and `create_all_final_files` hard-code `expected_columns=(..., "qc_flag")` in `read_with_flexible_header`. Any blank_corrected_*.csv emitted before bug #3's fix lands has only 5 columns (no qc_flag); `read_with_flexible_header` then fails to locate the column-header row, prints "No columns ... found", returns the whole file as header_lines, and `skiprows=0` reads garbage. Net effect: silent empty `files_per_date` on every legacy project folder (incl. the committed `tests/test_data/test_project/` and `tests/test_data/capek/` fixtures). — `final_file_creation.py:36,73-80`
+
+## Release process (develop → main)
+
+1. Bump version in `pyproject.toml` (`version = "X.Y.Z"`).
+2. Open a PR from `develop` to `main`.
+3. The "Release gate" workflow runs automatically and verifies:
+   - Integration tests pass (`tests/test_integration`).
+   - Full Python matrix (3.11, 3.12, 3.13) is green.
+   - Sphinx docs build cleanly with `-W` (warnings as errors).
+   - `pyproject.toml` version was bumped vs `main`.
+4. After merge, tag the release: `git tag vX.Y.Z && git push --tags`.
+5. Docs auto-deploy to GitHub Pages on push to `main`.
+
+## Branch protection setup (one-time)
+
+- [ ] On `develop`: require `CI success` status check.
+- [ ] On `main`: require `CI success` AND `Release gate success`. The latter
+      only becomes selectable after the first develop→main PR opens.

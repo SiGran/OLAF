@@ -1,7 +1,5 @@
 name: Release gate
 
-# Runs only on PRs targeting main (develop → main release PRs and hotfixes).
-# Not triggered on develop PRs — keeps day-to-day CI fast.
 on:
   pull_request:
     branches: [main]
@@ -20,19 +18,18 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup-python-uv
-      # No tests are currently decorated with @pytest.mark.integration.
-      # Running the full non-GUI suite here until integration tests are tagged.
-      # TODO: apply @pytest.mark.integration to slow real-data tests and switch
-      # this back to: uv run pytest -m "integration and not gui" -v
-      - run: uv run pytest -m "not gui" -v
+      - name: Run integration tests
+        # Path-based selection (rather than -m integration) because the
+        # integration marker is not consistently applied across the suite.
+        run: uv run pytest tests/test_integration -v
 
   full-matrix:
     name: Tests (Python ${{ matrix.python-version }})
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
       matrix:
         python-version: ["3.11", "3.12", "3.13"]
-      fail-fast: false
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup-python-uv
@@ -46,9 +43,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup-python-uv
-      # -W treats warnings as errors — catches broken refs / missing TOC entries
-      # before they reach main.
-      - run: uv run sphinx-build -W -b html docs _build
+      - name: Sphinx build with warnings as errors
+        run: uv run sphinx-build -W -b html docs _build
 
   version-bump-check:
     name: Version bump check
