@@ -60,7 +60,7 @@ class TestHeaderToDict:
         file = (
             capek_golden_folder
             / "KCG 7.09.24 base"
-            / "blank_corrected_10%_error_threshold_INPs_L_frozen_at_temp_reviewed_capek 7.09.24 a base.csv"
+            / "blank_corrected_10%_error_threshold_INPs_L_frozen_at_temp_reviewed_capek 7.09.24 a base.csv"  # noqa: E501
         )
         if not file.exists():
             pytest.skip(f"Real fixture missing: {file}")
@@ -104,7 +104,7 @@ class TestReadWithFlexibleHeader:
         file = (
             capek_golden_folder
             / "KCG 7.09.24 base"
-            / "blank_corrected_10%_error_threshold_INPs_L_frozen_at_temp_reviewed_capek 7.09.24 a base.csv"
+            / "blank_corrected_10%_error_threshold_INPs_L_frozen_at_temp_reviewed_capek 7.09.24 a base.csv"  # noqa: E501
         )
         if not file.exists():
             pytest.skip(f"Real fixture missing: {file}")

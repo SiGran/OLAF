@@ -130,9 +130,7 @@ class TestFreezingReviewer:
         # Pre-set Sample_0 at and after current_idx to the max
         reviewer.data.loc[current_idx:, "Sample_0"] = reviewer.wells_per_sample
         reviewer._update_image(sample=0, change=1)
-        assert (
-            reviewer.data.loc[current_idx:, "Sample_0"] <= reviewer.wells_per_sample
-        ).all()
+        assert (reviewer.data.loc[current_idx:, "Sample_0"] <= reviewer.wells_per_sample).all()
         assert reviewer.data.loc[current_idx, "Sample_0"] == reviewer.wells_per_sample
 
     def test_update_image_negative_clamps_at_zero(self, reviewer) -> None:

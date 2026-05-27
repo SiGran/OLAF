@@ -31,7 +31,9 @@ class TestGetDataFile:
 
         Real data: goldens/inputs/kcg_09_23_24_base/reviewed.dat
         """
-        handler = DataHandler(kcg_golden_folder, num_samples=6, includes=("reviewed",), suffix=".dat")
+        handler = DataHandler(
+            kcg_golden_folder, num_samples=6, includes=("reviewed",), suffix=".dat"
+        )
         assert isinstance(handler.data_file, Path)
         assert handler.data_file.suffix == ".dat"
         assert "reviewed" in handler.data_file.name
@@ -231,7 +233,9 @@ class TestDataHandlerEdgeCases:
         back to self.data and self.data_file.  We redirect data_file to tmp_path to
         avoid writing into the fixture folder.
         """
-        handler = DataHandler(kcg_golden_folder, num_samples=6, includes=("reviewed",), suffix=".dat")
+        handler = DataHandler(
+            kcg_golden_folder, num_samples=6, includes=("reviewed",), suffix=".dat"
+        )
         handler.data_file = tmp_path / "reviewed.dat"  # redirect write target
         result = handler.save_to_new_file(prefix="auto")
         assert result.exists()
