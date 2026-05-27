@@ -83,17 +83,7 @@ Tasks the AI agent is NOT allowed to perform — must be done by the human.
 
 ### CI/CD modernization (from ci-modernize-consolidate-workflows branch)
 
-> **⚠️ First: allowlist third-party Actions** (required before new CI can run)
-> - [ ] **One-time repo Actions allowlist setup**: Settings → Actions → General → "Actions permissions" → select
->   **"Allow SiGran, and select non-SiGran, actions and reusable workflows"**. In the
->   "Allow specified actions and reusable workflows" textbox add:
->   ```
->   astral-sh/setup-uv@*,
->   codecov/codecov-action@*
->   ```
->   Also tick **"Allow actions created by GitHub"** and **"Allow actions by Marketplace verified creators"**. Save.
->   Then re-run CI on PR #45 (push an empty commit or click "Re-run all jobs") so the new workflows can start.
->   Until this is done, all `ci.yml` jobs will fail at startup and `ci-success` won't appear in branch protection.
+> **⚠️ Allowlist already configured** — `astral-sh/setup-uv@*` and `codecov/codecov-action@*` are in the allowlist; CI is green.
 
 The following superseded workflow files have been stubbed with a comment but must be deleted manually:
 - [ ] Delete `.github/workflows/CI.yml` (superseded by `ci.yml`)
@@ -101,7 +91,7 @@ The following superseded workflow files have been stubbed with a comment but mus
 - [ ] Delete `.github/workflows/test.yml` (superseded by `ci.yml`)
 
 External setup required:
-- [ ] Enable the [Codecov GitHub App](https://github.com/apps/codecov) on the `SiGran/OLAF` repository for coverage PR comments and badge.
+- [ ] **Codecov token** (optional but recommended for PR comments): Coverage is uploading successfully (`status: queued`) but Codecov warns `Branch is protected but no token was provided`. PR comments / badges will be more reliable with a token. To fix: go to [codecov.io/gh/SiGran/OLAF](https://codecov.io/gh/SiGran/OLAF), copy the upload token, add it as a repo secret `CODECOV_TOKEN` (Settings → Secrets and variables → Actions), then add `token: ${{ secrets.CODECOV_TOKEN }}` to the `codecov/codecov-action` step in `.github/workflows/ci.yml`.
 - [ ] Update branch protection on **`develop`**: require only the `CI success` status check (the `ci-success` job) instead of the old per-workflow checks.
 - [ ] After the first `develop → main` release PR is opened: configure branch protection on **`main`** to require the `Release gate success` status check (the `release-gate-success` job from `.github/workflows/release-gate.yml`). This check only runs on PRs targeting `main`, so it won't appear in the picker until at least one such PR has run.
 
