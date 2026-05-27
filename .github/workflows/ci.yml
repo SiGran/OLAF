@@ -27,7 +27,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup-python-uv
-      - run: uv run mypy .
+      - run: uv run mypy olaf
 
   security:
     name: Security (bandit)

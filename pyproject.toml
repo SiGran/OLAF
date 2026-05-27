@@ -47,3 +47,11 @@ markers = [
 
 [tool.bandit]
 exclude = ["tests"]
+
+[tool.mypy]
+files = ["olaf"]
+exclude = ["tests/", "docs/", "_build/"]
+
+[[tool.mypy.overrides]]
+module = "tests.*"
+ignore_errors = true

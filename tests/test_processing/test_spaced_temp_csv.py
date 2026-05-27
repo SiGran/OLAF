@@ -149,7 +149,7 @@ class TestCreateTempCSV:
         first_s0_mask = df["Sample_0"].ne(0)
         if first_s0_mask.any():
             first_s0 = df.loc[first_s0_mask.idxmax(), "degC"]
-            assert first_s5 >= first_s0  # type: ignore[operator,call-overload]  # pandas scalar comparison
+            assert first_s5 >= first_s0
 
 
 class TestSaltSampleFPD:
@@ -187,7 +187,7 @@ class TestSaltSampleFPD:
         assert len(salt) > len(air)
         first_s0_air = air.loc[air["Sample_0"].ne(0).idxmax(), "degC"]
         first_s0_salt = salt.loc[salt["Sample_0"].ne(0).idxmax(), "degC"]
-        assert first_s0_salt > first_s0_air, (  # type: ignore[operator,call-overload]  # pandas scalar comparison
+        assert first_s0_salt > first_s0_air, (
             f"salt Sample_0 should be shifted warmer: air={first_s0_air} " f"salt={first_s0_salt}"
         )
 
