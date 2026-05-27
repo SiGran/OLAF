@@ -48,14 +48,14 @@ class TestNaturalSortKey:
             "Img2.png",
         ]
 
-    def test_real_image_folder_sorted(self, sgp_test_folder) -> None:
+    def test_real_image_folder_sorted(self, sgp_golden_folder) -> None:
         """
-        Given: filenames in SGP 2.21.24 base/dat_Images/
+        Given: filenames in goldens/inputs/sgp_2_21_24_base/dat_images/
         Then:  Image_2.png comes before Image_10.png.
 
-        Real data: SGP 2.21.24 base/dat_Images/
+        Real data: goldens/inputs/sgp_2_21_24_base/dat_images/
         """
-        images_dir = sgp_test_folder / "dat_Images"
+        images_dir = sgp_golden_folder / "dat_images"
         if not images_dir.exists():
             pytest.skip(f"Real fixture missing: {images_dir}")
         names = [p.name for p in images_dir.iterdir() if p.suffix == ".png"]

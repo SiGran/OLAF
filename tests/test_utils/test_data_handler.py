@@ -23,17 +23,17 @@ from olaf.utils.data_handler import DataHandler
 
 
 class TestGetDataFile:
-    def test_single_match_returns_file_and_df(self, kcg_test_folder) -> None:
+    def test_single_match_returns_file_and_df(self, kcg_golden_folder) -> None:
         """
-        Given: KCG 09.23.24 base/ which contains 'reviewed_capek 09.23.24 a base.dat'
+        Given: goldens/inputs/kcg_09_23_24_base/ which contains 'reviewed.dat'
         When:  DataHandler(..., includes=("reviewed",), suffix=".dat")
         Then:  data_file is the path, data is a non-empty DataFrame.
 
-        Real data: KCG 09.23.24 base/reviewed_capek 09.23.24 a base.dat
+        Real data: goldens/inputs/kcg_09_23_24_base/reviewed.dat
         """
-        if not kcg_test_folder.exists():
-            pytest.skip(f"Real fixture missing: {kcg_test_folder}")
-        handler = DataHandler(kcg_test_folder, num_samples=6, includes=("reviewed",), suffix=".dat")
+        handler = DataHandler(
+            kcg_golden_folder, num_samples=6, includes=("reviewed",), suffix=".dat"
+        )
         assert isinstance(handler.data_file, Path)
         assert handler.data_file.suffix == ".dat"
         assert "reviewed" in handler.data_file.name
@@ -82,9 +82,10 @@ class TestGetDataFile:
         includes=('frozen_at_temp',), excludes=('INPs_L',) -> picks non-INPs_L file.
         """
         # Pick the canonical frozen_at_temp file (no INPs_L prefix)
-        targets = list(sgp_test_folder.glob("frozen_at_temp_test1_reviewed_*.csv"))
+        targets = list(sgp_test_folder.glob("*frozen_at_temp*.csv"))
+        targets = [f for f in targets if "INPs_L" not in f.name]
         if not targets:
-            pytest.skip(f"Need frozen_at_temp files in {sgp_test_folder}")
+            pytest.skip(f"Need frozen_at_temp files (without INPs_L) in {sgp_test_folder}")
         handler = DataHandler(
             sgp_test_folder,
             num_samples=6,
@@ -97,37 +98,32 @@ class TestGetDataFile:
         assert "INPs_L" not in handler.data_file.name
         assert "frozen_at_temp" in handler.data_file.name
 
-    def test_dat_file_splits_time_into_date_and_time(self, kcg_test_folder) -> None:
+    def test_dat_file_splits_time_into_date_and_time(self, kcg_golden_folder) -> None:
         """
-        .dat files: 'Time' column is renamed to 'Date', 'Unnamed: 1' renamed to
-        'Time'. A 'changes' column is present.
+        Raw .dat files have 'Time' as a single datetime column; pandas parse_dates
+        splits it into 'Time' (datetime) and 'Unnamed: 1' (time portion).
+        DataHandler renames these to 'Date'/'Time' and appends a 'changes' column.
 
-        Note: for already-reviewed .dat files, the changes column was previously
-        serialized to CSV/TSV as a string repr (e.g. '[0, 0, 0, 0, 0, 0]') and
-        comes back as a string here. ensure_list (in type_utils) handles the
-        round-trip on consumer side. For freshly-loaded raw .dat the column is
-        a list of zeros (data_handler.py:86-90).
+        Uses raw.dat (original format with single datetime 'Time' column).
 
         Source: data_handler.py:86-90
         """
-        if not kcg_test_folder.exists():
-            pytest.skip(f"Real fixture missing: {kcg_test_folder}")
-        handler = DataHandler(kcg_test_folder, num_samples=6, includes=("reviewed",), suffix=".dat")
+        handler = DataHandler(kcg_golden_folder, num_samples=6, includes=("raw",), suffix=".dat")
         assert "Date" in handler.data.columns
         assert "Time" in handler.data.columns
         assert "changes" in handler.data.columns
-        # changes column is either a list (raw .dat) or a str repr (reviewed .dat)
+        # changes column is a list of zeros (freshly added for raw .dat)
         first_changes = handler.data["changes"].iloc[0]
-        assert isinstance(first_changes, (list, str))
+        assert isinstance(first_changes, list)
+        assert len(first_changes) == 6
+        assert all(v == 0 for v in first_changes)
 
 
 class TestSaveToNewFile:
     @pytest.fixture
-    def handler(self, kcg_test_folder):
+    def handler(self, kcg_golden_folder):
         """A real DataHandler with loaded data for save tests."""
-        if not kcg_test_folder.exists():
-            pytest.skip(f"Real fixture missing: {kcg_test_folder}")
-        return DataHandler(kcg_test_folder, num_samples=6, includes=("reviewed",), suffix=".dat")
+        return DataHandler(kcg_golden_folder, num_samples=6, includes=("reviewed",), suffix=".dat")
 
     def test_writes_with_string_header(self, handler, tmp_path) -> None:
         """String header is written as a single line before the CSV body."""
@@ -192,3 +188,56 @@ class TestSaveToNewFile:
                 save_data=pd.DataFrame({"a": [1]}),
                 save_path="/not/a/path/object",  # type: ignore[arg-type]
             )
+
+
+class TestDataHandlerEdgeCases:
+    def test_no_includes_no_excludes_finds_dat_files(self, kcg_golden_folder) -> None:
+        """
+        When includes=() AND excludes=() the else-branch (lines 62-66) runs:
+        all files with the given suffix are collected, no include/exclude filtering.
+        """
+        handler = DataHandler(
+            kcg_golden_folder, num_samples=6, includes=(), excludes=(), suffix=".dat"
+        )
+        # Both reviewed.dat and raw.dat qualify; find_latest_file picks one
+        assert isinstance(handler.data_file, Path)
+        assert handler.data_file.suffix == ".dat"
+        assert isinstance(handler.data, pd.DataFrame)
+        assert len(handler.data) > 0
+
+    def test_date_col_none_skips_datetime_parsing(self, kcg_golden_folder) -> None:
+        """
+        date_col=None (line 84) skips parse_dates and the Unnamed:1 rename block.
+        The Time column is read as plain text.
+        """
+        handler = DataHandler(
+            kcg_golden_folder,
+            num_samples=6,
+            includes=("reviewed",),
+            suffix=".dat",
+            date_col=None,
+        )
+        assert isinstance(handler.data, pd.DataFrame)
+        assert len(handler.data) > 0
+        # Without parse_dates, 'Time' comes through as a plain text column
+        assert "Date" in handler.data.columns
+        assert "Time" in handler.data.columns
+        # No changes column added (the Unnamed:1 branch was skipped)
+        assert "Unnamed: 1" not in handler.data.columns
+
+    def test_uses_self_data_and_data_file_when_neither_provided(
+        self, kcg_golden_folder, tmp_path
+    ) -> None:
+        """
+        save_to_new_file() with no save_data and no save_path (lines 126-133) falls
+        back to self.data and self.data_file.  We redirect data_file to tmp_path to
+        avoid writing into the fixture folder.
+        """
+        handler = DataHandler(
+            kcg_golden_folder, num_samples=6, includes=("reviewed",), suffix=".dat"
+        )
+        handler.data_file = tmp_path / "reviewed.dat"  # redirect write target
+        result = handler.save_to_new_file(prefix="auto")
+        assert result.exists()
+        assert result.parent == tmp_path
+        assert result.name.startswith("auto_")
