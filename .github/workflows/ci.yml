@@ -40,8 +40,6 @@ jobs:
   pre-commit:
     name: Pre-commit hooks
     runs-on: ubuntu-latest
-    env:
-      SKIP: ruff,ruff-format,mypy,bandit
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup-python-uv
@@ -49,8 +47,7 @@ jobs:
         with:
           path: ~/.cache/pre-commit
           key: pre-commit-${{ hashFiles('.pre-commit-config.yaml') }}
-      - name: Run pre-commit (hygiene hooks only; lint/type/security covered by dedicated jobs)
-        run: uv run pre-commit run --all-files
+      - run: uv run pre-commit run --all-files
 
   test:
     name: Tests (Python ${{ matrix.python-version }})
