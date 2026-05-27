@@ -196,23 +196,25 @@ class TestSaltSampleFPD:
             goldens_root / "expected" / "test_spaced_temp_csv" / "salt_sgp.csv",
         )
 
-    def test_salt_sample_missing_fpd_key_pins_current_behavior(
+    def test_salt_sample_missing_fpd_key_raises_value_error(
         self,
         sgp_golden_folder,
         sample_dilution_dict_a,
     ) -> None:
         """
-        BUG #7 anchor.
+        BUG #7 fix verification.
         Given: salt sample but fpd_dict missing the least-diluted sample's key.
         When:  create_temp_csv runs.
-        Then:  currently raises TypeError (round(10*None+4)). After fix it should
-               default missing keys to 0 and run cleanly. This test pins CURRENT
-               behavior so the fix produces an intentional diff.
+        Then:  raises ValueError with a clear message naming the missing sample.
 
-        Source: spaced_temp_csv.py:88-90
+        Previously this site raised an opaque TypeError via round(10*None+4).
+        The fix in olaf/processing/spaced_temp_csv.py guards the .get() result
+        and raises ValueError instead.
+
+        Source: spaced_temp_csv.py:88-100
         """
         stc = SpacedTempCSV(sgp_golden_folder, num_samples=6, includes=("reviewed",))
-        with pytest.raises(TypeError):
+        with pytest.raises(ValueError, match="freezing point depression"):
             stc.create_temp_csv(
                 sample_dilution_dict_a,
                 freezing_point_depression_dict={},  # missing Sample_0 key

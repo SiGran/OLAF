@@ -54,4 +54,3 @@ OLAF_REGEN_GOLDEN=1 pytest tests/test_processing/test_spaced_temp_csv.py
 
 The helper writes the actual output to `golden_path` (creating parents) and
 skips the test. Inspect with `git diff`, then `git add` if correct.
-

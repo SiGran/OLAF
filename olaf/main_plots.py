@@ -24,7 +24,7 @@ save_name = "BNF spring 2025 TBS overview"
 # if you are doing a site comparison, type them here and decide on marker style
 # site_markers = {"CRG_M1": "o", "CRG_S2": "^", "CRG_S7_TBS": "o", "KCG_S3": "o"}
 # or default markers if you leave the dict empty
-site_markers = {}
+site_markers: dict[str, str] = {}
 
 
 # Creates images of INP spectra for each date in project folder.

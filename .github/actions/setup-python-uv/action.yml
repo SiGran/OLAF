@@ -1,0 +1,26 @@
+name: Setup Python with uv
+description: Install Python, uv (with cache), and sync all extras from lockfile.
+
+inputs:
+  python-version:
+    description: Python version to use
+    default: "3.11"
+
+runs:
+  using: composite
+  steps:
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ inputs.python-version }}
+
+    # uv install is pinned to setup-uv@v3 (allowlisted in repo Actions policy);
+    # Dependabot will bump this on new releases.
+    - name: Install uv
+      uses: astral-sh/setup-uv@v3
+      with:
+        enable-cache: true
+
+    - name: Sync dependencies
+      shell: bash
+      run: uv sync --all-extras --frozen --python "${{ inputs.python-version }}"

@@ -81,6 +81,15 @@ Land focused commits. Each should flip exactly the goldens it claims to fix.
 ## Human-Needs-To-Do
 Tasks the AI agent is NOT allowed to perform — must be done by the human.
 
+### CI/CD modernization (from ci-modernize-consolidate-workflows branch)
+
+> **⚠️ Allowlist already configured** — `astral-sh/setup-uv@*` and `codecov/codecov-action@*` are in the allowlist; CI is green.
+
+External setup required:
+- [ ] **Codecov token** (optional but recommended for PR comments): Coverage is uploading successfully (`status: queued`) but Codecov warns `Branch is protected but no token was provided`. PR comments / badges will be more reliable with a token. To fix: go to [codecov.io/gh/SiGran/OLAF](https://codecov.io/gh/SiGran/OLAF), copy the upload token, add it as a repo secret `CODECOV_TOKEN` (Settings → Secrets and variables → Actions), then add `token: ${{ secrets.CODECOV_TOKEN }}` to the `codecov/codecov-action` step in `.github/workflows/ci.yml`.
+- [ ] Update branch protection on **`develop`**: require only the `CI success` status check (the `ci-success` job) instead of the old per-workflow checks.
+- [ ] After the first `develop → main` release PR is opened: configure branch protection on **`main`** to require the `Release gate success` status check (the `release-gate-success` job from `.github/workflows/release-gate.yml`). This check only runs on PRs targeting `main`, so it won't appear in the picker until at least one such PR has run.
+
 ### File / directory deletions
 The agent must never delete files. The following pre-existing files need manual deletion or replacement; agent will only create replacement content alongside or ask the human to remove the original.
 
@@ -126,3 +135,74 @@ The agent must never delete files. The following pre-existing files need manual 
 15. *(surfaced in Phase 2.c)* `_extrapolate_blanks` raises `ValueError: setting an array element with a sequence` when the input `df_blanks` has a numeric-dtype `dilution` column: `df_blanks.loc[temp] = {"dilution": (1,), ...}` cannot inject a tuple into a single int/float cell. Real combined-blank CSVs ship with object-dtype tuple cells so this never triggers in production, but it's an unguarded invariant — `blank_correction.py:506`
 16. *(surfaced in Phase 2.d)* `FinalFileCreation._get_files_per_date` and `create_all_final_files` hard-code `expected_columns=(..., "qc_flag")` in `read_with_flexible_header`. Any blank_corrected_*.csv emitted before bug #3's fix lands has only 5 columns (no qc_flag); `read_with_flexible_header` then fails to locate the column-header row, prints "No columns ... found", returns the whole file as header_lines, and `skiprows=0` reads garbage. Net effect: silent empty `files_per_date` on every legacy project folder (incl. the committed `tests/test_data/test_project/` and `tests/test_data/capek/` fixtures). — `final_file_creation.py:36,73-80`
 
+## Release process (develop → main)
+
+1. Bump version in `pyproject.toml` (`version = "X.Y.Z"`).
+2. Open a PR from `develop` to `main`.
+3. The "Release gate" workflow runs automatically and verifies:
+   - Integration tests pass (`tests/test_integration`).
+   - Full Python matrix (3.11, 3.12, 3.13) is green.
+   - Sphinx docs build cleanly with `-W` (warnings as errors).
+   - `pyproject.toml` version was bumped vs `main`.
+4. After merge, tag the release: `git tag vX.Y.Z && git push --tags`.
+5. Docs auto-deploy to GitHub Pages on push to `main`.
+
+## Branch protection setup (one-time)
+
+- [ ] On `develop`: require `CI success` status check.
+- [ ] On `main`: require `CI success` AND `Release gate success`. The latter
+      only becomes selectable after the first develop→main PR opens.
+
+## Option C release readiness (prep for first develop → main PR)
+
+The release-gate workflow is in place. Before opening the first `develop → main`
+release PR, work through the following so the gate passes cleanly and the
+release is well-formed.
+
+### Required
+- [ ] **Decide initial main-tracking version.** Currently `pyproject.toml` says
+      `0.1.0`. Pick a target (e.g. `0.2.0` for a minor bump or `1.0.0` if this
+      counts as the first stable release). The version-bump-check release-gate
+      job will fail if the version in the release PR is unchanged from `main`.
+- [ ] **Local docs build with warnings as errors.** Run
+      `uv run sphinx-build -W -b html docs _build` from the repo root and fix any
+      warnings (broken refs, missing TOC entries, autoapi issues) before
+      opening the release PR. The `docs-build-check` job uses the same flags.
+- [ ] **Local integration test run.** Run `uv run pytest tests/test_integration -v`
+      and confirm all tests pass (or are intentionally skipped) on the develop
+      tip. The release-gate `integration-tests` job runs this exact command.
+- [ ] **Verify Python 3.13 compatibility.** The release-gate `full-matrix` job
+      tries 3.11, 3.12, **and 3.13**. Run locally:
+      `uv sync --all-extras --frozen --python 3.13 && uv run pytest -m "not gui"`.
+      If 3.13 fails due to a dep that doesn't support it yet (most likely
+      `pandas-stubs` or `matplotlib`), either pin/update that dep or drop 3.13
+      from the matrix in `release-gate.yml` and open a follow-up task.
+- [ ] **Codecov token configured** (see Human-Needs-To-Do above). Not required
+      for the release-gate to pass, but required for reliable PR-comment
+      coverage on the release PR.
+
+### Recommended
+- [ ] **Start a `CHANGELOG.md`** (or `docs/changelog.rst`) capturing what landed
+      since `main`. Even a short bullet list per version is useful. Wire it into
+      the Sphinx toctree if added under `docs/`.
+- [ ] **Add status badges to `README.md`**: CI status, Codecov coverage, docs
+      build (and PyPI / Python versions later if/when published).
+- [ ] **Audit develop-only features.** Walk `git log main..develop` and confirm
+      every commit is intended for the release. If anything is half-done or
+      experimental, either finish it, revert it, or split it onto a feature
+      branch before opening the release PR.
+- [ ] **Pre-create the release PR title/body template** so the PR body is ready
+      to fill in (links to changelog entries, screenshot of release-gate run,
+      "fixes #..." section).
+
+### Optional / future
+- [ ] **Release workflow on tag push.** After the first successful release, add
+      a `.github/workflows/release.yml` triggered on `push: tags: ['v*']` that
+      creates a GitHub Release with autogenerated notes and attaches build
+      artifacts. Out of scope for this PR.
+- [ ] **PyPI publishing.** Configure trusted publishing
+      ([docs.pypi.org](https://docs.pypi.org/trusted-publishers/)) and add a
+      `release-publish` job to the release workflow. Out of scope.
+- [ ] **Zenodo / DOI integration** for scientific citation, if desired.
+- [ ] **Dependabot grouping.** Tune `.github/dependabot.yml` to group
+      patch-level GitHub Actions bumps so the PR queue stays manageable.

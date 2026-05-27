@@ -47,7 +47,7 @@ class Plots:
         self.num_columns = num_columns
         self.site_markers = site_markers if site_markers is not None else {}
         self._marker_cycle = itertools.cycle(self.DEFAULT_MARKERS)
-        self._auto_markers = {}
+        self._auto_markers: dict[str, str] = {}
         self.save_name = save_name
         self.desired_files_df = self.find_desired_files(includes, excludes, start_date, end_date)
 

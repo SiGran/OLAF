@@ -1,0 +1,81 @@
+name: Release gate
+
+on:
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: release-gate-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  integration-tests:
+    name: Integration tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-python-uv
+      - name: Run integration tests
+        # Path-based selection (rather than -m integration) because the
+        # integration marker is not consistently applied across the suite.
+        run: uv run pytest tests/test_integration -v
+
+  full-matrix:
+    name: Tests (Python ${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-python-uv
+        with:
+          python-version: ${{ matrix.python-version }}
+      - run: uv run pytest -m "not gui"
+
+  docs-build-check:
+    name: Docs build verification
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-python-uv
+      - name: Sphinx build with warnings as errors
+        run: uv run sphinx-build -W -b html docs _build
+
+  version-bump-check:
+    name: Version bump check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Verify pyproject.toml version changed vs base
+        run: |
+          BASE_SHA="${{ github.event.pull_request.base.sha }}"
+          BASE_VERSION=$(git show "$BASE_SHA:pyproject.toml" | grep -E '^version\s*=' | head -1 || echo "")
+          HEAD_VERSION=$(grep -E '^version\s*=' pyproject.toml | head -1)
+          echo "Base version line: $BASE_VERSION"
+          echo "Head version line: $HEAD_VERSION"
+          if [ "$BASE_VERSION" = "$HEAD_VERSION" ]; then
+            echo "::error::pyproject.toml version was not bumped vs base. Update it before merging to main."
+            exit 1
+          fi
+          echo "Version bump detected."
+
+  release-gate-success:
+    name: Release gate success
+    needs: [integration-tests, full-matrix, docs-build-check, version-bump-check]
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - name: Check all release gate jobs passed
+        run: |
+          if [[ "${{ contains(needs.*.result, 'failure') }}" == "true" || "${{ contains(needs.*.result, 'cancelled') }}" == "true" ]]; then
+            echo "One or more release gate jobs failed or were cancelled."
+            exit 1
+          fi
+          echo "All release gate jobs passed."

@@ -14,4 +14,3 @@ Dilution dict used to produce these files: **side A**, 6 samples
 `{Sample_0:1, Sample_1:11, Sample_2:121, Sample_3:1331, Sample_4:14641, Sample_5:inf}`
 
 `num_samples=6`, `wells_per_sample=32`, `sample_type="air"`.
-
