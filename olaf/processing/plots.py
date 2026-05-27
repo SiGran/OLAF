@@ -1,15 +1,15 @@
 import itertools
+from datetime import datetime
+from pathlib import Path
+
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
-from datetime import datetime
-from pathlib import Path
-
-from olaf.utils.df_utils import read_with_flexible_header, header_to_dict
-from olaf.utils.path_utils import is_within_dates
 from olaf.utils.data_handler import DataHandler
-from olaf.utils.plot_utils import apply_plot_settings, PLOT_SETTINGS
+from olaf.utils.df_utils import header_to_dict, read_with_flexible_header
+from olaf.utils.path_utils import is_within_dates
+from olaf.utils.plot_utils import PLOT_SETTINGS, apply_plot_settings
 
 
 class Plots:
@@ -45,7 +45,7 @@ class Plots:
         self.num_columns = num_columns
         self.site_markers = site_markers if site_markers is not None else {}
         self._marker_cycle = itertools.cycle(self.DEFAULT_MARKERS)
-        self._auto_markers = {}
+        self._auto_markers: dict[str, str] = {}
         self.save_name = save_name
         self.desired_files_df = self.find_desired_files(includes, excludes, start_date, end_date)
 

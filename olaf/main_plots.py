@@ -4,7 +4,7 @@ from olaf.processing.plots import Plots
 
 #project_folder =  Path.cwd().parent / "data" / "PUFIN tests"
 #project_folder = Path("D:/INP Mentor/Long term sites/NSA/data/12.01.25 test")
-project_folder = Path("G:/Shared drives/INP Mentor/Current Data Processing/CAPE_k/QAQC as of 03.04.26_CH/2024")
+project_folder = Path("G:/Shared drives/INP Mentor/Current Data Processing/CAPE_k/QAQC as of 03.04.26_CH/2024")  # noqa: E501
 #project_folder = Path("D:/INP Mentor/Long term sites/BNF/TBS/Data/May-June 2025")
 ## NOTE ^ this method works but plots everything in a strange order
 
@@ -22,7 +22,7 @@ save_name = "BNF spring 2025 TBS overview"
 # if you are doing a site comparison, type them here and decide on marker style
 #site_markers = {"CRG_M1": "o", "CRG_S2": "^", "CRG_S7_TBS": "o", "KCG_S3": "o"}
 # or default markers if you leave the dict empty
-site_markers = {}
+site_markers: dict[str, str] = {}
 
 
 # Creates images of INP spectra for each date in project folder.

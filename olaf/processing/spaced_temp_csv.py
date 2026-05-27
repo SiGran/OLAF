@@ -86,7 +86,13 @@ class SpacedTempCSV(DataHandler):
             self.data.loc[first_frozen_id, f"Sample_{i}"] for i in range(self.num_samples)
         ]
         if sample_type == "salt" or sample_type == "sea water":
-            least_diluted_sample_adjustment = freezing_point_depression_dict.get(least_diluted_sample)
+            least_diluted_sample_adjustment = freezing_point_depression_dict.get(  # noqa: E501
+                least_diluted_sample
+            )
+            if least_diluted_sample_adjustment is None:
+                raise ValueError(
+                    f"No freezing point depression entry for sample '{least_diluted_sample}'"
+                )
             num_empty_rows = round(10 * least_diluted_sample_adjustment + 4)
         else:
             num_empty_rows = 4
