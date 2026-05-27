@@ -81,4 +81,3 @@ Known cases needing synthetic data:
 - `BlankCorrector._final_check` non-monotonic input (bugs #3, #4, #5)
 - `FinalFileCreation._final_check` with NaN / negative / zero-leading rows (bug #10)
 - `GraphDataCSV` edge cases with empty `last_4_i` (bug #2) — deferred to rewrite
-

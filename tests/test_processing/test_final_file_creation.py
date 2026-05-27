@@ -41,7 +41,6 @@ import pytest
 from olaf.CONSTANTS import ERROR_SIGNAL
 from olaf.processing.final_file_creation import FinalFileCreation
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
@@ -326,9 +325,7 @@ class TestCreateAllFinalFiles:
 # ---------------------------------------------------------------------------
 
 
-def _final_check_df(
-    inps_l, lower_cl=None, upper_cl=None, treatment_flag=0
-) -> pd.DataFrame:
+def _final_check_df(inps_l, lower_cl=None, upper_cl=None, treatment_flag=0) -> pd.DataFrame:
     """Build a df with the ARM-renamed columns that _final_check expects."""
     n = len(inps_l)
     lower = lower_cl if lower_cl is not None else [v * 0.5 if v >= 0 else v for v in inps_l]
@@ -386,8 +383,8 @@ class TestFinalCheck:
         ffc = _ffc(tmp_path)
         df = _final_check_df(
             inps_l=[10.0, -5.0, 40.0],
-            lower_cl=[5.0, 1.0, 20.0],     # keep lower_CL non-negative so we
-            upper_cl=[15.0, 10.0, 60.0],   # isolate the negative-INP branch
+            lower_cl=[5.0, 1.0, 20.0],  # keep lower_CL non-negative so we
+            upper_cl=[15.0, 10.0, 60.0],  # isolate the negative-INP branch
         )
         result = ffc._final_check(df)
         assert result["n_INP_STP (per L)"].iloc[1] == ERROR_SIGNAL
@@ -475,10 +472,7 @@ class TestRealProjectIntegration:
         _, body = _read_arm_output(emitted[0])
         assert_csv_matches_golden(
             body,
-            goldens_root
-            / "expected"
-            / "test_final_file_creation"
-            / f"{emitted[0].stem}.csv",
+            goldens_root / "expected" / "test_final_file_creation" / f"{emitted[0].stem}.csv",
         )
 
     def test_capek_final_files_golden(
@@ -505,9 +499,5 @@ class TestRealProjectIntegration:
         _, body = _read_arm_output(emitted[0])
         assert_csv_matches_golden(
             body,
-            goldens_root
-            / "expected"
-            / "test_final_file_creation"
-            / f"capek_{emitted[0].stem}.csv",
+            goldens_root / "expected" / "test_final_file_creation" / f"capek_{emitted[0].stem}.csv",
         )
-
