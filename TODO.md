@@ -53,7 +53,7 @@ Each test gets a body + golden file. Run `OLAF_REGEN_GOLDEN=1 pytest <test>` to 
 - [x] `test_utils/test_data_handler.py` (10 tests, all passing; pins bug #9 silent-failure behavior)
 - [x] `test_spaced_temp_csv.py` (7 passing + 1 skipped pending KCG golden curation; pins bug #7 TypeError; new goldens at `goldens/expected/test_spaced_temp_csv/{air_sgp,salt_sgp}.csv`; added `sgp_golden_folder` fixture)
 - [x] `test_blank_correction.py` (13 passing + 4 skipped pending capek golden curation; pins bugs #3/#4/#5 with synthetic `_final_check` inputs; added `synthetic_inps_csv_factory`, `synthetic_blank_folder`, `capek_golden_folder` fixtures)
-- [ ] `test_final_file_creation.py`
+- [x] `test_final_file_creation.py` (15 passing + 2 skipped pending qc_flag re-emission of committed blank_corrected fixtures; pins bug #10 with RangeIndex synthetic input; surfaced bug #16: `expected_columns` requires qc_flag column that legacy fixtures lack — current code returns empty `files_per_date` on those folders)
 - [ ] `test_freezing_reviewer.py` (optional, gated on DISPLAY)
 
 ### Coverage target
@@ -124,4 +124,5 @@ The agent must never delete files. The following pre-existing files need manual 
 13. *(surfaced in Phase 2)* `unique_dilutions` can't handle lists — `pandas.Series.unique()` raises TypeError on unhashable types — `df_utils.py:50`
 14. *(surfaced in Phase 2)* `sort_files_by_date` trailing-number regex `(\d+)\.csv$` requires digit immediately before `.csv`; `(N).csv` versioning gives 0 for all versioned files — `path_utils.py:117`
 15. *(surfaced in Phase 2.c)* `_extrapolate_blanks` raises `ValueError: setting an array element with a sequence` when the input `df_blanks` has a numeric-dtype `dilution` column: `df_blanks.loc[temp] = {"dilution": (1,), ...}` cannot inject a tuple into a single int/float cell. Real combined-blank CSVs ship with object-dtype tuple cells so this never triggers in production, but it's an unguarded invariant — `blank_correction.py:506`
+16. *(surfaced in Phase 2.d)* `FinalFileCreation._get_files_per_date` and `create_all_final_files` hard-code `expected_columns=(..., "qc_flag")` in `read_with_flexible_header`. Any blank_corrected_*.csv emitted before bug #3's fix lands has only 5 columns (no qc_flag); `read_with_flexible_header` then fails to locate the column-header row, prints "No columns ... found", returns the whole file as header_lines, and `skiprows=0` reads garbage. Net effect: silent empty `files_per_date` on every legacy project folder (incl. the committed `tests/test_data/test_project/` and `tests/test_data/capek/` fixtures). — `final_file_creation.py:36,73-80`
 
