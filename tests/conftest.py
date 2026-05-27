@@ -120,6 +120,12 @@ def sgp_test_folder(test_data_root: Path) -> Path:
 
 
 @pytest.fixture(scope="session")
+def sgp_golden_folder(goldens_root: Path) -> Path:
+    """Curated SGP 2.21.24 base input under goldens/inputs/ (preferred over raw folder)."""
+    return goldens_root / "inputs" / "sgp_2_21_24_base"
+
+
+@pytest.fixture(scope="session")
 def sgp_3_28_folder(test_data_root: Path) -> Path:
     return test_data_root / "SGP 3.28.24 base"
 
@@ -132,6 +138,17 @@ def kcg_test_folder(test_data_root: Path) -> Path:
 @pytest.fixture(scope="session")
 def capek_project_folder(test_data_root: Path) -> Path:
     return test_data_root / "capek"
+
+
+@pytest.fixture(scope="session")
+def capek_golden_folder(goldens_root: Path) -> Path:
+    """Curated capek project subset under goldens/inputs/ (preferred over raw folder).
+
+    Tests should check `(folder / "<expected_file>").exists()` and skip cleanly
+    when the human hasn't yet curated the needed files (see
+    `goldens/inputs/capek/.NEEDED.md`).
+    """
+    return goldens_root / "inputs" / "capek"
 
 
 @pytest.fixture(scope="session")
@@ -253,6 +270,20 @@ def synthetic_dat_factory(tmp_path: Path) -> Callable[..., Path]:
     return _factory
 
 
+_DEFAULT_INPS_HEADER: dict[str, str] = {
+    "site": "TEST",
+    "start_time": "2024-01-01 00:00:00",
+    "end_time": "2024-01-01 12:00:00",
+    "filter_color": "white",
+    "vol_air_filt": "100",
+    "proportion_filter_used": "1.0",
+    "vol_susp": "10",
+    "treatment": "base",
+    "notes": "synthetic",
+    "user": "pytest",
+}
+
+
 @pytest.fixture
 def synthetic_inps_csv_factory(tmp_path: Path) -> Callable[..., Path]:
     """
@@ -260,37 +291,114 @@ def synthetic_inps_csv_factory(tmp_path: Path) -> Callable[..., Path]:
 
     Signature:
         synthetic_inps_csv_factory(
-            name: str,
-            df: pd.DataFrame,           # must have columns: degC, dilution, INPS_L,
-                                        #                    lower_CI, upper_CI [, qc_flag]
-            header: dict,               # site, start_time, end_time, treatment, ...
-        ) -> Path
+            name: str = "synthetic",
+            df: pd.DataFrame | None = None,
+            header: dict | None = None,
+            subfolder: str | None = None,
+            filename: str | None = None,  # full filename; overrides name pattern
+        ) -> Path  # path to written CSV
 
-    TODO: implement once first test that needs it is written.
+    Default df contains 5 monotonic rows; columns: degC, dilution, INPS_L,
+    lower_CI, upper_CI. Header defaults to a synthetic site=TEST entry; caller
+    may override individual keys.
     """
 
-    def _factory(*args, **kwargs) -> Path:  # noqa: ARG001
-        raise NotImplementedError("synthetic_inps_csv_factory not yet implemented.")
+    def _factory(
+        name: str = "synthetic",
+        df: pd.DataFrame | None = None,
+        header: dict | None = None,
+        subfolder: str | None = None,
+        filename: str | None = None,
+    ) -> Path:
+        if df is None:
+            df = pd.DataFrame(
+                {
+                    "degC": [-18.0, -19.0, -20.0, -21.0, -22.0],
+                    "dilution": [1, 1, 1, 1, 1],
+                    "INPS_L": [10.0, 20.0, 40.0, 80.0, 160.0],
+                    "lower_CI": [5.0, 10.0, 20.0, 40.0, 80.0],
+                    "upper_CI": [15.0, 30.0, 60.0, 120.0, 240.0],
+                }
+            )
+        merged_header = {**_DEFAULT_INPS_HEADER, **(header or {})}
+        folder = (tmp_path / subfolder) if subfolder else tmp_path
+        folder.mkdir(parents=True, exist_ok=True)
+        out = folder / (filename or f"INPs_L_frozen_at_temp_{name}.csv")
+        with open(out, "w") as f:
+            f.write(f"filename = {out.name}\n")
+            for k, v in merged_header.items():
+                f.write(f"{k} = {v}\n")
+            df.to_csv(f, index=False, lineterminator="\n")
+        return out
 
     return _factory
 
 
 @pytest.fixture
-def synthetic_blank_folder(tmp_path: Path) -> Callable[..., Path]:
+def synthetic_blank_folder(
+    tmp_path: Path, synthetic_inps_csv_factory: Callable[..., Path]
+) -> Callable[..., Path]:
     """
-    Build a project tree under tmp_path containing N blank folders + 1 sample folder.
+    Build a project tree under tmp_path containing N blank folders + sample folders.
 
     Signature:
         synthetic_blank_folder(
             num_blanks: int = 2,
-            num_samples_per_blank: int = 1,
-            with_sample_folder: bool = True,
-        ) -> Path  # returns project root suitable for BlankCorrector(project_folder=...)
+            num_samples: int = 1,
+            blank_inps_df: pd.DataFrame | None = None,
+            sample_inps_df: pd.DataFrame | None = None,
+            blank_header_overrides: list[dict] | None = None,
+            sample_header_overrides: list[dict] | None = None,
+        ) -> Path  # project root suitable for BlankCorrector(project_folder=...)
 
-    TODO: implement once TestApplyBlanks edge cases need it.
+    Each blank lives at <root>/<site> <start> <end> blank/INPs_L_*.csv.
+    Each sample at  <root>/<site> <date> base/INPs_L_*.csv.
     """
 
-    def _factory(*args, **kwargs) -> Path:  # noqa: ARG001
-        raise NotImplementedError("synthetic_blank_folder not yet implemented.")
+    def _factory(
+        num_blanks: int = 2,
+        num_samples: int = 1,
+        blank_inps_df: pd.DataFrame | None = None,
+        sample_inps_df: pd.DataFrame | None = None,
+        blank_header_overrides: list[dict] | None = None,
+        sample_header_overrides: list[dict] | None = None,
+    ) -> Path:
+        root = tmp_path / "project"
+        root.mkdir(exist_ok=True)
+        for i in range(num_blanks):
+            month = 5 + i  # 5, 6, 7, ...
+            date_str = f"0{month}.01.24"
+            sub = f"TEST 0{month}.01.24 0{month}.15.24 blank"
+            override = (blank_header_overrides or [{}] * num_blanks)[i]
+            hdr = {
+                "treatment": "blank",
+                "start_time": f"2024-0{month}-01 00:00:00",
+                "end_time": f"2024-0{month}-15 00:00:00",
+                **override,
+            }
+            synthetic_inps_csv_factory(
+                name=f"blank_{i}_{date_str}",
+                df=blank_inps_df,
+                header=hdr,
+                subfolder=f"project/{sub}",
+            )
+        for i in range(num_samples):
+            month = 5 + i
+            date_str = f"0{month}.10.24"
+            sub = f"TEST 0{month}.10.24 base"
+            override = (sample_header_overrides or [{}] * num_samples)[i]
+            hdr = {
+                "treatment": "base",
+                "start_time": f"2024-0{month}-10 00:00:00",
+                "end_time": f"2024-0{month}-10 12:00:00",
+                **override,
+            }
+            synthetic_inps_csv_factory(
+                name=f"sample_{i}_{date_str}",
+                df=sample_inps_df,
+                header=hdr,
+                subfolder=f"project/{sub}",
+            )
+        return root
 
     return _factory

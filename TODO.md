@@ -51,8 +51,8 @@ Each test gets a body + golden file. Run `OLAF_REGEN_GOLDEN=1 pytest <test>` to 
 - [x] `test_utils/test_df_utils.py` (17 tests, all passing; surfaced: unique_dilutions can't handle lists)
 - [x] `test_utils/test_path_utils.py` (23 tests, all passing; surfaced: sort_files_by_date trailing-number regex doesn't match `(N).csv` versioning)
 - [x] `test_utils/test_data_handler.py` (10 tests, all passing; pins bug #9 silent-failure behavior)
-- [ ] `test_spaced_temp_csv.py`
-- [ ] `test_blank_correction.py` (largest, biggest payoff)
+- [x] `test_spaced_temp_csv.py` (7 passing + 1 skipped pending KCG golden curation; pins bug #7 TypeError; new goldens at `goldens/expected/test_spaced_temp_csv/{air_sgp,salt_sgp}.csv`; added `sgp_golden_folder` fixture)
+- [x] `test_blank_correction.py` (13 passing + 4 skipped pending capek golden curation; pins bugs #3/#4/#5 with synthetic `_final_check` inputs; added `synthetic_inps_csv_factory`, `synthetic_blank_folder`, `capek_golden_folder` fixtures)
 - [ ] `test_final_file_creation.py`
 - [ ] `test_freezing_reviewer.py` (optional, gated on DISPLAY)
 
