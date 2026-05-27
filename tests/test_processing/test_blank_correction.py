@@ -186,7 +186,10 @@ class TestApplyBlanks:
             pytest.skip("no sample folders curated for apply_blanks")
         from olaf.utils.df_utils import read_with_flexible_header
 
-        _, actual = read_with_flexible_header(produced[0])
+        _, actual = read_with_flexible_header(
+            produced[0],
+            expected_columns=("degC", "dilution", "INPS_L", "lower_CI", "upper_CI", "qc_flag"),
+        )
         assert_csv_matches_golden(
             actual,
             goldens_root / "expected" / "test_blank_correction" / f"{produced[0].stem}.csv",
