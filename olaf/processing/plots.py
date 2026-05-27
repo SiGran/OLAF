@@ -1,29 +1,31 @@
 import itertools
+from datetime import datetime
+from pathlib import Path
+
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 
-from datetime import datetime
-from pathlib import Path
-
-from olaf.utils.df_utils import read_with_flexible_header, header_to_dict
-from olaf.utils.path_utils import is_within_dates
 from olaf.utils.data_handler import DataHandler
-from olaf.utils.plot_utils import apply_plot_settings, PLOT_SETTINGS
+from olaf.utils.df_utils import header_to_dict, read_with_flexible_header
+from olaf.utils.path_utils import is_within_dates
+from olaf.utils.plot_utils import PLOT_SETTINGS, apply_plot_settings
 
 
 class Plots:
-    DEFAULT_MARKERS = ['o', 's', '^', 'v', 'D', 'p', '*', 'h', 'X', 'P', '<', '>', 'd']
-    def __init__(self,
-                 project_folder: Path,
-                 includes: tuple,
-                 excludes: tuple,
-                 start_date: str,
-                 end_date: str,
-                 num_columns: int,
-                 site_markers: dict,
-                 save_name: str
-                ) -> None:
+    DEFAULT_MARKERS = ["o", "s", "^", "v", "D", "p", "*", "h", "X", "P", "<", ">", "d"]
+
+    def __init__(
+        self,
+        project_folder: Path,
+        includes: tuple,
+        excludes: tuple,
+        start_date: str,
+        end_date: str,
+        num_columns: int,
+        site_markers: dict,
+        save_name: str,
+    ) -> None:
         """
         This class is used for plotting INP spectra and can make lots of individual plots
         with or without site comparisons, or a single figure of subplots with or without
@@ -49,8 +51,7 @@ class Plots:
         self.save_name = save_name
         self.desired_files_df = self.find_desired_files(includes, excludes, start_date, end_date)
 
-
-    def plot_data(self, subplots = False, site_comparison = False, tbs = False):
+    def plot_data(self, subplots=False, site_comparison=False, tbs=False):
         """
         Function with multiple options for plotting INP data.
         Args:
@@ -83,23 +84,26 @@ class Plots:
         current_time = datetime.now().strftime("%Y%m%d_%H%M%S")
 
         if subplots:
-            n_cols = min(self.num_columns, n_dates) #user chooses num_columns on main_plots
+            n_cols = min(self.num_columns, n_dates)  # user chooses num_columns on main_plots
             n_rows = int(np.ceil(n_dates / n_cols))
 
             # sizing of subplots
-            width_per_subplot = PLOT_SETTINGS['figure']['figsize'][0]
-            height_per_subplot = PLOT_SETTINGS['figure']['figsize'][1]
+            width_per_subplot = PLOT_SETTINGS["figure"]["figsize"][0]
+            height_per_subplot = PLOT_SETTINGS["figure"]["figsize"][1]
 
             # sizing of figure
-            scale = PLOT_SETTINGS['figure']['subplot_scale']
+            scale = PLOT_SETTINGS["figure"]["subplot_scale"]
             total_width = width_per_subplot * n_cols * scale
             total_height = height_per_subplot * n_rows * scale
 
             # make figure
-            fig, axes = plt.subplots(n_rows, n_cols,
-                                     figsize=(total_width, total_height),
-                                     dpi=PLOT_SETTINGS['figure']['dpi'],
-                                     squeeze=False)
+            fig, axes = plt.subplots(
+                n_rows,
+                n_cols,
+                figsize=(total_width, total_height),
+                dpi=PLOT_SETTINGS["figure"]["dpi"],
+                squeeze=False,
+            )
             # flatten to 1D array
             axes = axes.flatten()
 
@@ -124,36 +128,37 @@ class Plots:
 
                     marker = self.get_marker(site)
 
-                # Plot each treatment
+                    # Plot each treatment
                     for treatment in site_data["treatment"].unique():
                         treatment_data = site_data[site_data["treatment"] == treatment]
 
                         # Calculate error bars (asymmetric)
-                        yerr= [treatment_data["lower_CI"], treatment_data["upper_CI"]]
+                        yerr = [treatment_data["lower_CI"], treatment_data["upper_CI"]]
 
                         if tbs:
                             color = None
                         else:
-                            color = PLOT_SETTINGS['treatment_colors'].get(treatment, None)
+                            color = PLOT_SETTINGS["treatment_colors"].get(treatment, None)
 
-
-                        if site_comparison and site != 'default':
+                        if site_comparison and site != "default":
                             label = f"{site} - {treatment}"
                         else:
                             label = treatment
 
                         # Manually add marker setting
-                        line_settings = PLOT_SETTINGS['line'].copy()
-                        line_settings['marker'] = marker
+                        line_settings = PLOT_SETTINGS["line"].copy()
+                        line_settings["marker"] = marker
 
-                        ax.errorbar(treatment_data["degC"],
-                                    treatment_data["INPS_L"],
-                                    yerr=yerr,
-                                    label=label,
-                                    color = color,
-                                    **line_settings)
+                        ax.errorbar(
+                            treatment_data["degC"],
+                            treatment_data["INPS_L"],
+                            yerr=yerr,
+                            label=label,
+                            color=color,
+                            **line_settings,
+                        )
 
-                        ax.set_title(f'{date}')
+                        ax.set_title(f"{date}")
                     apply_plot_settings(ax, settings=PLOT_SETTINGS)
 
                 # Hide extra subplots if any
@@ -162,14 +167,17 @@ class Plots:
 
             plt.tight_layout()
 
-            plt.savefig(f'{save_path}/{self.save_name}_created_on-'
-                        f'{current_time}.png', **PLOT_SETTINGS['save'])
+            plt.savefig(
+                f"{save_path}/{self.save_name}_created_on-" f"{current_time}.png",
+                **PLOT_SETTINGS["save"],
+            )
 
         else:
             # Create separate figure for each date
             for date in unique_site_dates:
-                fig, ax = plt.subplots(figsize=PLOT_SETTINGS['figure']['figsize'],
-                                       dpi=PLOT_SETTINGS['figure']['dpi'])
+                fig, ax = plt.subplots(
+                    figsize=PLOT_SETTINGS["figure"]["figsize"], dpi=PLOT_SETTINGS["figure"]["dpi"]
+                )
 
                 date_data = all_inp_data_df[all_inp_data_df[date_version] == date]
 
@@ -187,7 +195,7 @@ class Plots:
                     else:
                         site_data = date_data
 
-                    #marker = self.site_markers.get(site)
+                    # marker = self.site_markers.get(site)
                     marker = self.get_marker(site)
 
                     # Plot each treatment
@@ -200,23 +208,25 @@ class Plots:
                         if tbs:
                             color = None
                         else:
-                            color = PLOT_SETTINGS['treatment_colors'].get(treatment, None)
+                            color = PLOT_SETTINGS["treatment_colors"].get(treatment, None)
 
-                        if site_comparison and site != 'default':
+                        if site_comparison and site != "default":
                             label = f"{site} - {treatment}"
                         else:
                             label = treatment
 
-                        line_settings = PLOT_SETTINGS['line'].copy()
-                        line_settings['marker'] = marker
+                        line_settings = PLOT_SETTINGS["line"].copy()
+                        line_settings["marker"] = marker
 
-                        ax.errorbar(treatment_data["degC"],
-                                    treatment_data["INPS_L"],
-                                    yerr=yerr,
-                                    label=label,
-                                    color = color,
-                                    **line_settings)
-                    ax.set_title(f'{date}')
+                        ax.errorbar(
+                            treatment_data["degC"],
+                            treatment_data["INPS_L"],
+                            yerr=yerr,
+                            label=label,
+                            color=color,
+                            **line_settings,
+                        )
+                    ax.set_title(f"{date}")
 
                     apply_plot_settings(ax, settings=PLOT_SETTINGS)
                 plt.tight_layout()
@@ -229,12 +239,11 @@ class Plots:
                     save_site = ""
 
                 if save_path:
-                    safe_date = str(date).replace('/', '_').replace(
-                        ' ', '_').replace(':', '-')
-                    plt.savefig(f'{save_path}/{save_site}{safe_date}_created_on-'
-                                f'{current_time}.png', **PLOT_SETTINGS['save'])
-
-
+                    safe_date = str(date).replace("/", "_").replace(" ", "_").replace(":", "-")
+                    plt.savefig(
+                        f"{save_path}/{save_site}{safe_date}_created_on-" f"{current_time}.png",
+                        **PLOT_SETTINGS["save"],
+                    )
 
     def find_desired_files(self, includes, excludes, start_date, end_date):
         """
@@ -259,8 +268,12 @@ class Plots:
             if is_within_dates(dates=(start_date, end_date), folder_name=folder.name):
                 if folder.is_dir() and not any(excl in folder.name for excl in excludes):
                     data_handler = DataHandler(
-                        folder, 0, suffix=".csv", includes=includes,
-                        excludes=excludes, date_col=None
+                        folder,
+                        0,
+                        suffix=".csv",
+                        includes=includes,
+                        excludes=excludes,
+                        date_col=None,
                     )
                     if data_handler.data_file and data_handler.data_file not in file_paths:
                         file_paths.append(data_handler.data_file)
@@ -275,8 +288,17 @@ class Plots:
         for file in file_paths:
             # probably a cleaner way to do this
             if "blank_corrected" in includes:
-                header_lines, df = read_with_flexible_header(file, expected_columns=(
-                    "degC", "dilution", "INPS_L", "lower_CI", "upper_CI", "qc_flag"))
+                header_lines, df = read_with_flexible_header(
+                    file,
+                    expected_columns=(
+                        "degC",
+                        "dilution",
+                        "INPS_L",
+                        "lower_CI",
+                        "upper_CI",
+                        "qc_flag",
+                    ),
+                )
             else:
                 header_lines, df = read_with_flexible_header(file)
             dict_header = header_to_dict(header_lines)
@@ -310,8 +332,9 @@ class Plots:
             df["treatment"] = treatment_str
 
             if "TBS" in site_str:
-                altitude_string = (f"{dict_header['lower_altitude']}m - "
-                                   f"{dict_header['upper_altitude']}m")
+                altitude_string = (
+                    f"{dict_header['lower_altitude']}m - " f"{dict_header['upper_altitude']}m"
+                )
                 df["altitude_range"] = altitude_string
 
             all_data.append(df)
@@ -323,7 +346,6 @@ class Plots:
         return combined_df
 
     def get_marker(self, site):
-
         # Check if user defined this marker
         if site in self.site_markers:
             return self.site_markers[site]
@@ -336,6 +358,3 @@ class Plots:
         marker = next(self._marker_cycle)
         self._auto_markers[site] = marker
         return marker
-
-
-

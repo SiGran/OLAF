@@ -1,17 +1,15 @@
 import re
-import tkinter as tk
 from datetime import datetime
 from pathlib import Path
 
 from olaf.CONSTANTS import DATE_PATTERN
-from olaf.image_verification.freezing_reviewer import FreezingReviewer
 from olaf.processing.graph_data_csv import GraphDataCSV
 from olaf.processing.spaced_temp_csv import SpacedTempCSV
 
 # -----------------------------    USER INPUTS    -------------------------------------
-#test_folder = Path.cwd().parent / "tests" /"test_data" / "fpd" / "NSA no.2 05.22.25 base"
-#test_folder = Path("D:/INP Mentor/IOPs/TRACER/Swarup China S3 Heat treatments/HOU S3 07.25.22 base")
-#test_folder = Path("G:/Shared drives/INP Mentor/Current Data Processing/CoURAGE/Ground/QAQC as of 04.10.26 CH/(M1) 08.12.25 base rerun")
+# test_folder = Path.cwd().parent / "tests" /"test_data" / "fpd" / "NSA no.2 05.22.25 base"
+# test_folder = Path("D:/INP Mentor/IOPs/TRACER/Swarup China S3 Heat treatments/HOU S3 07.25.22 base")
+# test_folder = Path("G:/Shared drives/INP Mentor/Current Data Processing/CoURAGE/Ground/QAQC as of 04.10.26 CH/(M1) 08.12.25 base rerun")
 test_folder = Path("D:OLAF/Freezing point depression tests/RAM_CINC A12 07.16.25 base")
 site = "RAM_CINC"
 start_time = "2025-07-16 16:20:00"
@@ -22,12 +20,12 @@ user = "Oren/Carson"
 IS = "IS2"
 num_samples = 6  # In the file
 sample_type = "salt"  # air, liquid or soil
-vol_air_filt = 1 # L
+vol_air_filt = 1  # L
 wells_per_sample = 32
 proportion_filter_used = 1.0  # between 0 and 1.0
 vol_susp = 10  # mL
 treatment = (
-     "base",
+    "base",
     # "heat",
     # "peroxide",
     # "blank",
@@ -65,7 +63,7 @@ dry_mass = 2  # dried mass of soil in g
 
 # if seawater or other salty sample, use this to estimate freezing point depression
 # use this formula: {dilution:adjustment}
-freezing_point_depression_dict = {"Sample_0":2, "Sample_1":0.2}
+freezing_point_depression_dict = {"Sample_0": 2, "Sample_1": 0.2}
 
 
 # ----------------------- Assembling the header for the CSV file -----------------------
@@ -101,7 +99,7 @@ if __name__ == "__main__":
     if "TBS" in site:
         header += f"lower_altitude = {lower_altitude}\nupper_altitude = {upper_altitude}\n"
 
-    #GUI
+    # GUI
     # window = tk.Tk()
     # app = FreezingReviewer(
     #     window,
@@ -116,10 +114,8 @@ if __name__ == "__main__":
     # # Processing to create .csv file
     spaced_temp_csv = SpacedTempCSV(test_folder, num_samples, includes=treatment)
     spaced_temp_csv.create_temp_csv(
-        dict_samples_to_dilution,
-        freezing_point_depression_dict,
-        wells_per_sample,
-        sample_type)
+        dict_samples_to_dilution, freezing_point_depression_dict, wells_per_sample, sample_type
+    )
 
     # Processing to create INPs/L
     # Use regular expression to check for dates in folder name:

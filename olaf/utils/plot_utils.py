@@ -45,7 +45,7 @@ def plot_INPS_L(result_df, save_path, header_dict):
     else:
         plt.ylabel("INP Concentration (per L STP)")
     plt.yscale("log")
-    plt.ylim(1e-4,1e4)
+    plt.ylim(1e-4, 1e4)
     # plt.ylim(1e-4,result_df["INPS_L"].max() * 10)
     plt.xlim(-30, 0)
     plt.xticks(np.arange(0, -35, -5))
@@ -224,6 +224,7 @@ def filter_non_error_signal(df_corrected):
     plot_eligible_data = df_corrected[~error_signal_mask]
     return plot_eligible_data
 
+
 def apply_plot_settings(ax, settings):
     """
     Apply plot settings to ax
@@ -234,89 +235,75 @@ def apply_plot_settings(ax, settings):
     Returns: none
 
     """
-    ax.grid(settings['grid']['major'])
-    ax.grid(settings['grid']['minor'])
-    ax.set_xlabel(settings['axes']['xlabel'])
-    ax.set_ylabel(settings['axes']['ylabel'])
-    ax.set_yscale(settings['axes']['yscale'])
+    ax.grid(settings["grid"]["major"])
+    ax.grid(settings["grid"]["minor"])
+    ax.set_xlabel(settings["axes"]["xlabel"])
+    ax.set_ylabel(settings["axes"]["ylabel"])
+    ax.set_yscale(settings["axes"]["yscale"])
     # Set x-axis limits
-    if 'xlim' in settings['axes']:
-        ax.set_xlim(settings['axes']['xlim'])
+    if "xlim" in settings["axes"]:
+        ax.set_xlim(settings["axes"]["xlim"])
 
     # Set y-axis limits (optional)
-    if 'ylim' in settings['axes']:
-        ax.set_ylim(settings['axes']['ylim'])
+    if "ylim" in settings["axes"]:
+        ax.set_ylim(settings["axes"]["ylim"])
 
     # Set x-axis tick positions
-    if 'xticks_major' in settings['axes']:
-        ax.set_xticks(settings['axes']['xticks_major'])
+    if "xticks_major" in settings["axes"]:
+        ax.set_xticks(settings["axes"]["xticks_major"])
 
-    if 'xticks_minor' in settings['axes']:
-        ax.set_xticks(settings['axes']['xticks_minor'], minor=True)
+    if "xticks_minor" in settings["axes"]:
+        ax.set_xticks(settings["axes"]["xticks_minor"], minor=True)
 
     # Set y-axis tick positions (optional)
-    if 'yticks_major' in settings['axes']:
-        ax.set_yticks(settings['axes']['yticks_major'])
+    if "yticks_major" in settings["axes"]:
+        ax.set_yticks(settings["axes"]["yticks_major"])
 
-    if 'yticks_minor' in settings['axes']:
-        ax.set_yticks(settings['axes']['yticks_minor'], minor=True)
-    ax.legend(**settings['legend'])
+    if "yticks_minor" in settings["axes"]:
+        ax.set_yticks(settings["axes"]["yticks_minor"], minor=True)
+    ax.legend(**settings["legend"])
+
 
 # This is used for the Plot class but can be used for anything else
 # TODO: apply general plot settings to other plot functions in plot_utils for less lines of code
 PLOT_SETTINGS = {
-        'figure': {
-            'figsize': (10, 6),
-            'dpi': 100,
-            'subplot_scale': 0.8
+    "figure": {"figsize": (10, 6), "dpi": 100, "subplot_scale": 0.8},
+    "axes": {
+        "xlabel": "Temp (deg C)",
+        "ylabel": "INP/L",
+        "yscale": "log",
+        "xticks_major": np.arange(0, -35, -5),
+        "xticks_minor": np.arange(0, -31, -1),
+        "xlim": (-30, 0),
+        "ylim": (1e-4, 1e4),
+    },
+    "grid": {
+        "major": {
+            "visible": True,
+            "which": "major",
+            "linestyle": "--",
+            "color": "gray",
+            "linewidth": 0.5,
+            "alpha": 0.5,
         },
-        'axes': {
-            'xlabel': 'Temp (deg C)',
-            'ylabel': 'INP/L',
-            'yscale': 'log',
-            'xticks_major': np.arange(0, -35, -5),
-            'xticks_minor': np.arange(0, -31, -1),
-            'xlim': (-30, 0),
-            'ylim': (1e-4, 1e4)
+        "minor": {
+            "visible": True,
+            "which": "minor",
+            "linestyle": "--",
+            "color": "gray",
+            "linewidth": 0.5,
+            "alpha": 0.1,
         },
-        'grid': {
-                'major': {
-                    'visible': True,
-                    'which': 'major',
-                    'linestyle': '--',
-                    'color': 'gray',
-                    'linewidth': 0.5,
-                    'alpha': 0.5
-                },
-                'minor': {
-                    'visible': True,
-                    'which': 'minor',
-                    'linestyle': '--',
-                    'color': 'gray',
-                    'linewidth': 0.5,
-                    'alpha': 0.1
-                }
-        },
-        'line': {
-            'linestyle': 'none',
-            'marker': 'o',
-            'markersize': 6,
-            'capsize': 4,
-            'capthick': 1.5,
-            'elinewidth': 1.5
-        },
-        'treatment_colors': {
-            'base': 'black',
-            'heat': 'darkred',
-            'peroxide': 'purple'
-        },
-        'legend': {
-            'loc': 'best',
-            'framealpha': 0.9
-        },
-        'save': {
-            'dpi': 300,
-            'bbox_inches': 'tight',
-            'format': 'png'
-        }
-    }
+    },
+    "line": {
+        "linestyle": "none",
+        "marker": "o",
+        "markersize": 6,
+        "capsize": 4,
+        "capthick": 1.5,
+        "elinewidth": 1.5,
+    },
+    "treatment_colors": {"base": "black", "heat": "darkred", "peroxide": "purple"},
+    "legend": {"loc": "best", "framealpha": 0.9},
+    "save": {"dpi": 300, "bbox_inches": "tight", "format": "png"},
+}

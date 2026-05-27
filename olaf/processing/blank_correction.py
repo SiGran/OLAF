@@ -1,4 +1,3 @@
-
 from datetime import datetime
 from pathlib import Path
 
@@ -24,7 +23,7 @@ class BlankCorrector:
         blank_includes: tuple,
         blank_excludes: tuple,
         sample_excludes: tuple,
-        multiple_per_day=False
+        multiple_per_day=False,
     ) -> None:
         self.project_folder = project_folder
         self.blank_files = self._find_blank_files(multiple_per_day, blank_includes, blank_excludes)
@@ -175,10 +174,11 @@ class BlankCorrector:
         for dates, data in self.combined_blank.items():
             df_blanks, header_info_blanks = data
             for experiment_folder in self.project_folder.iterdir():
-                if ("blank" not in experiment_folder.name
-                        and not any(excl in experiment_folder.name for excl in self.sample_excludes)
-                        and (is_within_dates(dates, experiment_folder.name) or not only_within_dates
-                )):
+                if (
+                    "blank" not in experiment_folder.name
+                    and not any(excl in experiment_folder.name for excl in self.sample_excludes)
+                    and (is_within_dates(dates, experiment_folder.name) or not only_within_dates)
+                ):
                     # Collect all INPs/L files in the experiment folder
                     input_files = list(experiment_folder.rglob("INPs_L*.csv"))
                     # Process the latest INPS file (assumes one relevant per folder)
