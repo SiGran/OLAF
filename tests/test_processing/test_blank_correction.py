@@ -309,7 +309,7 @@ class TestFinalCheck:
     def test_non_monotonic_corrected_inps_triggers_replacement(self, tmp_path: Path) -> None:
         """BUG #4: chained comparison fires here; row[2] is replaced with row[1]."""
         bc = _empty_corrector(tmp_path)
-        # TODO: these are just the same, is this okay?
+        # NOTE: `corrected` intentionally matches `inps_l` here; we only need a non-monotonic series to exercise the replacement path.
         df_c, df_i = _final_check_inputs(
             inps_l=[10.0, 50.0, 30.0, 80.0, 160.0],
             corrected=[10.0, 50.0, 30.0, 80.0, 160.0],
