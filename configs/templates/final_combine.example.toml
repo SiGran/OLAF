@@ -1,0 +1,38 @@
+# Stage 3 configuration template for OLAF main_final_combine.py
+#
+# Copy this file into your campaign folder, e.g.:
+#   configs/<CAMPAIGN>/final_combine/final_combine.toml
+# then edit the values below. Run with:
+#   python -m olaf.main_final_combine configs/<CAMPAIGN>/final_combine/final_combine.toml
+
+# Project folder that contains the blank-corrected experiment folders.
+project_folder = "tests/test_data/NSA_qc_flag_test"
+
+# Strings that must all appear in a filename for it to be combined.
+includes = ["INPs_L", "frozen_at_temp", "reviewed", "blank_corrected", "10%"]
+
+# Strings that exclude a file from being combined.
+excludes = ["blanks"]
+
+# --- ARM header metadata ---
+# These structured fields are assembled into the output header (with the OLAF error signal
+# injected automatically). To supply a fully custom header instead, set `header_start` to a
+# multi-line string and the fields below will be ignored.
+arm_mentor = "Jessie Creamean at Colorado State University"
+contact = "Jessie.Creamean@colostate.edu; cchume@rams.colostate.edu"
+data_description = "Number of ice nucleating particles per L of air at STP (0 degC and 101.325 kPa); lower 95 percent confidence limit; upper 95 percent confidence limit"
+metadata_url = "https://docs.arm.gov/share/s/BkJRSN5mR1mcZKjZm13Vtw"
+treatment_flags_description = "0 = untreated; 1 = heat treated; and 2 = peroxide treated"
+qc_flag_description = "0 = no correction applied; 1 = correction applied. For more details visit: doi.org/10.5194/essd-17-6943-2025"
+
+# header_start = """
+# ARM Mentor: ...
+# Contact: ...
+# """
+
+# Maps each treatment name to its integer flag in the ARM output.
+# Keep this table LAST: in TOML, a [table] header captures every key below it.
+[treatment_dict]
+base = 0
+heat = 1
+peroxide = 2

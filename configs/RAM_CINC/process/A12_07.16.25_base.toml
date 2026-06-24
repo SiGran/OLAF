@@ -1,0 +1,28 @@
+# Stage 1 config for RAM_CINC, sample A12, 07.16.25, base treatment.
+test_folder = "D:OLAF/Freezing point depression tests/RAM_CINC A12 07.16.25 base"
+site = "RAM_CINC"
+start_time = "2025-07-16 16:20:00"
+end_time = "2025-07-16 17:52:00"
+filter_color = "white"
+notes = "none"
+user = "Oren/Carson"
+IS = "IS2"
+num_samples = 6
+sample_type = "salt"
+vol_air_filt = 1.0
+wells_per_sample = 32
+proportion_filter_used = 1.0
+vol_susp = 10
+treatment = ["base"]
+
+[dict_samples_to_dilution]
+Sample_0 = 1
+Sample_1 = 11
+Sample_2 = 121
+Sample_3 = 1331
+Sample_4 = 14641
+Sample_5 = inf
+
+[freezing_point_depression_dict]
+Sample_0 = 2
+Sample_1 = 0.2

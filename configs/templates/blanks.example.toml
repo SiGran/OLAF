@@ -1,0 +1,27 @@
+# Stage 2 configuration template for OLAF main_for_blanks.py
+#
+# Copy this file into your campaign folder, e.g.:
+#   configs/<CAMPAIGN>/blanks/blanks.toml
+# then edit the values below. Run with:
+#   python -m olaf.main_for_blanks configs/<CAMPAIGN>/blanks/blanks.toml
+
+# Project folder that contains all the experiment folders (including the blanks).
+project_folder = "tests/test_data/NSA_qc_flag_test"
+
+# Strings that must all appear in a blank INPs/L filename for it to be used.
+blank_includes = ["INPs_L_frozen_at_temp_reviewed", "blank"]
+
+# Strings that exclude a file from being treated as a blank.
+blank_excludes = []
+
+# Any sample dates/folders you do NOT want blank corrected.
+sample_excludes = ["05.22.25"]
+
+# Use all blank files per day (true) or only the latest per day (false).
+multiple_per_day = true
+
+# Only correct samples whose dates fall within the blank date range.
+only_within_dates = false
+
+# Show the corrected-vs-pre-corrected comparison plot.
+show_comp_plot = true
