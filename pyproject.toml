@@ -13,6 +13,7 @@ keywords = ["freezing", "data acquisition", "spectrometer"]
 requires-python = ">=3.11.0"
 dependencies = [
     "matplotlib>=3.10.3",
+    "numpy>=1.26.0",
     "pandas>=2.2.3",
 ]
 
@@ -35,7 +36,7 @@ dev = [
 line-length = 100
 
 [tool.ruff.lint]
-extend-select = ["I", "F", "E", "W"]
+extend-select = ["I", "F", "E", "W", "B", "UP", "SIM", "RUF"]
 
 [tool.pytest.ini_options]
 testpaths = "tests"

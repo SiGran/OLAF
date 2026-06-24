@@ -456,10 +456,7 @@ class BlankCorrector:
             )
 
             # Use the 4 points before the last one
-            if len(df_blanks) >= 5:
-                last_four = df_blanks.iloc[-5:-1]
-            else:
-                last_four = df_blanks.iloc[:-1]
+            last_four = df_blanks.iloc[-5:-1] if len(df_blanks) >= 5 else df_blanks.iloc[:-1]
 
             # Add the excluded temperature to extrapolation list
             if df_blanks.index[-1] not in extrapolation_temps:

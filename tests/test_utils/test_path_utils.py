@@ -236,7 +236,7 @@ class TestSortFilesByDate:
         # DATE_PATTERN allows 1-2 digit month/day, 2-digit year
         import re
 
-        for key in result.keys():
+        for key in result:
             assert re.match(r"\d{1,2}\.\d{1,2}\.\d{2}", key), f"bad key: {key}"
 
 

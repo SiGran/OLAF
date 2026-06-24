@@ -1,0 +1,19 @@
+coverage:
+  status:
+    project:
+      default:
+        target: auto
+        threshold: 2%
+    patch:
+      default:
+        target: 85%
+
+ignore:
+  - "olaf/main.py"
+  - "olaf/main_for_blanks.py"
+  - "olaf/main_final_combine.py"
+  - "olaf/main_plots.py"
+  - "olaf/image_verification/"
+  - "olaf/processing/graph_data_csv.py"
+  - "olaf/processing/plots.py"
+  - "olaf/utils/plot_utils.py"

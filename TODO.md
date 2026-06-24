@@ -62,14 +62,22 @@ Each test gets a body + golden file. Run `OLAF_REGEN_GOLDEN=1 pytest <test>` to 
 - [ ] Every line referenced by the 12 review-bugs covered by ≥ 1 test
 
 ## Phase 3 — Bugfix Branch (`bugfix/critical-issues`)
-Land focused commits. Each should flip exactly the goldens it claims to fix.
 
-- [ ] Commit "fix: NaN + index bugs in convert_INPs_L" (bugs #1, #2, #8) — deferred until GraphDataCSV rewrite branch
-- [ ] Commit "fix: blank correction QC logic" (bugs #3, #4, #5)
-- [ ] Commit "fix: input validation in main + spaced temp" (bugs #6, #7, #11, #12)
-- [ ] Commit "fix: DataHandler raises + final_file iloc" (bugs #9, #10) — breaking, document in PR
-- [ ] Commit "chore: housekeeping" — delete stray `on openpyxl`, pin `numpy`, enable ruff `B/UP/SIM/RUF`
-- [ ] Open PR `bugfix/critical-issues` → parent
+> **Decision (deferred):** The behavioral bugfixes below are **intentionally not
+> being landed yet**. A larger overhaul is planned that will redesign the
+> affected code paths (blank-correction QC, `DataHandler` error contract,
+> `final_file` indexing, `GraphDataCSV`), so fixing the semantics now would just
+> create churn we'd redo. Instead, the test suite continues to **pin the current
+> (develop) behavior** as characterization tests, and this branch ships only
+> **zero-behavior housekeeping** (numpy pin + ruff `B/UP/SIM/RUF` + lint cleanup).
+> The bug semantics will be designed correctly as part of the overhaul.
+
+- [ ] Commit "fix: NaN + index bugs in convert_INPs_L" (bugs #1, #2, #8) — deferred to GraphDataCSV rewrite/overhaul
+- [ ] Commit "fix: blank correction QC logic" (bugs #3, #4, #5) — deferred to overhaul; current behavior pinned
+- [ ] Commit "fix: input validation in main + spaced temp" (bugs #6, #11, #12) — deferred to overhaul; bug #7 already fixed on develop
+- [ ] Commit "fix: DataHandler raises + final_file iloc" (bugs #9, #10) — deferred to overhaul (breaking; needs holistic design)
+- [x] Commit "chore: housekeeping" — pin `numpy`, enable ruff `B/UP/SIM/RUF`, behavior-preserving lint cleanup
+- [x] Open PR `bugfix/critical-issues` → parent (now scoped to housekeeping only)
 
 ### Pre-commit fallout
 - Pre-commit's `mypy v0.910` hook (rev pinned in `.pre-commit-config.yaml`) flags

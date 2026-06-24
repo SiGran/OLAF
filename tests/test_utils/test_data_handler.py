@@ -222,8 +222,10 @@ class TestDataHandlerEdgeCases:
         # Without parse_dates, 'Time' comes through as a plain text column
         assert "Date" in handler.data.columns
         assert "Time" in handler.data.columns
-        # No changes column added (the Unnamed:1 branch was skipped)
         assert "Unnamed: 1" not in handler.data.columns
+        # 'changes' is present because reviewed.dat already carries it,
+        # not because the branch added it
+        assert "changes" in handler.data.columns
 
     def test_uses_self_data_and_data_file_when_neither_provided(
         self, kcg_golden_folder, tmp_path

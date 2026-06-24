@@ -12,7 +12,7 @@ def read_with_flexible_header(
     header_found = False
     header_lines = []
     i = 0
-    with open(file_path, "r") as f:
+    with open(file_path) as f:
         skiprows = 0
         while not header_found:
             line = f.readline()
@@ -64,7 +64,7 @@ def unique_dilutions(series):
             return val
 
     for val in unique_vals:
-        if isinstance(val, (tuple, list)):
+        if isinstance(val, tuple | list):
             # If value is a tuple or list, process each element
             for item in val:
                 cleaned_vals.add(process_value(item))
