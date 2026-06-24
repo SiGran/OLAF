@@ -1,6 +1,7 @@
 import itertools
 from datetime import datetime
 from pathlib import Path
+from typing import ClassVar
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -13,7 +14,9 @@ from olaf.utils.plot_utils import PLOT_SETTINGS, apply_plot_settings
 
 
 class Plots:
-    DEFAULT_MARKERS = ["o", "s", "^", "v", "D", "p", "*", "h", "X", "P", "<", ">", "d"]
+    DEFAULT_MARKERS: ClassVar[list[str]] = [
+        "o", "s", "^", "v", "D", "p", "*", "h", "X", "P", "<", ">", "d",
+    ]
 
     def __init__(
         self,
@@ -112,10 +115,9 @@ class Plots:
 
                 date_data = all_inp_data_df[all_inp_data_df[date_version] == date]
 
-                if tbs:
-                    sites = date_data["altitude_range"].unique()
-                else:
-                    sites = date_data["site"].unique()
+                sites = (
+                    date_data["altitude_range"].unique() if tbs else date_data["site"].unique()
+                )
 
                 for site in sites:
                     if site_comparison:
@@ -181,10 +183,9 @@ class Plots:
 
                 date_data = all_inp_data_df[all_inp_data_df[date_version] == date]
 
-                if tbs:
-                    sites = date_data["altitude_range"].unique()
-                else:
-                    sites = date_data["site"].unique()
+                sites = (
+                    date_data["altitude_range"].unique() if tbs else date_data["site"].unique()
+                )
 
                 for site in sites:
                     if site_comparison:
@@ -231,12 +232,7 @@ class Plots:
                     apply_plot_settings(ax, settings=PLOT_SETTINGS)
                 plt.tight_layout()
 
-                if site_comparison and tbs:
-                    save_site = site + "_"
-                elif site_comparison:
-                    save_site = site + "_"
-                else:
-                    save_site = ""
+                save_site = site + "_" if site_comparison else ""
 
                 if save_path:
                     safe_date = str(date).replace("/", "_").replace(" ", "_").replace(":", "-")
@@ -265,18 +261,19 @@ class Plots:
 
         file_paths = []
         for folder in self.project_folder.iterdir():
-            if is_within_dates(dates=(start_date, end_date), folder_name=folder.name):
-                if folder.is_dir() and not any(excl in folder.name for excl in excludes):
-                    data_handler = DataHandler(
-                        folder,
-                        0,
-                        suffix=".csv",
-                        includes=includes,
-                        excludes=excludes,
-                        date_col=None,
-                    )
-                    if data_handler.data_file and data_handler.data_file not in file_paths:
-                        file_paths.append(data_handler.data_file)
+            if is_within_dates(
+                dates=(start_date, end_date), folder_name=folder.name
+            ) and folder.is_dir() and not any(excl in folder.name for excl in excludes):
+                data_handler = DataHandler(
+                    folder,
+                    0,
+                    suffix=".csv",
+                    includes=includes,
+                    excludes=excludes,
+                    date_col=None,
+                )
+                if data_handler.data_file and data_handler.data_file not in file_paths:
+                    file_paths.append(data_handler.data_file)
 
         if len(file_paths) == 0:
             print("No files found. Check includes, excludes and date range.")

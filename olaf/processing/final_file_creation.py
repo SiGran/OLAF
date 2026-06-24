@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 import pandas as pd
@@ -173,8 +173,8 @@ class FinalFileCreation:
             end_dt_obj = datetime.strptime(dict_header["end_time"], "%Y-%m-%d %H:%M:%S")
 
             # Convert to UTC timestamp (seconds since epoch)
-            start_utc_seconds = int(start_dt_obj.replace(tzinfo=timezone.utc).timestamp())
-            end_utc_seconds = int(end_dt_obj.replace(tzinfo=timezone.utc).timestamp())
+            start_utc_seconds = int(start_dt_obj.replace(tzinfo=UTC).timestamp())
+            end_utc_seconds = int(end_dt_obj.replace(tzinfo=UTC).timestamp())
 
             # Replace the old line with the new timestamps and altitudes if TBS filter
             if "TBS" in dict_header["site"]:

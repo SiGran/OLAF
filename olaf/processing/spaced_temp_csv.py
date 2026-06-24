@@ -29,7 +29,7 @@ class SpacedTempCSV(DataHandler):
         Returns:
             The data file and the data as a pandas DataFrame
         """
-        includes = includes + ("reviewed",)
+        includes = (*includes, "reviewed")
         super().__init__(
             folder_path, num_samples, includes=includes, excludes=excludes, date_col=date_col
         )
@@ -80,13 +80,13 @@ class SpacedTempCSV(DataHandler):
         first_frozen_id = self.data[least_diluted_sample].ne(0).idxmax()
         temp_frozen = round(pd.to_numeric(self.data.loc[first_frozen_id, temp_col]), 1)
         # step 3: round down to nearest 0.5
-        round_temp_frozen = ceil((temp_frozen * 2)) / 2
+        round_temp_frozen = ceil(temp_frozen * 2) / 2
         # step 5: Initialize with three rows for the first two and zeros for the samples
         temp_first_frozen_row = [temp_frozen] + [
             self.data.loc[first_frozen_id, f"Sample_{i}"] for i in range(self.num_samples)
         ]
         if sample_type == "salt" or sample_type == "sea water":
-            least_diluted_sample_adjustment = freezing_point_depression_dict.get(  # noqa: E501
+            least_diluted_sample_adjustment = freezing_point_depression_dict.get(
                 least_diluted_sample
             )
             if least_diluted_sample_adjustment is None:

@@ -36,7 +36,7 @@ class GraphDataCSV(DataHandler):
         date_col=False,
     ) -> None:
         # Add class specific includes to make sure we get the right file
-        includes = includes + ("frozen_at_temp", "reviewed")
+        includes = (*includes, "frozen_at_temp", "reviewed")
         super().__init__(
             folder_path,
             num_samples,
@@ -76,7 +76,8 @@ class GraphDataCSV(DataHandler):
                 raise ValueError("Column renaming did not produce expected results")
 
         except Exception as e:
-            raise ValueError(f"Failed to rename columns: {str(e)}")
+            # Bug #8 (lost exception chaining) — deferred to GraphDataCSV rewrite branch
+            raise ValueError(f"Failed to rename columns: {e!s}")  # noqa: B904
         return
 
     def convert_INPs_L(self, header: str, save=True, show_plot=False) -> pd.DataFrame:
@@ -312,7 +313,7 @@ class GraphDataCSV(DataHandler):
         Calculate the error of the INP/L
         The formula used is in (2) from: Agresti, A., & Coull, B. A. (1998). Approximate is
         better than "exact" for interval estimation of binomial proportions.
-        The American Statistician, 52(2), 119–126. https://doi.org/10.2307/2685469
+        The American Statistician, 52(2), 119-126. https://doi.org/10.2307/2685469
         The formula is split up in three segments
         1. The plus/minus part to differentiate between the upper and lower confidence interval
         2. The remaining part of the numenator formula
@@ -344,19 +345,19 @@ class GraphDataCSV(DataHandler):
             denom = 1 + z**2 / n_total
         conf_intervals = []
         for op in [operator.sub, operator.add]:
-            if isinstance(dilution, (int, float)):  # dealing with a single value
+            if isinstance(dilution, int | float):  # dealing with a single value
                 limit_wells = (op(rem_num, plus_min_part) / denom) * n_total
                 limit_INPS_ml = (
                     dilution / (vol_well / 1000) * (n_frozen - limit_wells) / (n_total - n_frozen)
                 )
             else:  # We're dealing with matrices/dfs so dilution is the column names
                 limit_wells = rem_num.apply(
-                    lambda col: (op(col, plus_min_part[col.name]) / denom) * n_total
+                    lambda col, op=op: (op(col, plus_min_part[col.name]) / denom) * n_total
                 )
                 limit_INPS_ml = limit_wells.apply(
                     lambda col: col.name
                     / (vol_well / 1000)
-                    * abs((n_frozen[col.name] - col))
+                    * abs(n_frozen[col.name] - col)
                     / (n_total - n_frozen[col.name])
                 )
             limit_INPS_L = self._INP_ml_to_L(limit_INPS_ml)
