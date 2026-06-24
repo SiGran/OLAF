@@ -161,4 +161,4 @@ class DataHandler:
             return save_path
 
         except OSError as e:
-            raise OSError(f"Error saving file to {save_path}: {str(e)}")
+            raise OSError(f"Error saving file to {save_path}: {e!s}") from e
