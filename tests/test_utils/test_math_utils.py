@@ -49,7 +49,7 @@ class TestUnitConversion:
         assert inps_ml_to_L(6204.8, 620.48, 1.0, 10) == pytest.approx(100.0)
 
     def test_proportion_filter_used_scales_inversely(self) -> None:
-        """Halving prop_filter_used doubles the effective filtered volume divisor."""
+        """Halving prop_filter_used halves the output (it is in the numerator of the formula)."""
         full = inps_L_to_ml(100, 620.48, 1.0, 10)
         half = inps_L_to_ml(100, 620.48, 0.5, 10)
         assert half == pytest.approx(full * 0.5)

@@ -309,6 +309,7 @@ class TestFinalCheck:
     def test_non_monotonic_corrected_inps_triggers_replacement(self, tmp_path: Path) -> None:
         """BUG #4: chained comparison fires here; row[2] is replaced with row[1]."""
         bc = _empty_corrector(tmp_path)
+        # TODO: these are just the same, is this okay?
         df_c, df_i = _final_check_inputs(
             inps_l=[10.0, 50.0, 30.0, 80.0, 160.0],
             corrected=[10.0, 50.0, 30.0, 80.0, 160.0],
@@ -362,7 +363,7 @@ class TestExtrapolateBlanks:
         assert out.loc[-24.0, "blank_count"] == 0
         assert out.loc[-25.0, "blank_count"] == 0
 
-    def test_non_monotonic_last_point_excluded_from_fit(self, tmp_path: Path) -> None:
+    def test_non_monotonic_last_point_replaced_by_extrapolation(self, tmp_path: Path) -> None:
         bc = _empty_corrector(tmp_path)
         df = _blank_df([-20.0, -21.0, -22.0, -23.0], [10.0, 20.0, 40.0, 5.0])
         bt = df.index.to_series()
@@ -376,6 +377,8 @@ class TestExtrapolateBlanks:
         df = _blank_df([-20.0, -21.0, -22.0], [10.0, 20.0, 40.0])
         bt = df.index.to_series()
         dates = (pd.Timestamp("2024-05-01"), pd.Timestamp("2024-05-15"))
+        # temps_needed are WARMER than the blank range; _extrapolate_blanks only
+        # extends colder, so nothing is added.
         out, _ = bc._extrapolate_blanks(df, bt, {-15.0, -16.0}, dates, save=False)
         assert set(out.index) == set(df.index)
         for t in df.index:

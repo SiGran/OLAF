@@ -75,8 +75,8 @@ class TestHeaderToDict:
 class TestReadWithFlexibleHeader:
     def test_reads_file_with_short_header(self, sgp_golden_folder) -> None:
         """
-        SGP INPs_L files have NO metadata header; column row is the first line.
-        Then: header_lines is empty, df has expected columns.
+        This golden was curated without a metadata header (header_lines is empty).
+        Then: df has expected columns.
 
         Real data: goldens/inputs/sgp_2_21_24_base/inps_L_expected.csv
         """
