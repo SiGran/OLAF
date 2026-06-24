@@ -31,8 +31,8 @@ All meaningful coverage runs through synthetic fixtures.
 from __future__ import annotations
 
 import shutil
+from collections.abc import Iterable
 from pathlib import Path
-from typing import Iterable
 
 import numpy as np
 import pandas as pd
@@ -429,7 +429,7 @@ def _has_blank_corrected_with_qc(folder: Path) -> bool:
         return False
     for p in folder.rglob("blank_corrected_*.csv"):
         try:
-            with open(p, "r") as f:
+            with open(p) as f:
                 for _ in range(25):
                     line = f.readline()
                     if not line:

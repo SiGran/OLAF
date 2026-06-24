@@ -15,7 +15,19 @@ from olaf.utils.plot_utils import PLOT_SETTINGS, apply_plot_settings
 
 class Plots:
     DEFAULT_MARKERS: ClassVar[list[str]] = [
-        "o", "s", "^", "v", "D", "p", "*", "h", "X", "P", "<", ">", "d",
+        "o",
+        "s",
+        "^",
+        "v",
+        "D",
+        "p",
+        "*",
+        "h",
+        "X",
+        "P",
+        "<",
+        ">",
+        "d",
     ]
 
     def __init__(
@@ -115,9 +127,7 @@ class Plots:
 
                 date_data = all_inp_data_df[all_inp_data_df[date_version] == date]
 
-                sites = (
-                    date_data["altitude_range"].unique() if tbs else date_data["site"].unique()
-                )
+                sites = date_data["altitude_range"].unique() if tbs else date_data["site"].unique()
 
                 for site in sites:
                     if site_comparison:
@@ -170,7 +180,7 @@ class Plots:
             plt.tight_layout()
 
             plt.savefig(
-                f"{save_path}/{self.save_name}_created_on-" f"{current_time}.png",
+                f"{save_path}/{self.save_name}_created_on-{current_time}.png",
                 **PLOT_SETTINGS["save"],
             )
 
@@ -183,9 +193,7 @@ class Plots:
 
                 date_data = all_inp_data_df[all_inp_data_df[date_version] == date]
 
-                sites = (
-                    date_data["altitude_range"].unique() if tbs else date_data["site"].unique()
-                )
+                sites = date_data["altitude_range"].unique() if tbs else date_data["site"].unique()
 
                 for site in sites:
                     if site_comparison:
@@ -237,7 +245,7 @@ class Plots:
                 if save_path:
                     safe_date = str(date).replace("/", "_").replace(" ", "_").replace(":", "-")
                     plt.savefig(
-                        f"{save_path}/{save_site}{safe_date}_created_on-" f"{current_time}.png",
+                        f"{save_path}/{save_site}{safe_date}_created_on-{current_time}.png",
                         **PLOT_SETTINGS["save"],
                     )
 
@@ -261,9 +269,11 @@ class Plots:
 
         file_paths = []
         for folder in self.project_folder.iterdir():
-            if is_within_dates(
-                dates=(start_date, end_date), folder_name=folder.name
-            ) and folder.is_dir() and not any(excl in folder.name for excl in excludes):
+            if (
+                is_within_dates(dates=(start_date, end_date), folder_name=folder.name)
+                and folder.is_dir()
+                and not any(excl in folder.name for excl in excludes)
+            ):
                 data_handler = DataHandler(
                     folder,
                     0,
@@ -330,7 +340,7 @@ class Plots:
 
             if "TBS" in site_str:
                 altitude_string = (
-                    f"{dict_header['lower_altitude']}m - " f"{dict_header['upper_altitude']}m"
+                    f"{dict_header['lower_altitude']}m - {dict_header['upper_altitude']}m"
                 )
                 df["altitude_range"] = altitude_string
 

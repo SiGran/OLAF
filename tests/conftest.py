@@ -91,8 +91,8 @@ Markers (registered in pyproject.toml):
 from __future__ import annotations
 
 import os
+from collections.abc import Callable
 from pathlib import Path
-from typing import Callable
 
 import pandas as pd
 import pytest
@@ -227,7 +227,7 @@ def assert_csv_matches_golden() -> Callable[[pd.DataFrame, Path], None]:
             pytest.skip(f"regenerated golden: {golden_path}")
         if not golden_path.exists():
             pytest.fail(
-                f"Missing golden: {golden_path}\n" f"Run with OLAF_REGEN_GOLDEN=1 to create it."
+                f"Missing golden: {golden_path}\nRun with OLAF_REGEN_GOLDEN=1 to create it."
             )
         expected = pd.read_csv(golden_path)
         pd.testing.assert_frame_equal(
@@ -268,7 +268,7 @@ def synthetic_dat_factory(tmp_path: Path) -> Callable[..., Path]:
     TODO: implement once first test that needs it is written.
     """
 
-    def _factory(*args, **kwargs) -> Path:  # noqa: ARG001
+    def _factory(*args, **kwargs) -> Path:
         raise NotImplementedError(
             "synthetic_dat_factory not yet implemented; build it when first needed."
         )

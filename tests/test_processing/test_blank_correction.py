@@ -30,9 +30,12 @@ def _capek_curated(folder: Path) -> bool:
     if not folder.exists():
         return False
     for sub in folder.iterdir():
-        if sub.is_dir() and "blank" in sub.name.lower():
-            if any(p.name.startswith("INPs_L") for p in sub.iterdir() if p.is_file()):
-                return True
+        if (
+            sub.is_dir()
+            and "blank" in sub.name.lower()
+            and any(p.name.startswith("INPs_L") for p in sub.iterdir() if p.is_file())
+        ):
+            return True
     return False
 
 

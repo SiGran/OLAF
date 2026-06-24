@@ -19,6 +19,7 @@ Bugs from review covered here:
 from __future__ import annotations
 
 import shutil
+from itertools import pairwise
 from pathlib import Path
 
 import pytest
@@ -120,7 +121,7 @@ class TestCreateTempCSV:
             save=False,
         )
         temps = df["degC"].tolist()
-        assert all(b < a for a, b in zip(temps, temps[1:])), f"degC not descending: {temps}"
+        assert all(b < a for a, b in pairwise(temps)), f"degC not descending: {temps}"
         off_grid = [t for t in temps if abs((t / TEMP_STEP) - round(t / TEMP_STEP)) > 1e-9]
         assert len(off_grid) <= 1, f"more than one off-grid temp: {off_grid}"
 
@@ -187,9 +188,9 @@ class TestSaltSampleFPD:
         assert len(salt) > len(air)
         first_s0_air = air.loc[air["Sample_0"].ne(0).idxmax(), "degC"]
         first_s0_salt = salt.loc[salt["Sample_0"].ne(0).idxmax(), "degC"]
-        assert first_s0_salt > first_s0_air, (
-            f"salt Sample_0 should be shifted warmer: air={first_s0_air} " f"salt={first_s0_salt}"
-        )
+        assert (
+            first_s0_salt > first_s0_air
+        ), f"salt Sample_0 should be shifted warmer: air={first_s0_air} salt={first_s0_salt}"
 
         assert_csv_matches_golden(
             salt,
