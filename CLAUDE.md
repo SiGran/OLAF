@@ -131,7 +131,7 @@ OLAF implements a sequential three-stage pipeline for INP data analysis:
 - Outputs include optional plots when `show_plot=True`
 
 **`processing/spaced_temp_csv.py` (`SpacedTempCSV` class)**
-- Bins frozen well counts into 0.5°C temperature intervals (see `TEMP_ROUNDING_INTERVAL` in CONSTANTS.py)
+- Bins frozen well counts into 0.5°C temperature intervals (see `TEMP_STEP` in CONSTANTS.py)
 - Creates intermediate `frozen_at_temp_*.csv` files for Stage 1
 
 **`processing/blank_correction.py` (`BlankCorrector` class)**
@@ -189,7 +189,7 @@ OLAF implements a sequential three-stage pipeline for INP data analysis:
 
 **`CONSTANTS.py`**
 - Centralized scientific constants and thresholds
-- Critical values: `VOL_WELL` (50 µL), `Z` (1.96 for 95% CI), `TEMP_ROUNDING_INTERVAL` (0.5°C)
+- Critical values: `VOL_WELL` (50 µL), `Z` (1.96 for 95% CI), `TEMP_STEP` (0.5°C)
 - Error handling: `ERROR_SIGNAL` (-9999), `THRESHOLD_ERROR` (10%)
 - When modifying processing logic, check if relevant constants exist here first
 
@@ -257,7 +257,7 @@ data/your_experiment_MM.DD.YYYY/
 Test data fixtures are defined in `tests/conftest.py`:
 - `test_data_root`: Locates test data directory
 - `sgp_test_folder`: Standard SGP test dataset
-- `sample_dilution_dict`: Standard dilution series for tests
+- `sample_dilution_dict_a` / `sample_dilution_dict_b`: Standard dilution series for tests
 - Integration tests in `tests/test_integration/test_full_pipeline.py` validate end-to-end workflow
 
 ## Important Development Notes
