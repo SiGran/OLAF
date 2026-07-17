@@ -60,7 +60,7 @@ Rules for the message:
 Always end the message with the trailer:
 
 ```
-Co-Authored-By: Claude Opus 4.7 <noreply@anthropic.com>
+Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>
 ```
 
 (Update the model name if you are running as a different Claude model.)
@@ -82,7 +82,7 @@ feat: short imperative subject
 Optional body explaining the why. Reference TODO.md if a human follow-up
 is required.
 
-Co-Authored-By: Claude Opus 4.7 <noreply@anthropic.com>
+Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>
 EOF
 )"
 ```
