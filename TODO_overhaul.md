@@ -29,9 +29,10 @@ breaking API changes are human-only).
 Make the two calculation engines pure, testable, and correct; fold in the parked bugs.
 
 ### A.1 `graph_data_csv.py` (`GraphDataCSV.convert_INPs_L`)
-- [ ] Extract the dilution-blending logic out of the nested closure `error_logic_selecting_values`
+- [x] Extract the dilution-blending logic out of the nested closure `error_logic_selecting_values`
       into a documented, unit-tested module-level function with explicit inputs/outputs and stated
-      invariants (monotonicity preserved, CI-bounded selection).
+      invariants (monotonicity preserved, CI-bounded selection). Now `_select_blended_value`, with
+      unit tests for all four decision branches. Behaviour-preserving (output byte-identical).
 - [x] Fix `bug #1`: `prev_val == np.nan` always False → use `pd.isna(prev_val)`. **Output-affecting**
       when the accumulated result has an interior NaN gap; there is no numerical golden yet, so a
       human should curate one to lock the corrected spectrum (see A.3 / Human-Needs-To-Do).
@@ -42,8 +43,10 @@ Make the two calculation engines pure, testable, and correct; fold in the parked
       The bug #1 test drives the down-swing-over-NaN-gap fallback and asserts the *dilution
       selection* flip (logic, not magnitude); corrected numerical magnitudes still need a
       human-curated golden.
-- [ ] Guard `log`/division explicitly with NaN masking instead of relying on the downstream
-      `replace({inf: nan})` at line ~226.
+- [x] Guard `log`/division explicitly with NaN masking instead of relying on the downstream
+      `replace({inf: nan})`. Now `_inp_per_ml` computes the log only where
+      `(N_total - col) > 0 and N_total > 0` and the dilution is finite; the `replace` is removed.
+      Behaviour-preserving (output byte-identical) and removes the numpy `RuntimeWarning`s.
 
 ### A.2 `blank_correction.py`
 - [ ] Fix `bug #3`: `df_corrected["qc_flag"] = int` (assigns the type) → `= 0` with integer dtype

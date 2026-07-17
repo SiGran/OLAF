@@ -1,6 +1,7 @@
 import operator
 from datetime import datetime
 from pathlib import Path
+from typing import cast
 
 import numpy as np
 import pandas as pd
@@ -9,6 +10,67 @@ from olaf.CONSTANTS import AGRESTI_COULL_UNCERTAIN_VALUES, NUM_TO_REPLACE_D1, VO
 from olaf.utils.data_handler import DataHandler
 from olaf.utils.df_utils import header_to_dict
 from olaf.utils.plot_utils import plot_INPS_L
+
+
+def _select_blended_value(
+    prev_inp: float,
+    prev_upper_err: float,
+    curr_inp: float,
+    curr_lower: float,
+    curr_upper: float,
+    curr_dil_upper_at_i: float,
+    next_inp: float,
+    next_lower: float,
+    next_upper: float,
+) -> tuple[float, float, float] | None:
+    """Decide which INP/L value to keep at an overlapping temperature.
+
+    Called only when both the currently-selected dilution (``curr_*``) and the next, more
+    dilute candidate (``next_*``) exceed the previous temperature's value — i.e. the
+    spectrum would rise as temperature drops. Both candidates are compared against an upper
+    bound derived from the previous temperature, ``prev_inp + prev_upper_err``:
+
+    1. Both within the bound -> keep whichever has the smaller upper CI at this temperature
+       (``curr_dil_upper_at_i`` vs ``next_upper``).
+    2. Only the current within the bound -> keep current.
+    3. Only the next within the bound -> take next.
+    4. Neither within the bound -> average the two, propagating the CIs as
+       ``sqrt(a**2 + b**2) / 2``.
+
+    Invariants: this only ever adopts a value that is CI-bounded by the previous temperature
+    or the average of the two candidates, preserving the monotonic (non-rising with falling
+    temperature) selection the caller enforces.
+
+    Args:
+        prev_inp: INP/L selected at the previous temperature (i-1).
+        prev_upper_err: upper-CI magnitude of the previous temperature's dilution at i-1.
+        curr_inp, curr_lower, curr_upper: the currently-selected INP/L and its CIs at i.
+        curr_dil_upper_at_i: upper-CI magnitude of the current dilution at i.
+        next_inp, next_lower, next_upper: the next dilution's INP/L and CIs at i.
+
+    Returns:
+        ``None`` to keep the current selection, or the ``(INPS_L, lower_CI, upper_CI)``
+        triple to adopt from the next dilution. When a triple is returned the caller also
+        switches the row's dilution label to the next dilution.
+    """
+    prev_bound = prev_inp + prev_upper_err
+    if prev_bound > curr_inp and prev_bound > next_inp:
+        # Both within the previous value's error range: keep the lower-error one.
+        if curr_dil_upper_at_i < next_upper:
+            return None
+        return next_inp, next_lower, next_upper
+    if prev_bound > curr_inp:
+        # Only the current candidate is within range.
+        return None
+    if prev_bound > next_inp:
+        # Only the next candidate is within range.
+        return next_inp, next_lower, next_upper
+    # Both outside the range: average them, propagating the CIs with RMS.
+    return (
+        (curr_inp + next_inp) / 2,
+        np.sqrt(curr_lower**2 + next_lower**2) / 2,
+        np.sqrt(curr_upper**2 + next_upper**2) / 2,
+    )
 
 
 class GraphDataCSV(DataHandler):
@@ -111,72 +173,6 @@ class GraphDataCSV(DataHandler):
 
         """
 
-        # Internal logic function for later use
-        def error_logic_selecting_values(i, col_name, next_dilution_INP):
-            """
-            Logic for selecting the values to keep in the result_df when both current
-            and next dilution are bigger than the previous temperature value.
-            The logic is as follows:
-            1. Check if the potential next temperature values are within the error range of
-            the current temperature value
-            2. If both are within the error range of the previous value, pick the one with
-            the lowest (upper) error
-            3. if only one is within the error range of the previous value, pick that one
-            4. if both are outside of the error range, average them together
-
-            Args:
-                i: index of the df corresponding to a certain temperature
-                col_name: col_name indicating the dilution factor
-                next_dilution_INP: pandas series with the INPs/L for the next dilution
-                specified with col_name
-
-            Returns: none
-
-            """
-            curr_dilution = result_df.loc[i - 1, "dilution"]
-            # upper CI of current one we're comparing so i-1
-            current_upper_err = upper_INPS_p_L[curr_dilution][i - 1]
-            # upper CI of possible next point with the same dilution
-            next_upper_err = upper_INPS_p_L[curr_dilution][i]
-            next_dil_upper_err = upper_INPS_p_L[col_name][i]
-            # check if both/either one are within certain statistical range of
-            # previous and next value
-            if (result_df["INPS_L"][i - 1] + current_upper_err) > result_df["INPS_L"][i] and (
-                result_df["INPS_L"][i - 1] + current_upper_err
-            ) > next_dilution_INP[i]:
-                # Both are within the error range of the previous value
-                # Pick one with lowest error
-                if next_upper_err < next_dil_upper_err:
-                    return  # current one already selected
-                else:
-                    result_df.loc[i, "dilution"] = col_name
-                    result_df.loc[i, "INPS_L"] = next_dilution_INP[i]
-                    result_df.loc[i, "lower_CI"] = lower_INPS_p_L[col_name][i]
-                    result_df.loc[i, "upper_CI"] = upper_INPS_p_L[col_name][i]
-            # if one is within the error range of the previous value other isn't
-            elif (result_df["INPS_L"][i - 1] + current_upper_err) > result_df["INPS_L"][i]:
-                return  # current one already selected
-            elif (result_df["INPS_L"][i - 1] + current_upper_err) > next_dilution_INP[i]:
-                result_df.loc[i, "dilution"] = col_name
-                result_df.loc[i, "INPS_L"] = next_dilution_INP[i]
-                result_df.loc[i, "lower_CI"] = lower_INPS_p_L[col_name][i]
-                result_df.loc[i, "upper_CI"] = upper_INPS_p_L[col_name][i]
-            # both outside of error range
-            else:
-                # Average them together
-                result_df.loc[i, "dilution"] = col_name
-                result_df.loc[i, "INPS_L"] = (result_df.loc[i, "INPS_L"] + next_dilution_INP[i]) / 2
-                # error propagation: sqrt(a^2 + b^2) / 2
-                result_df.loc[i, "lower_CI"] = (
-                    np.sqrt(result_df.loc[i, "lower_CI"] ** 2 + lower_INPS_p_L[col_name][i] ** 2)
-                    / 2
-                )
-                result_df.loc[i, "upper_CI"] = (
-                    np.sqrt(result_df.loc[i, "upper_CI"] ** 2 + upper_INPS_p_L[col_name][i] ** 2)
-                    / 2
-                )
-            return
-
         "--------- Step 1: Separate temperature and # frozen well values -----------"
 
         # Take out temperature
@@ -210,10 +206,13 @@ class GraphDataCSV(DataHandler):
             )
 
         "--------------- Step 3: INP/L calc + Confidence Intervals ----------------------"
-        # With the samples columns and the N_total column, we can calculate the INPs/L
+        # With the samples columns and the N_total column, we can calculate the INPs/L.
+        # The log is only defined where the fraction of still-liquid wells
+        # (N_total - col) / N_total is strictly positive, i.e. both the numerator and the
+        # denominator are > 0. Mask everything else to NaN explicitly here rather than
+        # letting np.log emit -inf/NaN warnings and cleaning them up downstream.
         INPs_p_mL_test_water = adjusted_samples.apply(
-            lambda col: (-np.log((N_total_series - col) / N_total_series) / (VOL_WELL / 1000))
-            * float(col.name)
+            lambda col: self._inp_per_ml(col, N_total_series)
         )
         all_INPs_p_L = self._INP_ml_to_L(INPs_p_mL_test_water)
         lower_INPS_p_L, upper_INPS_p_L = self._error_calc(
@@ -221,8 +220,6 @@ class GraphDataCSV(DataHandler):
         )
 
         "-------------------------- Step 4: Pruning the data --------------------------"
-        # Turn both positive and negative INP's into NaN's
-        all_INPs_p_L.replace({np.inf: np.nan, -np.inf: np.nan}, inplace=True)
         # Turn the values that correspond with frozen wells (in samples) of 30 or higher into NaN's
         # if we ever want to modify this we can make it a CONSTANT. As seen below:
         max_allowable_wells_used = self.wells_per_sample - AGRESTI_COULL_UNCERTAIN_VALUES
@@ -280,8 +277,25 @@ class GraphDataCSV(DataHandler):
                         result_df.loc[i, :] = np.nan
                         # Both are bigger:
                     elif result_df["INPS_L"][i] > prev_val and next_dilution_INP[i] > prev_val:
-                        # Logic moved to function at top of this function for readability
-                        error_logic_selecting_values(i, col_name, next_dilution_INP)
+                        # Both candidates exceed the previous value: defer the CI-bounded
+                        # selection/averaging to the pure module-level helper.
+                        curr_dilution = result_df.loc[i - 1, "dilution"]
+                        selection = _select_blended_value(
+                            prev_inp=result_df["INPS_L"][i - 1],
+                            prev_upper_err=upper_INPS_p_L[curr_dilution][i - 1],
+                            curr_inp=result_df.loc[i, "INPS_L"],
+                            curr_lower=result_df.loc[i, "lower_CI"],
+                            curr_upper=result_df.loc[i, "upper_CI"],
+                            curr_dil_upper_at_i=upper_INPS_p_L[curr_dilution][i],
+                            next_inp=next_dilution_INP[i],
+                            next_lower=lower_INPS_p_L[col_name][i],
+                            next_upper=upper_INPS_p_L[col_name][i],
+                        )
+                        if selection is not None:
+                            result_df.loc[i, "dilution"] = col_name
+                            result_df.loc[i, "INPS_L"] = selection[0]
+                            result_df.loc[i, "lower_CI"] = selection[1]
+                            result_df.loc[i, "upper_CI"] = selection[2]
 
                     # If only current dilution is bigger, take that one
                     elif result_df["INPS_L"][i] >= prev_val_ci:
@@ -317,6 +331,28 @@ class GraphDataCSV(DataHandler):
             plot_INPS_L(result_df, save_path, header_dict)
 
         return result_df
+
+    @staticmethod
+    def _inp_per_ml(col: pd.Series, n_total: pd.Series) -> pd.Series:
+        """INPs/mL for a single dilution column, masking invalid log inputs to NaN.
+
+        ``INP/mL = -ln((N_total - col) / N_total) / (VOL_WELL / 1000) * dilution_factor``.
+
+        The log is only evaluated where the still-liquid fraction ``(N_total - col) /
+        N_total`` is strictly positive — i.e. both ``N_total - col > 0`` and ``N_total > 0``
+        — and only for a finite dilution factor (the ``inf`` background column can never
+        yield a real INP). Everything else is NaN. This matches the previous behaviour,
+        which produced ``+/-inf`` in those cells and replaced it with NaN downstream, but
+        avoids the ``RuntimeWarning``s from evaluating ``log`` on non-positive inputs.
+        """
+        # Column labels are dilution factors (numeric or inf); cast for the type checker.
+        dilution = float(cast(float, col.name))
+        numerator = n_total - col
+        valid = (numerator > 0) & (n_total > 0) & np.isfinite(dilution)
+        result = pd.Series(np.nan, index=col.index, dtype="float64")
+        ratio = numerator[valid] / n_total[valid]
+        result[valid] = (-np.log(ratio) / (VOL_WELL / 1000)) * dilution
+        return result
 
     def _error_calc(self, n_frozen, n_total, vol_well: int | float, dilution, z: float = Z):
         """

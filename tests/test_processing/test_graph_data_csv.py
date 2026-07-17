@@ -18,7 +18,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from olaf.processing.graph_data_csv import GraphDataCSV
+from olaf.processing.graph_data_csv import GraphDataCSV, _select_blended_value
 
 # GraphDataCSV constructor args that are not exercised by these behavioural tests.
 _COMMON_KWARGS = dict(
@@ -155,3 +155,55 @@ def test_rename_failure_chains_original_exception(tmp_path, monkeypatch):
 
     assert isinstance(exc_info.value.__cause__, RuntimeError)
     assert str(exc_info.value.__cause__) == "original cause"
+
+
+# ------------------------------------------------ _select_blended_value (pure)
+
+
+def _blend(**overrides):
+    """Call _select_blended_value with sensible defaults, overriding per test."""
+    kwargs = dict(
+        prev_inp=10.0,
+        prev_upper_err=5.0,  # -> prev_bound = 15.0
+        curr_inp=8.0,
+        curr_lower=3.0,
+        curr_upper=6.0,
+        curr_dil_upper_at_i=1.0,
+        next_inp=9.0,
+        next_lower=4.0,
+        next_upper=2.0,
+    )
+    kwargs.update(overrides)
+    return _select_blended_value(**kwargs)
+
+
+def test_blend_both_within_keeps_lower_error_current():
+    # prev_bound (15) > curr (8) and > next (9); current has the smaller upper CI
+    # (1 < 2) -> keep current.
+    assert _blend(curr_dil_upper_at_i=1.0, next_upper=2.0) is None
+
+
+def test_blend_both_within_takes_lower_error_next():
+    # Same "both within" case, but now the next dilution has the smaller upper CI
+    # (2 < 3) -> take next.
+    assert _blend(curr_dil_upper_at_i=3.0, next_upper=2.0) == (9.0, 4.0, 2.0)
+
+
+def test_blend_only_current_within_keeps_current():
+    # prev_bound (15) > curr (8) but not > next (20) -> keep current.
+    assert _blend(curr_inp=8.0, next_inp=20.0) is None
+
+
+def test_blend_only_next_within_takes_next():
+    # prev_bound (15) not > curr (20) but > next (8) -> take next.
+    assert _blend(curr_inp=20.0, next_inp=8.0) == (8.0, 4.0, 2.0)
+
+
+def test_blend_neither_within_averages_with_rms_ci():
+    # prev_bound (15) below both curr (20) and next (25) -> average, RMS-propagating CIs.
+    inp, lower, upper = _blend(
+        curr_inp=20.0, next_inp=25.0, curr_lower=3.0, next_lower=4.0, curr_upper=6.0, next_upper=8.0
+    )
+    assert inp == 22.5  # (20 + 25) / 2
+    assert lower == 2.5  # sqrt(3**2 + 4**2) / 2 = 5 / 2
+    assert upper == 5.0  # sqrt(6**2 + 8**2) / 2 = 10 / 2
