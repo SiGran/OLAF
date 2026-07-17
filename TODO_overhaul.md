@@ -32,9 +32,16 @@ Make the two calculation engines pure, testable, and correct; fold in the parked
 - [ ] Extract the dilution-blending logic out of the nested closure `error_logic_selecting_values`
       into a documented, unit-tested module-level function with explicit inputs/outputs and stated
       invariants (monotonicity preserved, CI-bounded selection).
-- [ ] Fix `bug #1`: `prev_val == np.nan` always False → use `pd.isna(prev_val)` (lines ~258–260).
-- [ ] Fix `bug #2`: `UnboundLocalError` when `last_4_i` is empty (line ~288) — guard/initialize `i`.
-- [ ] Fix `bug #8`: lost exception chaining → `raise ValueError(...) from e` (line ~78).
+- [x] Fix `bug #1`: `prev_val == np.nan` always False → use `pd.isna(prev_val)`. **Output-affecting**
+      when the accumulated result has an interior NaN gap; there is no numerical golden yet, so a
+      human should curate one to lock the corrected spectrum (see A.3 / Human-Needs-To-Do).
+- [x] Fix `bug #2`: `UnboundLocalError` when `last_4_i` is empty — initialise `i = -1` so the next
+      dilution fills the whole column. Only affects previously-crashing inputs.
+- [x] Fix `bug #8`: lost exception chaining → `raise ValueError(...) from e`. No numerical change.
+      Tests: `tests/test_processing/test_graph_data_csv.py` — all three fail without their fix.
+      The bug #1 test drives the down-swing-over-NaN-gap fallback and asserts the *dilution
+      selection* flip (logic, not magnitude); corrected numerical magnitudes still need a
+      human-curated golden.
 - [ ] Guard `log`/division explicitly with NaN masking instead of relying on the downstream
       `replace({inf: nan})` at line ~226.
 
@@ -135,6 +142,10 @@ Make the two calculation engines pure, testable, and correct; fold in the parked
 
 ## Human-Needs-To-Do (from this roadmap)
 - [ ] Re-curate the goldens that pin buggy output once Milestone A lands (A.3).
+- [ ] Curate a numerical golden for `GraphDataCSV.convert_INPs_L` output to lock the behaviour
+      after the bug #1 fix (there was no output golden before). Write real values via
+      `OLAF_REGEN_GOLDEN=1` on a `test_graph_data_csv` golden-assert test and confirm the numbers
+      by hand — the current tests only assert the crash/chaining fixes and a NaN-gap smoke path.
 - [ ] Decide the initial release version (D).
 - [ ] Delete `requirements.in` if agreed (D) — agent cannot delete files.
 - [ ] Approve the breaking `DataHandler` contract change (E, `bug #9`).

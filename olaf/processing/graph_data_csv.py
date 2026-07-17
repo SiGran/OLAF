@@ -76,8 +76,7 @@ class GraphDataCSV(DataHandler):
                 raise ValueError("Column renaming did not produce expected results")
 
         except Exception as e:
-            # Bug #8 (lost exception chaining) — deferred to GraphDataCSV rewrite branch
-            raise ValueError(f"Failed to rename columns: {e!s}")  # noqa: B904
+            raise ValueError(f"Failed to rename columns: {e!s}") from e
         return
 
     def convert_INPs_L(self, header: str, save=True, show_plot=False) -> pd.DataFrame:
@@ -249,15 +248,26 @@ class GraphDataCSV(DataHandler):
             # Take last 4 real values of current result_df["INPS_L"]
             last_4_i = result_df["INPS_L"].dropna().tail(4).index
             going_down = False
+            # Bug #2: guard against an empty last_4_i (every accumulated value pruned to
+            # NaN). Initialising i = -1 keeps the post-loop fill (result_df.iloc[i + 1 :])
+            # well-defined — the next dilution replaces the whole column — instead of
+            # raising UnboundLocalError.
+            i = -1
             for i in last_4_i:
                 if (
                     result_df.loc[i, "INPS_L"] < result_df.loc[i - 1, "INPS_L"] or going_down
                 ):  # If value is going down
                     going_down = True
                     prev_val = result_df["INPS_L"][i - 1]
-                    if prev_val == np.nan:
+                    # Bug #1: `== np.nan` is always False (NaN != NaN); use pd.isna so a
+                    # pruned (NaN) previous value correctly falls back to the one before it.
+                    # The i-2 label access is safe on the integer RangeIndex: going_down is
+                    # only seeded where result_df.loc[o] < result_df.loc[o-1] (so o >= 1),
+                    # and this runs at i > o, hence i >= 2. Keep that invariant if the
+                    # going_down seeding is ever refactored.
+                    if pd.isna(prev_val):
                         prev_val = result_df["INPS_L"][i - 2]
-                    if prev_val == np.nan:
+                    if pd.isna(prev_val):
                         print(
                             f"Dilution transition error going to dilution {col_name}; "
                             f"check frozen_at_temp file!"
