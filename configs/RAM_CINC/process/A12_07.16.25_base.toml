@@ -1,5 +1,5 @@
 # Stage 1 config for RAM_CINC, sample A12, 07.16.25, base treatment.
-test_folder = "D:OLAF/Freezing point depression tests/RAM_CINC A12 07.16.25 base"
+data_folder = "D:OLAF/Freezing point depression tests/RAM_CINC A12 07.16.25 base"
 site = "RAM_CINC"
 start_time = "2025-07-16 16:20:00"
 end_time = "2025-07-16 17:52:00"

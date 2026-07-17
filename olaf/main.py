@@ -6,10 +6,10 @@ Either edit ``DEFAULT_CONFIG`` below or pass a config path on the command line:
     python -m olaf.main configs/<CAMPAIGN>/process/<your_config>.toml
 """
 
-import tkinter as tk  # noqa: F401  (kept for the optional GUI block below)
+import tkinter as tk
 
 from olaf.config import MainConfig, load_config, resolve_config_path, save_provenance_copy
-from olaf.image_verification.freezing_reviewer import FreezingReviewer  # noqa: F401
+from olaf.image_verification.freezing_reviewer import FreezingReviewer
 from olaf.processing.graph_data_csv import GraphDataCSV
 from olaf.processing.spaced_temp_csv import SpacedTempCSV
 
@@ -22,20 +22,19 @@ def run(config: MainConfig) -> None:
     """Run stage 1 processing for a single experiment described by ``config``."""
     treatment = tuple(config.treatment)
 
-    # GUI (uncomment to manually review the microscope images)
-    # window = tk.Tk()
-    # app = FreezingReviewer(
-    #     window,
-    #     config.test_folder,
-    #     config.num_samples,
-    #     config.wells_per_sample,
-    #     config.dict_samples_to_dilution,
-    #     includes=treatment,
-    # )
-    # window.mainloop()
+    window = tk.Tk()
+    FreezingReviewer(
+        window,
+        config.data_folder,
+        config.num_samples,
+        config.wells_per_sample,
+        config.dict_samples_to_dilution,
+        includes=treatment,
+    )
+    window.mainloop()
 
     # Processing to create the temperature-binned .csv file
-    spaced_temp_csv = SpacedTempCSV(config.test_folder, config.num_samples, includes=treatment)
+    spaced_temp_csv = SpacedTempCSV(config.data_folder, config.num_samples, includes=treatment)
     spaced_temp_csv.create_temp_csv(
         config.dict_samples_to_dilution,
         config.freezing_point_depression_dict,
@@ -50,7 +49,7 @@ def run(config: MainConfig) -> None:
         includes = (date, *treatment)
         # TODO: make the changes work for sample_type see issue #18 on github
         graph_data_csv = GraphDataCSV(
-            config.test_folder,
+            config.data_folder,
             config.num_samples,
             config.sample_type,
             config.effective_vol_air_filt,
@@ -67,4 +66,4 @@ if __name__ == "__main__":
     config_path = resolve_config_path(DEFAULT_CONFIG)
     config = load_config(config_path, MainConfig)
     run(config)
-    save_provenance_copy(config_path, config.test_folder, config.provenance_stem())
+    save_provenance_copy(config_path, config.data_folder, config.provenance_stem())

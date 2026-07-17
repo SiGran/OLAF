@@ -27,7 +27,7 @@ def test_load_main_template():
     config = load_config(TEMPLATES / "main.example.toml", MainConfig)
     assert config.site == "RAM_CINC"
     assert config.treatment == ["base"]
-    assert isinstance(config.test_folder, Path)
+    assert isinstance(config.data_folder, Path)
 
 
 def test_load_missing_file_raises():
@@ -124,7 +124,7 @@ def test_sanitize_for_filename_empty_falls_back():
 
 def _main_data(**overrides):
     data = {
-        "test_folder": "data/SITE 07.16.25 base",
+        "data_folder": "data/SITE 07.16.25 base",
         "site": "SITE",
         "start_time": "2025-07-16 16:20:00",
         "end_time": "2025-07-16 17:52:00",
@@ -146,7 +146,7 @@ def test_main_inf_dilution():
 
 
 def test_main_treatment_string_coerced_to_list():
-    config = MainConfig(**_main_data(treatment="heat", test_folder="data/SITE heat"))
+    config = MainConfig(**_main_data(treatment="heat", data_folder="data/SITE heat"))
     assert config.treatment == ["heat"]
 
 
@@ -172,7 +172,7 @@ def test_main_to_header_contains_site_and_treatment():
 
 
 def test_main_to_header_tbs_adds_altitudes():
-    config = MainConfig(**_main_data(site="TBS_SITE", test_folder="data/TBS_SITE 07.16.25 base"))
+    config = MainConfig(**_main_data(site="TBS_SITE", data_folder="data/TBS_SITE 07.16.25 base"))
     header = config.to_header()
     assert "lower_altitude" in header and "upper_altitude" in header
 

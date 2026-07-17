@@ -43,12 +43,32 @@ def _make_fake(recorder: _Recorder):
     return _Fake
 
 
+class _FakeWindow:
+    """Stand-in for the Tk root so ``run`` can drive the mandatory GUI headlessly."""
+
+    def mainloop(self):
+        return None
+
+    def __getattr__(self, name):
+        return lambda *args, **kwargs: None
+
+
+def _stub_gui(monkeypatch):
+    """Replace the Tk root and FreezingReviewer so the review step is a headless no-op.
+
+    Stage 1 always opens the reviewer GUI; these wiring tests stub it out (rather than
+    remove it) so they stay deterministic and runnable without a ``$DISPLAY``.
+    """
+    monkeypatch.setattr(main_mod.tk, "Tk", lambda *args, **kwargs: _FakeWindow())
+    monkeypatch.setattr(main_mod, "FreezingReviewer", _make_fake(_Recorder()))
+
+
 # --------------------------------------------------------------------------- main.py
 
 
 def _main_config(folder):
     return MainConfig(
-        test_folder=str(folder),
+        data_folder=str(folder),
         site="SITE",
         start_time="2025-07-16 16:20:00",
         end_time="2025-07-16 17:52:00",
@@ -74,13 +94,14 @@ def test_main_run_wires_processing_classes(tmp_path, monkeypatch):
     config = _main_config(folder)
 
     spaced_rec, graph_rec = _Recorder(), _Recorder()
+    _stub_gui(monkeypatch)
     monkeypatch.setattr(main_mod, "SpacedTempCSV", _make_fake(spaced_rec))
     monkeypatch.setattr(main_mod, "GraphDataCSV", _make_fake(graph_rec))
 
     main_mod.run(config)
 
-    # SpacedTempCSV(test_folder, num_samples, includes=treatment)
-    assert spaced_rec.init_args[0] == config.test_folder
+    # SpacedTempCSV(data_folder, num_samples, includes=treatment)
+    assert spaced_rec.init_args[0] == config.data_folder
     assert spaced_rec.init_args[1] == config.num_samples
     assert spaced_rec.init_kwargs["includes"] == ("base",)
     # create_temp_csv(dilution, fpd, wells, sample_type)
@@ -107,11 +128,12 @@ def test_main_run_writes_provenance(tmp_path, monkeypatch):
     cfg_path.write_text('site = "SITE"\n')
     config = _main_config(folder)
 
+    _stub_gui(monkeypatch)
     monkeypatch.setattr(main_mod, "SpacedTempCSV", _make_fake(_Recorder()))
     monkeypatch.setattr(main_mod, "GraphDataCSV", _make_fake(_Recorder()))
 
     main_mod.run(config)
-    main_mod.save_provenance_copy(cfg_path, config.test_folder, config.provenance_stem())
+    main_mod.save_provenance_copy(cfg_path, config.data_folder, config.provenance_stem())
 
     written = list(folder.glob("used_config_*.toml"))
     assert written == [folder / "used_config_SITE_2025-07-16_base.toml"]

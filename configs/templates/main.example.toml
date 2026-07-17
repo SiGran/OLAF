@@ -11,7 +11,7 @@
 #   - tables (the [section.key] blocks) hold the per-sample dictionaries
 
 # --- Core experiment description ---
-test_folder = "D:OLAF/Freezing point depression tests/RAM_CINC A12 07.16.25 base"
+data_folder = "D:OLAF/Freezing point depression tests/RAM_CINC A12 07.16.25 base"
 site = "RAM_CINC"
 start_time = "2025-07-16 16:20:00"
 end_time = "2025-07-16 17:52:00"

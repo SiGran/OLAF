@@ -295,4 +295,4 @@ a provenance copy of the config into the output folder. When making changes:
 
 ### Working Directory
 Run the main scripts as modules from the repository root (e.g. `python -m olaf.main <config>`).
-Config `test_folder` / `project_folder` paths may be absolute or relative to that root.
+Config `data_folder` / `project_folder` paths may be absolute or relative to that root.

@@ -8,7 +8,7 @@ output folder as `used_config_*.toml`, named after the run's crucial variables, 
 
 ## Layout
 
-Configs are organised **by campaign, then by stage**:
+Configs are organized **by campaign, then by stage**:
 
 ```
 configs/
@@ -49,5 +49,5 @@ typically need just one config per campaign.
 
 - The `templates/` folder and example campaign are tracked in git. Whether you commit your
   own campaign configs is up to you and your team's provenance needs.
-- Relative `project_folder` / `test_folder` paths are resolved from the directory you run
+- Relative `project_folder` / `data_folder` paths are resolved from the directory you run
   the script in (typically the repo root).

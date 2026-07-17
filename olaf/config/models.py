@@ -34,7 +34,7 @@ class MainConfig(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     # Core experiment description
-    test_folder: Path
+    data_folder: Path
     site: str
     start_time: str
     end_time: str
@@ -68,10 +68,10 @@ class MainConfig(BaseModel):
     @model_validator(mode="after")
     def _warn_on_soft_mismatches(self) -> MainConfig:
         """Reproduce the non-fatal sanity warnings from the original main.py."""
-        if not all(str(t) in str(self.test_folder) for t in self.treatment):
+        if not all(str(t) in str(self.data_folder) for t in self.treatment):
             warnings.warn(
                 f"your selection for treatment: {tuple(self.treatment)} does not match with the "
-                f"specified folder: {self.test_folder.name}",
+                f"specified folder: {self.data_folder.name}",
                 stacklevel=2,
             )
         if self.num_samples * self.wells_per_sample != 192:
@@ -111,7 +111,7 @@ class MainConfig(BaseModel):
 
     def check_dates(self) -> list[str]:
         """Return the dates found in the folder name, warning on any start_time mismatch."""
-        found_dates = re.findall(DATE_PATTERN, self.test_folder.name)
+        found_dates = re.findall(DATE_PATTERN, self.data_folder.name)
         if not found_dates:
             warnings.warn("No date found in folder name", stacklevel=2)
         start_time_obj = datetime.strptime(self.start_time.strip(), "%Y-%m-%d %H:%M:%S")
@@ -184,9 +184,7 @@ class FinalCombineConfig(BaseModel):
         "lower 95 percent confidence limit; upper 95 percent confidence limit"
     )
     metadata_url: str = "https://docs.arm.gov/share/s/BkJRSN5mR1mcZKjZm13Vtw"
-    treatment_flags_description: str = (
-        "0 = untreated; 1 = heat treated; and 2 = peroxide treated"
-    )
+    treatment_flags_description: str = "0 = untreated; 1 = heat treated; and 2 = peroxide treated"
     qc_flag_description: str = (
         "0 = no correction applied; 1 = correction applied. "
         "For more details visit: doi.org/10.5194/essd-17-6943-2025"
