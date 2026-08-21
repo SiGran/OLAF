@@ -62,7 +62,7 @@ class SpacedTempCSV(DataHandler):
         8. Save the data in a separate .csv file with the same name as the experiment.
         The data is saved in a separate .csv file with the same name as the experiment
         Args:
-            dict_to_sample_dilution: dict from main
+            dict_samples_to_dilution: dict from main
             freezing_point_depression_dict: dict from main
             wells_per_sample: variable from main
             sample_type: variable from main

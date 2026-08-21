@@ -53,26 +53,46 @@ def plot_INPS_L(result_df, save_path, header_dict):
     plt.grid(True, linestyle="--", color="gray", linewidth=0.5)
     plt.grid(True, which="major", alpha=0.5)  # Major grid lines
     plt.grid(True, which="minor", alpha=0.1)
-    if "TBS" in site:
+    if "air" in header_dict["sample_type"] and "blank" not in header_dict["treatment"]:
         legend_elements = [
             Patch(facecolor="none", edgecolor="none", label=f"Site: {site}"),
-            Patch(
-                facecolor="none", edgecolor="none", label=f"Date: {header_dict['start_time'][:10]}"
-            ),
+            Patch(facecolor="none", edgecolor="none", label=f"Start: {header_dict['start_time']}"),
+            Patch(facecolor="none", edgecolor="none", label=f"End: {header_dict['end_time']}"),
             Patch(
                 facecolor="none", edgecolor="none", label=f"Treatment: {header_dict['treatment']}"
             ),
             Patch(
                 facecolor="none",
                 edgecolor="none",
-                label=f"Lower altitude: {header_dict['lower_altitude']} m agl",
+                label=f"Air volume: {header_dict['vol_air_filt']} L",
             ),
             Patch(
-                facecolor="none",
-                edgecolor="none",
-                label=f"Upper altitude: {header_dict['upper_altitude']} m agl",
+                facecolor="none", edgecolor="none", label=f"Susp vol: {header_dict['vol_susp']} mL"
             ),
         ]
+        if "TBS" in site:
+            legend_elements.append(
+                Patch(
+                    facecolor="none",
+                    edgecolor="none",
+                    label=f"Lower altitude: {header_dict['lower_altitude']} m agl",
+                )
+            )
+            legend_elements.append(
+                Patch(
+                    facecolor="none",
+                    edgecolor="none",
+                    label=f"Upper altitude: {header_dict['upper_altitude']} m agl",
+                )
+            )
+        if header_dict["proportion_filter_used"] != 1.0:
+            legend_elements.append(
+                Patch(
+                    facecolor="none",
+                    edgecolor="none",
+                    label=f"Prop. filter used: {float(header_dict['proportion_filter_used'])*100}%",
+                )
+            )
     else:
         legend_elements = [
             Patch(facecolor="none", edgecolor="none", label=f"Site: {site}"),
@@ -83,6 +103,7 @@ def plot_INPS_L(result_df, save_path, header_dict):
                 facecolor="none", edgecolor="none", label=f"Treatment: {header_dict['treatment']}"
             ),
         ]
+
     plt.legend(
         handles=legend_elements, markerscale=0, handlelength=0, handletextpad=0, loc="upper right"
     )
