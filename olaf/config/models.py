@@ -44,9 +44,9 @@ class MainConfig(BaseModel):
     IS: str
     num_samples: int
     sample_type: str = "air"
-    vol_air_filt: float = 1.0
+    vol_air_filt: float = Field(default=1.0, gt=0.0)  # L; divides INP/L, must be positive
     wells_per_sample: int
-    proportion_filter_used: float = Field(default=1.0, ge=0.0, le=1.0)
+    proportion_filter_used: float = Field(default=1.0, gt=0.0, le=1.0)
     vol_susp: float = 10.0
     treatment: list[str] = Field(default_factory=lambda: ["base"])
     dict_samples_to_dilution: dict[str, float]

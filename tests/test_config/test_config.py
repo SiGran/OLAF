@@ -155,6 +155,18 @@ def test_main_proportion_out_of_range_rejected():
         MainConfig(**_main_data(proportion_filter_used=1.5))
 
 
+def test_main_zero_proportion_filter_rejected():
+    # 0 would make INP/L divide by zero (garbage output); reject at config load.
+    with pytest.raises(ValueError):
+        MainConfig(**_main_data(proportion_filter_used=0.0))
+
+
+def test_main_zero_vol_air_filt_rejected():
+    # 0 L of air filtered would make INP/L divide by zero; reject at config load.
+    with pytest.raises(ValueError):
+        MainConfig(**_main_data(vol_air_filt=0.0))
+
+
 def test_main_effective_vol_air_filt_blank():
     config = MainConfig(**_main_data(treatment=["blank"], vol_air_filt=620.0))
     assert config.effective_vol_air_filt == 1
