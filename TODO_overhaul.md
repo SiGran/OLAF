@@ -140,8 +140,12 @@ Make the two calculation engines pure, testable, and correct; fold in the parked
   what make a credible community release and a non-vacuous integration gate possible.
 - Each milestone is its own PR series, not a single change.
 - Golden re-curation and breaking API changes (`bug #9`, `DataHandler` contract) are human-run.
-- Use the `science-reviewer` agent on every diff touching `olaf/processing/`, `math_utils.py`,
-  `CONSTANTS.py`, `config/models.py`, or goldens.
+- **Review-effort tiers** (match process weight to blast radius — don't over-engineer):
+  - *Heavy* — mandatory `science-reviewer` pass + before/after equivalence check + unit tests, for
+    `olaf/processing/`, `math_utils.py`, `CONSTANTS.py`, and goldens. A wrong number here is
+    invisible and reaches a publication.
+  - *Light* — tests + `/check` + direct commit, for config models/validators, docs, plumbing, and
+    scripts. (`config/models.py` validators are light unless the change alters a computed numeric.)
 
 ## Human-Needs-To-Do (from this roadmap)
 - [ ] Re-curate the goldens that pin buggy output once Milestone A lands (A.3).

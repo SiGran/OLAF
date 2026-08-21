@@ -126,11 +126,36 @@ reverted to the real RAM_CINC A12 values.
 
 The full backlog lives in **`TODO_overhaul.md`** (milestones A–F, with cross-refs to the bug
 index in `TODO.md`). Do not re-plan it here; work it milestone by milestone, one PR series each.
-Sequencing and agent/skill routing:
 
-- **Milestone A — numerical-core overhaul** (highest priority): `graph_data_csv.py` +
-  `blank_correction.py`, folding in bugs #1–#5, #8. **Every diff → `science-reviewer`.** New
-  behaviour → `test-author`. Golden re-curation is **human-only** (`OLAF_REGEN_GOLDEN=1` + review).
+### Progress log (this branch, newest first)
+- **A.1 `graph_data_csv.py` — DONE** across three commits:
+  - `ba9f1b7` bugs #1 (`pd.isna` NaN fallback), #2 (empty-window `i = -1` guard), #8 (exception
+    chaining). Bug #1 is **output-affecting**; no numerical golden exists yet (see below).
+  - `c985273` structural: extracted the blending closure into pure `_select_blended_value` (unit
+    tested, all 4 branches) and added `_inp_per_ml` log NaN-masking (dropped `replace({inf:nan})`).
+    Behaviour-preserving — verified byte-identical output across 5 inputs incl. adversarial edge
+    cases. Science-reviewer verdict: safe.
+  - `5127266` closed the reviewer's one Should-fix: reject `vol_air_filt == 0` /
+    `proportion_filter_used == 0` at config load (they'd divide-by-zero into the INP/L output now
+    that the log mask moved ahead of the conversion).
+  - **Still open in A.1 (human-only):** curate a numerical golden for `convert_INPs_L` output to
+    lock the post-bug-#1 spectrum. Logged in `TODO_overhaul.md` Human-Needs-To-Do.
+- **Next up: A.2 `blank_correction.py`** — not started. See routing below.
+
+### Review-effort tiers (agreed convention — avoid over-engineering)
+Match process weight to blast radius:
+- **Heavy** (mandatory `science-reviewer` pass + before/after equivalence check + unit tests):
+  anything in `olaf/processing/`, `olaf/utils/math_utils.py`, `CONSTANTS.py`, or a golden. A wrong
+  number here is invisible and ends up in a publication.
+- **Light** (tests + `/check`, direct commit, no agent pass): config models/validators, docs,
+  plumbing, scripts. Example: `5127266` was a 2-field validator fix — tested and committed directly.
+Don't apply the heavy treatment uniformly; it's the numerical core that earns it.
+
+### Sequencing and agent/skill routing
+- **Milestone A — numerical-core overhaul** (highest priority): `graph_data_csv.py` **(A.1 done)** +
+  `blank_correction.py` **(A.2 next)**, folding in bugs #1–#5, #8. **Every `processing/` diff →
+  `science-reviewer` (heavy tier).** New behaviour → `test-author`. Golden re-curation is
+  **human-only** (`OLAF_REGEN_GOLDEN=1` + review).
 - **Milestone B — decouple review UI** (testability, *not* bypass): the GUI always opens; see the
   hard constraint in `TODO_overhaul.md` lines 17–19 and the `researcher-review-mandatory` memory.
 - **Milestone C — type the domain & tighten config**: `Literal`/`Enum` for
@@ -149,9 +174,18 @@ Human-only items are collected at the bottom of `TODO_overhaul.md` and in `TODO.
 
 ## Suggested first prompt to Opus
 
-Section 2 is done; the next work is the roadmap in section 3 (start with Milestone A).
+Section 2 and Milestone A.1 are done (see the Progress log). Next is **A.2 `blank_correction.py`**.
 
-> Read `OPUS_HANDOFF.md` and `TODO_overhaul.md`. Begin Milestone A (numerical-core overhaul),
-> starting with the `graph_data_csv.py` bugs (#1, #2, #8) as one focused PR series. Run the
-> `science-reviewer` agent on every diff, use `test-author` for new tests, and never regenerate
-> goldens yourself (human-only). Run `/check` and stop before committing so I can review.
+> Read `OPUS_HANDOFF.md` and `TODO_overhaul.md`. Continue Milestone A with A.2
+> (`blank_correction.py`): bug #3 (`qc_flag = int` writes `<class 'int'>` into ARM files → `= 0`
+> with int dtype), bug #4 (rewrite the pathological chained comparison as explicit `and`s), bug #5
+> (the dead ERROR_SIGNAL walk-back — make it reachable and index-based), and the all-wells-frozen
+> divide-by-zero in `_error_calc`. This is the heavy-tier numerical core: capture before/after
+> output on real fixtures, run the `science-reviewer` agent on every diff, use `test-author` for
+> tests, and never regenerate goldens yourself (human-only). Run `/check` and stop before
+> committing so I can review.
+
+### Housekeeping still pending (human-only, per no-delete rule)
+- Delete `.idea/OLAF.iml` (shows as an unstaged deletion; left unstaged intentionally).
+- Delete the scratch `configs/RAM_CINC/main/` copy — see `TODO.md` Human-Needs-To-Do.
+- Curate the `convert_INPs_L` numerical golden (A.1 close-out).
