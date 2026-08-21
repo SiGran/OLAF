@@ -128,6 +128,11 @@ The full backlog lives in **`TODO_overhaul.md`** (milestones A–F, with cross-r
 index in `TODO.md`). Do not re-plan it here; work it milestone by milestone, one PR series each.
 
 ### Progress log (this branch, newest first)
+- **Branch close-out — VERIFIED GREEN (2026-08-21).** Full local gate: ruff clean, mypy clean,
+  bandit 0 issues (`-x olaf/.venv` — stray nested venv logged in `TODO.md` Human-Needs-To-Do),
+  `159 passed, 2 skipped, 5 deselected`. All 7 committed configs/templates smoke-load through
+  their pydantic models with no warnings. The TOML-config build is **done**; next work item is
+  Milestone A.2 (`blank_correction.py`), to be started on a fresh branch after this one merges.
 - **A.1 `graph_data_csv.py` — DONE** across three commits:
   - `ba9f1b7` bugs #1 (`pd.isna` NaN fallback), #2 (empty-window `i = -1` guard), #8 (exception
     chaining). Bug #1 is **output-affecting**; no numerical golden exists yet (see below).

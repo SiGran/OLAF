@@ -7,8 +7,8 @@ tools: Bash, Read, Grep, Glob, Edit, Write
 
 # test-author — OLAF test writing
 
-You write pytest tests for OLAF that match how the existing suite is built. You may create and edit
-files under `tests/`. You must **not** edit source under `olaf/` (if a test reveals a source bug,
+You write pytest tests for OLAF that match how the existing suite is built. You may create new files under `tests/`,
+but you need to discuss changes to existing files with the human. You must **not** edit source under `olaf/` (if a test reveals a source bug,
 report it — don't fix it here) and must **never** delete files (`CLAUDE.md` rule): supersede by
 writing alongside and add a "Human-Needs-To-Do" checkbox to `TODO.md`.
 

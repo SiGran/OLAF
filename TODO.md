@@ -105,7 +105,10 @@ The agent must never delete files. The following pre-existing files need manual 
 - [x] Delete `tests/test_image_verification/test_freezing_reviewer.py.new` — same situation; original has been overwritten.
 - [x] Delete stray file `olaf/processing/on openpyxl` (accidental commit; one-line note).
 - [ ] Delete `olaf/__pycache__/`, `olaf/processing/__pycache__/`, etc. from git if tracked (should be in `.gitignore`).
-- [ ] Delete `configs/RAM_CINC/main/A12_07.16.25_base.toml` and the now-empty `configs/RAM_CINC/main/` directory. The stage-1 config folder was renamed back from `main/` to `process/` (naming stays consistent with `blanks/` and `final_combine/`); the correct config now lives at `configs/RAM_CINC/process/A12_07.16.25_base.toml`. The `main/` copy is still staged (`git add`); unstage it (`git restore --staged configs/RAM_CINC/main/A12_07.16.25_base.toml`) and remove it — the agent cannot delete files.
+- [ ] Delete the stray nested virtualenv `olaf/.venv/` (untracked; not in git). It makes local
+  `bandit -r olaf` runs scan ~25k venv findings and take minutes; CI is unaffected (clean
+  checkout). Until deleted, run bandit locally as `bandit -r olaf -x olaf/.venv`.
+- [ ] Delete `configs/RAM_CINC/main/A12_07.16.25_base.toml` and the now-empty `configs/RAM_CINC/main/` directory. The stage-1 config folder was renamed back from `main/` to `process/` (naming stays consistent with `blanks/` and `final_combine/`); the correct config now lives at `configs/RAM_CINC/process/A12_07.16.25_base.toml`. The `main/` copy is now untracked (already unstaged); just remove the directory — the agent cannot delete files.
 
 ### Environment / external setup
 - [ ] Create the `bugfix/critical-issues` git branch from current HEAD when Phase 1 is green.
