@@ -235,6 +235,27 @@ class Plots:
                                 f'{current_time}.png', **PLOT_SETTINGS['save'])
 
 
+    def desired_temp_csv(self, temps, treatments):
+
+        all_inp_data_df = self.desired_files_df.copy()
+
+        save_path = self.project_folder/ "data_sheets"
+        if not save_path.exists():
+            save_path.mkdir()
+
+        save_name = self.project_folder.parent.parent.name
+
+        temp_filtered_df = all_inp_data_df[all_inp_data_df["degC"].isin(temps)]
+        complete_df = temp_filtered_df[temp_filtered_df["treatment"].isin(treatments)].sort_values(by=["degC"], ascending=False)
+
+
+        current_time = datetime.now().strftime("%Y%m%d_%H%M%S")
+        output_file = f"{save_path}/desired_temps_{save_name}_{current_time}.csv"
+        complete_df.to_csv(output_file, index=False)
+
+
+
+
 
     def find_desired_files(self, includes, excludes, start_date, end_date):
         """
