@@ -39,7 +39,7 @@ Sample_4 = 14641
 Sample_5 = inf
 
 # --- Optional / conditional inputs ---
-
+[optional]
 # Only used for TBS sites (sites containing "TBS"); metres above ground level.
 lower_altitude = 0
 upper_altitude = 0

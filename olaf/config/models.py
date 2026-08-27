@@ -52,9 +52,10 @@ class MainConfig(BaseModel):
     dict_samples_to_dilution: dict[str, float]
 
     # Optional / conditional inputs
-    lower_altitude: float = 0.0  # m agl, only used for TBS sites
-    upper_altitude: float = 0.0  # m agl, only used for TBS sites
-    dry_mass: float = 1.0  # g, only used when sample_type is soil
+    # lower_altitude: float = 0.0  # m agl, only used for TBS sites
+    # upper_altitude: float = 0.0  # m agl, only used for TBS sites
+    # dry_mass: float = 1.0  # g, only used when sample_type is soil
+    optional: dict[str,float] = Field(default_factory=dict)
     freezing_point_depression_dict: dict[str, float] = Field(default_factory=dict)
 
     @field_validator("treatment", mode="before")
@@ -89,7 +90,7 @@ class MainConfig(BaseModel):
         if "blank" in self.treatment or self.sample_type != "air":
             vol_air_filt = 1  # Always the case for blank
         if "soil" in self.sample_type:
-            vol_air_filt = self.vol_susp / self.dry_mass
+            vol_air_filt = self.vol_susp / self.optional["dry_mass"]
         return vol_air_filt
 
     def to_header(self) -> str:
@@ -104,8 +105,8 @@ class MainConfig(BaseModel):
         )
         if "TBS" in self.site:
             header += (
-                f"lower_altitude = {self.lower_altitude}\n"
-                f"upper_altitude = {self.upper_altitude}\n"
+                f"lower_altitude = {self.optional['lower_altitude']}\n"
+                f"upper_altitude = {self.optional['upper_altitude']}\n"
             )
         return header
 
