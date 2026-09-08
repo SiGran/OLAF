@@ -161,23 +161,4 @@ class SpacedTempCSV(DataHandler):
             self.save_to_new_file(
                 temp_frozen_df, self.folder_path / f"{self.data_file.stem}.csv", "frozen_at_temp"
             )
-            if sample_type == "salt" or sample_type == "sea water":
-                fpd_dict_df = pd.DataFrame.from_dict(
-                    freezing_point_depression_dict, orient="index", columns=["temp_adjustment"]
-                )
-                fpd_dict_df.index.name = "dilution"
-                fpd_dict_df = fpd_dict_df.reset_index()
-                self.save_to_new_file(
-                    fpd_dict_df, self.folder_path / f"{self.data_file.stem}.csv", "frz_pnt_dep_dict"
-                )
-            # convert dilution dict to df then save as new csv file
-            dilution_dict_df = pd.DataFrame.from_dict(
-                dict_samples_to_dilution, orient="index", columns=["dilution"]
-            )
-            dilution_dict_df.index.name = "sample"
-            dilution_dict_df = dilution_dict_df.reset_index()
-            self.save_to_new_file(
-                dilution_dict_df, self.folder_path / f"{self.data_file.stem}.csv", "dilution_dict"
-            )
-
         return temp_frozen_df

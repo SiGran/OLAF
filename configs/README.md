@@ -51,3 +51,4 @@ typically need just one config per campaign.
   own campaign configs is up to you and your team's provenance needs.
 - Relative `project_folder` / `data_folder` paths are resolved from the directory you run
   the script in (typically the repo root).
+- The `project_folder` and `data_folder` paths can also be hard-coded to the preferred location`D:/campagins/campaign_x/data`

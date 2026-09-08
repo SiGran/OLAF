@@ -236,8 +236,8 @@ The `main.py` script creates the following files in the `specified experiment fo
    ```
 
 
-### Correcting the blank data and applying
-The `main_for_blanks.py` script is used to average the blank data and apply it to the processed data.
+### Averaging blank data and applying correction
+The `main_for_blanks.py` script is used to average the blank data and apply the blank correction to selected sample data.
 While `main.py` works on the level per experiment, this script works on the level of the project.
 
 Configure it with a `.toml` file (copy `configs/templates/blanks.example.toml` into
