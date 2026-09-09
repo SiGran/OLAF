@@ -161,7 +161,7 @@ The program expects the .dat file to have the following headers:
 #### Configure the run with a `.toml` file
 Instead of editing `main.py`, each run is configured by a `.toml` file. Copy
 `configs/templates/main.example.toml` into your campaign folder (e.g.
-`configs/<CAMPAIGN>/process/<your_config>.toml`) and edit the values. See
+`configs/<CAMPAIGN>/samples/<your_config>.toml`) and edit the values. See
 [`configs/README.md`](configs/README.md) for the full layout and workflow.
 
 ```toml
@@ -200,7 +200,7 @@ Run the script from the repository root, pointing it at your config (or omit the
 the `DEFAULT_CONFIG` set near the top of `main.py`):
 
 ```bash
-python -m olaf.main configs/<CAMPAIGN>/process/<your_config>.toml
+python -m olaf.main configs/<CAMPAIGN>/samples/<your_config>.toml
 ```
 
 A copy of the config used is saved into the output folder as `used_config_*.toml` — named

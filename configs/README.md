@@ -17,7 +17,7 @@ configs/
     blanks.example.toml
     final_combine.example.toml
   <CAMPAIGN>/                       # e.g. RAM_CINC, CoURAGE
-    process/                        # stage 1 (main.py) - one per treatment-folder
+    samples/                        # stage 1 (main.py) - one per treatment-folder
       A12_07.16.25_base.toml
     blanks/                         # stage 2 (main_for_blanks.py)
       blanks.toml
@@ -35,7 +35,7 @@ typically need just one config per campaign.
 3. Run the stage, pointing it at your config:
 
    ```bash
-   python -m olaf.main              configs/RAM_CINC/process/A12_07.16.25_base.toml
+   python -m olaf.main              configs/RAM_CINC/samples/A12_07.16.25_base.toml
    python -m olaf.main_for_blanks   configs/RAM_CINC/blanks/blanks.toml
    python -m olaf.main_final_combine configs/RAM_CINC/final_combine/final_combine.toml
    ```
