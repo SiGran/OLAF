@@ -108,10 +108,12 @@ There are three main scripts to run in the `olaf` directory:
 
 ### File Structure
 OLAF/
+├── configs/                # TOML run configs (templates + your campaigns)
 ├── data/
 ├── olaf/
 │   ├── __init__.py
 │   ├── CONSTANTS.py
+│   ├── config/             # Config loading & pydantic validation models
 │   ├── main.py            # main script to process IS data and run the application
 │   ├── main_for_blanks.py # 2nd script to average the blank data and apply to the processed INP data
 │   ├── main_final_combine.py # combines all the treatments into one .csv file
@@ -156,53 +158,58 @@ The program expects the .dat file to have the following headers:
 | 12/17/24 | 11:48:47:.63 | 25.096   |  0       |  0       |  0       |  0       |  0       |  0       |  0       |  0       |  0       |  0       |  0        | 25.19 | 25.01 |         |
 
 
-In `main.py` change the `test_folder` variable to the name of your experiment folder in the `data` directory.
-In addition, specify all other variables in the `main.py` file, such as `site`, `start_time`, `end_time`, `filter_color`, etc.
+#### Configure the run with a `.toml` file
+Instead of editing `main.py`, each run is configured by a `.toml` file. Copy
+`configs/templates/main.example.toml` into your campaign folder (e.g.
+`configs/<CAMPAIGN>/samples/<your_config>.toml`) and edit the values. See
+[`configs/README.md`](configs/README.md) for the full layout and workflow.
 
-```python
-test_folder = (
-    Path.cwd().parent / "data" / "Path" / "To" / "YOUR {mm.dd.yyyy} experiment FOLDER"
-)
-site = "YOUR LOCATION" # If this is ARM data use the official, full site site
+```toml
+test_folder = "data/Path/To/YOUR mm.dd.yyyy experiment FOLDER"
+site = "YOUR LOCATION"               # If this is ARM data use the official, full site name
 start_time = "yyyy-MM-DD HH:MM:SS"
 end_time = "2025-02-22 22:08:00"
 filter_color = "Write a color"
 notes = "NOTES HERE"
-
 user = "JOHN DOE"
 IS = "IS3a"
-num_samples = 6  # In the file
-vol_air_filt = 620.48  # L
+num_samples = 6
+vol_air_filt = 620.48                 # L
 wells_per_sample = 32
-proportion_filter_used = 1.0  # between 0 and 1.0
-vol_susp = 10  # mL
-treatment = (  # Type of treatment, e.g. "base", "heat", "peroxide", etc.
-     "enclosed as string", # Keep the comma - it needs to be a tuple!
-    #
-)  # uncomment the one you want to use
+proportion_filter_used = 1.0          # between 0 and 1.0
+vol_susp = 10                         # mL
+treatment = ["base"]                  # e.g. "base", "heat", "peroxide"
 
-# Specify the dilution factors for each sample
-dict_samples_to_dilution = {
-    "Sample_0": 1,
-    "Sample_1": 11,
-    "Sample_2": 121,
-    "Sample_3": 1331,
-    "Sample_4": 1,
-    "Sample_5": float("inf"),
-}
+# Specify the dilution factors for each sample (use `inf` for the background)
+[dict_samples_to_dilution]
+Sample_0 = 1
+Sample_1 = 11
+Sample_2 = 121
+Sample_3 = 1331
+Sample_4 = 1
+Sample_5 = inf
 
-# IF applicable, specify the following variables
-lower_altitude = 300 # m agl
-upper_altitude = 575 # m agl
+# IF applicable (TBS sites), specify the following variables
+lower_altitude = 300                  # m agl
+upper_altitude = 575                  # m agl
 ```
 These variables will be used to calculate INPs per Liter (INPS_L) from frozen well data.
 They will also be added as a header to the output files.
 
-After you have specified all the variables, you can run the `main.py` script to process the data.
+Run the script from the repository root, pointing it at your config (or omit the path to use
+the `DEFAULT_CONFIG` set near the top of `main.py`):
+
+```bash
+python -m olaf.main configs/<CAMPAIGN>/samples/<your_config>.toml
+```
+
+A copy of the config used is saved into the output folder as `used_config_*.toml` — named
+after the config file (e.g. `used_config_SGP_2024-02-21_base.toml`).
 
 #### Using the GUI to validate the number of frozen wells
-After running the `main.py` script, a GUI will open where you can validate the number of frozen wells.
-It is a simple user interface where you can increase or decrease the number of frozen wells for each sample.
+The GUI is a simple user interface where you can increase or decrease the number of frozen wells for each sample.
+Note: if you have already run this stage, you can comment it out to continue the other steps more automatically,
+or simply close the GUI pop-up to continue running the next steps.
 
 ![img_1.png](img_1.png)
 
@@ -211,6 +218,7 @@ Note: the *back* button is greyed out because we're looking at _image 0_.
 If every sample looks correct, you can move to the next image by clicking `good`.
 If the frozen well numbers displayed in the box above each sample are incorrect, use the `-1` and `+1` buttons for each sample that requires a change.
 If you made a mistake you can click on `back` to go back to the previous image.
+You can do these steps one image at a time, or go 10 images ahead (`+10`) or back (`-10`)
 
 Once you've validated all the images, the program will continue and will save files in the `data` directory with the processed data.
 
@@ -228,9 +236,16 @@ The `main.py` script creates the following files in the `specified experiment fo
    ```
 
 
-### Correcting the blank data and applying
-The `main_for_blanks.py` script is used to average the blank data and apply it to the processed data.
+### Averaging blank data and applying correction
+The `main_for_blanks.py` script is used to average the blank data and apply the blank correction to selected sample data.
 While `main.py` works on the level per experiment, this script works on the level of the project.
+
+Configure it with a `.toml` file (copy `configs/templates/blanks.example.toml` into
+`configs/<CAMPAIGN>/blanks/`), then run from the repository root:
+
+```bash
+python -m olaf.main_for_blanks configs/<CAMPAIGN>/blanks/blanks.toml
+```
 
 #### Files created after successfully running `main_for_blanks.py`
 1. `combined_blank_YYYY-MM-DD.csv` - Located in the project folder. This file contains the averaged blank data for a Date range of experiments. The *start date* is in the file name. The *end date* is specified in the header.
@@ -245,6 +260,13 @@ While `main.py` works on the level per experiment, this script works on the leve
 ### Combining the data
 
 The last *main* to run is the `main_final_combine.py` script. This script combines the different treatments into one `.csv` file.
+
+Configure it with a `.toml` file (copy `configs/templates/final_combine.example.toml` into
+`configs/<CAMPAIGN>/final_combine/`), then run from the repository root:
+
+```bash
+python -m olaf.main_final_combine configs/<CAMPAIGN>/final_combine/final_combine.toml
+```
 
 #### Files created after successfully running `main_final_combine.py`
 This script creates a new directory in the project folder called `final_files`.

@@ -1,0 +1,9 @@
+# Stage 3 final-combine config for the RAM_CINC campaign.
+project_folder = "tests/test_data/NSA_qc_flag_test"
+includes = ["INPs_L", "frozen_at_temp", "reviewed", "blank_corrected", "10%"]
+excludes = ["blanks"]
+
+[treatment_dict]
+base = 0
+heat = 1
+peroxide = 2

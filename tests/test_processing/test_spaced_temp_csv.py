@@ -226,14 +226,14 @@ class TestSaltSampleFPD:
 
 
 class TestSavedFiles:
-    """When save=True, create_temp_csv writes the binned CSV (and fpd artifacts if salt)."""
+    """When save=True, create_temp_csv writes only the binned CSV (dicts live in the config)."""
 
-    def test_air_sample_writes_frozen_at_temp_and_dilution_csv(
+    def test_air_sample_writes_frozen_at_temp_csv_only(
         self, sgp_golden_folder, sample_dilution_dict_a, tmp_path
     ) -> None:
         """
-        Air samples: writes frozen_at_temp_*.csv and dilution_dict_*.csv next to
-        the .dat, but NOT an fpd dict file.
+        Air samples: writes frozen_at_temp_*.csv next to the .dat. Dilution and fpd
+        dicts are captured in the run's saved .toml config, not as separate CSVs.
         """
         work = _copy_reviewed_dat(sgp_golden_folder, tmp_path / "air_run")
         stc = SpacedTempCSV(work, num_samples=6, includes=("reviewed",))
@@ -249,14 +249,14 @@ class TestSavedFiles:
         assert any(
             n.startswith("frozen_at_temp_") and n.endswith(".csv") for n in written
         ), f"missing frozen_at_temp_*.csv in {written}"
-        assert any(
-            n.startswith("dilution_dict_") and n.endswith(".csv") for n in written
-        ), f"missing dilution_dict_*.csv in {written}"
+        assert not any(
+            n.startswith("dilution_dict_") for n in written
+        ), f"dilution dict now lives in the saved config, got {written}"
         assert not any(
             n.startswith("frz_pnt_dep_dict_") for n in written
-        ), f"air sample should not emit fpd file, got {written}"
+        ), f"fpd dict now lives in the saved config, got {written}"
 
-    def test_salt_sample_writes_extra_fpd_artifacts(
+    def test_salt_sample_writes_no_extra_dict_artifacts(
         self,
         sgp_golden_folder,
         sample_dilution_dict_a,
@@ -264,8 +264,8 @@ class TestSavedFiles:
         tmp_path,
     ) -> None:
         """
-        Salt samples: additional `frz_pnt_dep_dict_*.csv` artifact emitted alongside
-        the frozen_at_temp and dilution_dict files.
+        Salt samples: only the frozen_at_temp CSV is written; dilution and fpd dicts
+        are captured in the run's saved .toml config, not as separate CSVs.
         """
         work = _copy_reviewed_dat(sgp_golden_folder, tmp_path / "salt_run")
         stc = SpacedTempCSV(work, num_samples=6, includes=("reviewed",))
@@ -279,7 +279,9 @@ class TestSavedFiles:
 
         written = sorted(p.name for p in work.iterdir())
         assert any(n.startswith("frozen_at_temp_") and n.endswith(".csv") for n in written)
-        assert any(n.startswith("dilution_dict_") and n.endswith(".csv") for n in written)
-        assert any(
-            n.startswith("frz_pnt_dep_dict_") and n.endswith(".csv") for n in written
-        ), f"salt sample missing fpd artifact in {written}"
+        assert not any(
+            n.startswith("dilution_dict_") for n in written
+        ), f"dilution dict now lives in the saved config, got {written}"
+        assert not any(
+            n.startswith("frz_pnt_dep_dict_") for n in written
+        ), f"fpd dict now lives in the saved config, got {written}"

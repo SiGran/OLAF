@@ -70,16 +70,22 @@ pre-commit run --all-files
 ```
 
 ### Running the Application
+Each stage is driven by a `.toml` config file (see `configs/templates/` and `configs/README.md`).
+Run from the repository root, passing a config path (or omit it to use the `DEFAULT_CONFIG`
+set near the top of each script):
 ```bash
-# Stage 1: Process raw data with GUI validation (from olaf/ directory)
-python main.py
+# Stage 1: Process raw data (GUI validation block is opt-in, commented out in main.py)
+python -m olaf.main configs/<CAMPAIGN>/process/<your_config>.toml
 
 # Stage 2: Apply blank corrections
-python main_for_blanks.py
+python -m olaf.main_for_blanks configs/<CAMPAIGN>/blanks/blanks.toml
 
 # Stage 3: Generate final ARM files
-python main_final_combine.py
+python -m olaf.main_final_combine configs/<CAMPAIGN>/final_combine/final_combine.toml
 ```
+A copy of the config used is written into each run's output folder as
+`used_config_<crucial-vars>.toml` (e.g. `used_config_RAM_CINC_2025-07-16_base.toml`) for
+provenance.
 
 ### Documentation
 ```bash
@@ -125,7 +131,7 @@ OLAF implements a sequential three-stage pipeline for INP data analysis:
 - Outputs include optional plots when `show_plot=True`
 
 **`processing/spaced_temp_csv.py` (`SpacedTempCSV` class)**
-- Bins frozen well counts into 0.5°C temperature intervals (see `TEMP_ROUNDING_INTERVAL` in CONSTANTS.py)
+- Bins frozen well counts into 0.5°C temperature intervals (see `TEMP_STEP` in CONSTANTS.py)
 - Creates intermediate `frozen_at_temp_*.csv` files for Stage 1
 
 **`processing/blank_correction.py` (`BlankCorrector` class)**
@@ -183,36 +189,53 @@ OLAF implements a sequential three-stage pipeline for INP data analysis:
 
 **`CONSTANTS.py`**
 - Centralized scientific constants and thresholds
-- Critical values: `VOL_WELL` (50 µL), `Z` (1.96 for 95% CI), `TEMP_ROUNDING_INTERVAL` (0.5°C)
+- Critical values: `VOL_WELL` (50 µL), `Z` (1.96 for 95% CI), `TEMP_STEP` (0.5°C)
 - Error handling: `ERROR_SIGNAL` (-9999), `THRESHOLD_ERROR` (10%)
 - When modifying processing logic, check if relevant constants exist here first
 
 ## Configuration and Usage Patterns
 
 ### Experiment Configuration
-Each processing stage is configured by editing variables directly in the main scripts:
+Each processing stage is configured by a `.toml` file rather than by editing the main
+scripts. Config files live under `configs/`, organised **by campaign, then by stage**:
 
-```python
-# In main.py
-site = "SGP"                           # Site code
-start_time = "2024-02-21 10:00:00"    # UTC timestamps
+```
+configs/
+  templates/                       # copy these to start a new config
+    main.example.toml
+    blanks.example.toml
+    final_combine.example.toml
+  <CAMPAIGN>/                       # e.g. RAM_CINC
+    process/<sample>_<MM.DD.YY>_<treatment>.toml   # stage 1
+    blanks/blanks.toml                             # stage 2
+    final_combine/final_combine.toml               # stage 3
+```
+
+Example stage-1 config (`configs/<CAMPAIGN>/process/*.toml`):
+
+```toml
+site = "SGP"
+start_time = "2024-02-21 10:00:00"   # UTC timestamps
 end_time = "2024-02-21 22:08:00"
-treatment = ("base",)                  # Can be "base", "heat", "peroxide", "blank"
+treatment = ["base"]                  # "base", "heat", "peroxide", "blank", ...
 num_samples = 6
 vol_air_filt = 620.48                 # Liters of air filtered
-wells_per_sample = 32                 # Must satisfy: num_samples * wells_per_sample = 192
+wells_per_sample = 32                 # num_samples * wells_per_sample should equal 192
 vol_susp = 10                         # mL
 proportion_filter_used = 1.0          # Fraction (0-1)
 
-dict_samples_to_dilution = {
-    "Sample_0": 1,
-    "Sample_1": 11,
-    "Sample_2": 121,
-    "Sample_3": 1331,
-    "Sample_4": 14641,
-    "Sample_5": float("inf"),        # Undiluted suspension (background)
-}
+[dict_samples_to_dilution]
+Sample_0 = 1
+Sample_1 = 11
+Sample_2 = 121
+Sample_3 = 1331
+Sample_4 = 14641
+Sample_5 = inf                        # Undiluted suspension (background); TOML supports inf
 ```
+
+Configs are loaded and validated by the pydantic models in `olaf/config/models.py`
+(`MainConfig`, `BlankConfig`, `FinalCombineConfig`); loading/CLI/provenance helpers live in
+`olaf/config/loader.py`. See `configs/README.md` for the full workflow.
 
 ### Data File Structure
 OLAF expects specific file organization:
@@ -234,16 +257,20 @@ data/your_experiment_MM.DD.YYYY/
 Test data fixtures are defined in `tests/conftest.py`:
 - `test_data_root`: Locates test data directory
 - `sgp_test_folder`: Standard SGP test dataset
-- `sample_dilution_dict`: Standard dilution series for tests
+- `sample_dilution_dict_a` / `sample_dilution_dict_b`: Standard dilution series for tests
 - Integration tests in `tests/test_integration/test_full_pipeline.py` validate end-to-end workflow
 
 ## Important Development Notes
 
 ### Working with Main Scripts
-The three main scripts (`main.py`, `main_for_blanks.py`, `main_final_combine.py`) are designed as user-configurable scripts rather than libraries. Users edit variables at the top of each file to configure experiments. When making changes:
-- Preserve the user configuration section at the top
-- Maintain clear separation between config and processing logic
-- Keep validation checks (e.g., treatment matching folder name)
+The three main scripts (`main.py`, `main_for_blanks.py`, `main_final_combine.py`) are thin
+entry points: each resolves a config path (CLI argument, falling back to the editable
+`DEFAULT_CONFIG` constant), loads it into a pydantic model, calls `run(config)`, and writes
+a provenance copy of the config into the output folder. When making changes:
+- Keep the scripts thin — put per-run inputs in the `.toml`/config models, not inline.
+- Add new inputs as fields on the relevant model in `olaf/config/models.py` and document
+  them in the matching `configs/templates/*.example.toml`.
+- Keep validation checks (e.g., treatment matching folder name, well-count) in the models.
 
 ### Error Handling
 - Missing values and below-detection-limit data use `ERROR_SIGNAL = -9999`
@@ -267,4 +294,5 @@ The three main scripts (`main.py`, `main_for_blanks.py`, `main_final_combine.py`
 - Type stubs available for pandas via `pandas-stubs`
 
 ### Working Directory
-All main scripts expect to be run from the `olaf/` subdirectory with project data in `../data/` or `../tests/test_data/`.
+Run the main scripts as modules from the repository root (e.g. `python -m olaf.main <config>`).
+Config `data_folder` / `project_folder` paths may be absolute or relative to that root.

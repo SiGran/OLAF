@@ -1,25 +1,37 @@
-from pathlib import Path
+"""Stage 3: combine treatments into ARM-format final files.
 
-from olaf.CONSTANTS import ERROR_SIGNAL
+Configuration lives in a ``.toml`` file (see
+``configs/templates/final_combine.example.toml``). Either edit ``DEFAULT_CONFIG`` below or
+pass a config path on the command line:
+
+    python -m olaf.main_final_combine configs/<CAMPAIGN>/final_combine/final_combine.toml
+"""
+
+from olaf.config import (
+    FinalCombineConfig,
+    load_config,
+    resolve_config_path,
+    save_copy,
+)
 from olaf.processing.final_file_creation import FinalFileCreation
 
-project_folder = Path.cwd().parent / "tests" / "test_data" / "NSA_qc_flag_test"
-includes = ("INPs_L", "frozen_at_temp", "reviewed", "blank_corrected", "10%")
-excludes = ("blanks",)
-treatment_dict = {"base": 0, "heat": 1, "peroxide": 2}
-header_start = (
-    f"ARM Mentor: Jessie Creamean at Colorado State University\n"
-    f"Contact: Jessie.Creamean@colostate.edu; cchume@rams.colostate.edu\n"
-    f"Data: Number of ice nucleating particles per L of air at STP (0 degC and 101.325 kPa); "
-    f"lower 95 percent confidence limit; upper 95 percent confidence limit\n"
-    f"For access to all filter metadata (e.g. flows times sites notes etc.) visit "
-    f"https://docs.arm.gov/share/s/BkJRSN5mR1mcZKjZm13Vtw\n"
-    f"Treatment flags: 0 = untreated; 1 = heat treated; and 2 = peroxide treated\n"
-    f"QC flag: 0 = no correction applied; 1 = correction applied. "
-    f"For more details visit: doi.org/10.5194/essd-17-6943-2025\n"
-    f"Missing values or values below detection limit are denoted as {ERROR_SIGNAL}\n"
-)
+# -----------------------------    CONFIG    ----------------------------------------
+# Default config used when no path is given on the command line.
+DEFAULT_CONFIG = "configs/RAM_CINC/final_combine/final_combine.toml"
 
-# look for all "blank_corrected_INPS_L" files
-to_final_file = FinalFileCreation(project_folder, includes, excludes)
-to_final_file.create_all_final_files(treatment_dict, header_start)
+
+def run(config: FinalCombineConfig) -> None:
+    """Create all ARM-format final files for the project described by ``config``."""
+    to_final_file = FinalFileCreation(
+        config.project_folder,
+        tuple(config.includes),
+        tuple(config.excludes),
+    )
+    to_final_file.create_all_final_files(config.treatment_dict, config.build_header_start())
+
+
+if __name__ == "__main__":
+    config_path = resolve_config_path(DEFAULT_CONFIG)
+    config = load_config(config_path, FinalCombineConfig)
+    run(config)
+    save_copy(config_path, config.project_folder / "final_files", config.provenance_stem())

@@ -1,0 +1,54 @@
+# Stage 1 configuration template for OLAF main.py
+#
+# Copy this file into your campaign folder, e.g.:
+#   configs/<CAMPAIGN>/process/<sample>_<MM.DD.YY>_<treatment>.toml
+# then edit the values below. Run with:
+#   python -m olaf.main configs/<CAMPAIGN>/process/<your_config>.toml
+#
+# TOML notes:
+#   - strings must be quoted; numbers and booleans are bare (true/false)
+#   - use `inf` for an undiluted/background sample dilution
+#   - tables (the [section.key] blocks) hold the per-sample dictionaries
+
+# --- Core experiment description ---
+data_folder = "D:OLAF/Freezing point depression tests/RAM_CINC A12 07.16.25 base"
+site = "RAM_CINC"
+start_time = "2025-07-16 16:20:00"
+end_time = "2025-07-16 17:52:00"
+filter_color = "white"
+notes = "none"
+user = "Oren/Carson"
+IS = "IS2"
+num_samples = 6            # number of samples in the .dat file
+sample_type = "salt"       # air, liquid, soil or salt
+vol_air_filt = 1.0         # L (ignored/overridden automatically for blank/non-air/soil)
+wells_per_sample = 32      # num_samples * wells_per_sample should equal 192
+proportion_filter_used = 1.0   # between 0 and 1.0
+vol_susp = 10              # mL
+
+# One or more of: "base", "heat", "peroxide", "blank", "blank heat", "blank peroxide"
+treatment = ["base"]
+
+# Per-sample dilution factors. Use `inf` for the undiluted suspension (background).
+[dict_samples_to_dilution]
+Sample_0 = 1
+Sample_1 = 11
+Sample_2 = 121
+Sample_3 = 1331
+Sample_4 = 14641
+Sample_5 = inf
+
+# --- Optional / conditional inputs ---
+[optional]
+# Only used for TBS sites (sites containing "TBS"); metres above ground level.
+lower_altitude = 0
+upper_altitude = 0
+
+# Only used when sample_type is soil; dried mass of soil in grams.
+dry_mass = 2
+
+# Only used for seawater / salty samples to estimate freezing point depression.
+# Format: { Sample_x = adjustment }
+[freezing_point_depression_dict]
+Sample_0 = 2
+Sample_1 = 0.2
