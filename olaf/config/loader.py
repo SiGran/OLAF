@@ -3,7 +3,7 @@
 The pipeline scripts each expose an editable ``DEFAULT_CONFIG`` path and also accept a
 config path on the command line. ``resolve_config_path`` implements that "CLI overrides the
 default" behaviour, ``load_config`` parses and validates a ``.toml`` file into a pydantic
-model, and ``save_provenance_copy`` records the exact config used next to the output.
+model, and ``save_copy`` records the exact config used next to the output.
 """
 
 from __future__ import annotations
@@ -12,6 +12,7 @@ import argparse
 import shutil
 import sys
 import tomllib
+import warnings
 from pathlib import Path
 from typing import TypeVar
 
@@ -73,10 +74,57 @@ def load_config(path: str | Path, model_cls: type[ConfigT]) -> ConfigT:
     try:
         return model_cls(**data)
     except ValidationError as exc:
-        raise ValueError(f"Invalid configuration in {path}:\n{exc}") from exc
+        raise ValueError(_validation_message(path, model_cls, data, exc)) from exc
 
 
-def save_provenance_copy(
+def _validation_message(
+    path: Path,
+    model_cls: type[BaseModel],
+    data: dict[str, object],
+    exc: ValidationError,
+) -> str:
+    """Build a readable error for a config that failed validation.
+
+    Beyond pydantic's own report, this names the stage the caller expected and — when the
+    file clearly belongs to a different stage — the command that would run it correctly.
+    Running a stage's script against another stage's config is easy to do and otherwise
+    surfaces only as a list of "Extra inputs are not permitted" errors.
+    """
+    from olaf.config.models import detect_stage, stage_for_dir, stage_for_model
+
+    lines = [f"Invalid configuration in {path}:"]
+
+    expected = stage_for_model(model_cls)
+    if expected is not None:
+        lines.append(
+            f"Expected a stage {expected.number} ({expected.name}) config for "
+            f"{model_cls.__name__}, normally found in {expected.config_dir}/."
+        )
+
+    actual = detect_stage(data) or stage_for_dir(path.parent.name)
+    if actual is not None and actual.model is not model_cls:
+        lines.append(
+            f"This file looks like a stage {actual.number} ({actual.name}) config. "
+            f"Run it with:\n    python -m {actual.script} {path}"
+        )
+
+    moved_keys = {"dry_mass", "lower_altitude", "upper_altitude"}
+    extra_keys = {
+        str(err["loc"][0])
+        for err in exc.errors()
+        if err["type"] == "extra_forbidden" and err["loc"]
+    }
+    if extra_keys & moved_keys:
+        lines.append(
+            f"Note: {sorted(extra_keys & moved_keys)} moved into the [optional] table — "
+            "see configs/templates/main.example.toml."
+        )
+
+    lines.append(str(exc))
+    return "\n".join(lines)
+
+
+def save_copy(
     config_path: str | Path, output_dir: str | Path, name: str | None = None
 ) -> Path | None:
     """Copy the config file into ``output_dir`` so the run's inputs are recorded with its output.
@@ -98,6 +146,11 @@ def save_provenance_copy(
     config_path = Path(config_path)
     output_dir = Path(output_dir)
     if not output_dir.is_dir():
+        warnings.warn(
+            f"output directory {output_dir} does not exist; no used_config_* provenance "
+            "copy was written for this run",
+            stacklevel=2,
+        )
         return None
 
     stem = name if name else config_path.stem

@@ -10,10 +10,19 @@ from __future__ import annotations
 
 import re
 import warnings
+from collections.abc import Mapping
+from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    ValidationError,
+    field_validator,
+    model_validator,
+)
 
 from olaf.CONSTANTS import DATE_PATTERN, ERROR_SIGNAL
 
@@ -51,11 +60,9 @@ class MainConfig(BaseModel):
     treatment: list[str] = Field(default_factory=lambda: ["base"])
     dict_samples_to_dilution: dict[str, float]
 
-    # Optional / conditional inputs
-    # lower_altitude: float = 0.0  # m agl, only used for TBS sites
-    # upper_altitude: float = 0.0  # m agl, only used for TBS sites
-    # dry_mass: float = 1.0  # g, only used when sample_type is soil
-    optional: dict[str,float] = Field(default_factory=dict)
+    # Conditional inputs from the [optional] table: lower_altitude / upper_altitude
+    # (m agl, TBS sites only) and dry_mass (g, soil samples only).
+    optional: dict[str, float] = Field(default_factory=dict)
     freezing_point_depression_dict: dict[str, float] = Field(default_factory=dict)
 
     @field_validator("treatment", mode="before")
@@ -65,6 +72,30 @@ class MainConfig(BaseModel):
         if isinstance(value, str):
             return [value]
         return value
+
+    @model_validator(mode="after")
+    def _require_conditional_optional_keys(self) -> MainConfig:
+        """Fail at load time when a key needed later by this config is missing.
+
+        Also reject unknown [optional] keys: the free-form dict would otherwise swallow a
+        core field (e.g. proportion_filter_used) placed one table too low, silently running
+        with the default value instead.
+        """
+        known = {"dry_mass", "lower_altitude", "upper_altitude"}
+        unknown = self.optional.keys() - known
+        if unknown:
+            raise ValueError(
+                f"unknown [optional] keys {sorted(unknown)}; expected any of {sorted(known)}"
+            )
+        if "soil" in self.sample_type and self.optional.get("dry_mass", 0.0) <= 0.0:
+            raise ValueError("soil samples need a positive [optional] dry_mass (g) in the config")
+        if "TBS" in self.site:
+            missing = {"lower_altitude", "upper_altitude"} - self.optional.keys()
+            if missing:
+                raise ValueError(
+                    f"TBS sites need [optional] {sorted(missing)} (m agl) in the config"
+                )
+        return self
 
     @model_validator(mode="after")
     def _warn_on_soft_mismatches(self) -> MainConfig:
@@ -210,3 +241,61 @@ class FinalCombineConfig(BaseModel):
     def provenance_stem(self) -> str:
         """Filename stem encoding the crucial variable: the project folder name."""
         return sanitize_for_filename(f"{self.project_folder.name}_final_combine")
+
+
+@dataclass(frozen=True)
+class StageInfo:
+    """Describes one pipeline stage: its config model and how to run it."""
+
+    model: type[BaseModel]
+    number: int
+    name: str
+    script: str
+    dir_name: str
+
+    @property
+    def config_dir(self) -> str:
+        """Documented location for this stage's config files."""
+        return f"configs/<CAMPAIGN>/{self.dir_name}"
+
+
+CONFIG_STAGES: tuple[StageInfo, ...] = (
+    StageInfo(MainConfig, 1, "raw data processing", "olaf.main", "process"),
+    StageInfo(BlankConfig, 2, "blank correction", "olaf.main_for_blanks", "blanks"),
+    StageInfo(FinalCombineConfig, 3, "final combine", "olaf.main_final_combine", "final_combine"),
+)
+
+
+def stage_for_model(model_cls: type[BaseModel]) -> StageInfo | None:
+    """Return the stage that ``model_cls`` configures, or ``None`` if it is not a stage model."""
+    for stage in CONFIG_STAGES:
+        if stage.model is model_cls:
+            return stage
+    return None
+
+
+def stage_for_dir(directory: str) -> StageInfo | None:
+    """Return the stage whose conventional config folder is named ``directory``."""
+    for stage in CONFIG_STAGES:
+        if stage.dir_name == directory:
+            return stage
+    return None
+
+
+def detect_stage(data: Mapping[str, object]) -> StageInfo | None:
+    """Return the stage whose model accepts ``data``, if exactly one does.
+
+    Used to tell a user who ran the wrong script which stage their config actually belongs
+    to. Returns ``None`` when no stage matches or when the data is ambiguous (e.g. a file
+    holding only the ``project_folder`` shared by stages 2 and 3).
+    """
+    matches = []
+    for stage in CONFIG_STAGES:
+        try:
+            with warnings.catch_warnings():
+                warnings.simplefilter("ignore")
+                stage.model(**data)
+        except ValidationError:
+            continue
+        matches.append(stage)
+    return matches[0] if len(matches) == 1 else None

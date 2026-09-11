@@ -245,7 +245,7 @@ class Plots:
                 if save_path:
                     safe_date = str(date).replace("/", "_").replace(" ", "_").replace(":", "-")
                     plt.savefig(
-                        f"{save_path}/{save_site}{safe_date}_created_on-" f"{current_time}.png",
+                        f"{save_path}/{save_site}{safe_date}_created_on-{current_time}.png",
                         **PLOT_SETTINGS["save"],
                     )
 

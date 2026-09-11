@@ -76,7 +76,7 @@ Make the two calculation engines pure, testable, and correct; fold in the parked
       with the existing `reviewed_*.dat`. Document in README + docstrings; ensure
       closing-without-changes deterministically reuses prior reviewed data.
 - [ ] Treat the saved review (`reviewed_*.dat` / `changes` column) as first-class provenance of the
-      human decisions, written alongside `save_provenance_copy` output.
+      human decisions, written alongside `save_copy` output.
 
 ---
 

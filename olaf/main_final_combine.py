@@ -11,7 +11,7 @@ from olaf.config import (
     FinalCombineConfig,
     load_config,
     resolve_config_path,
-    save_provenance_copy,
+    save_copy,
 )
 from olaf.processing.final_file_creation import FinalFileCreation
 
@@ -34,6 +34,4 @@ if __name__ == "__main__":
     config_path = resolve_config_path(DEFAULT_CONFIG)
     config = load_config(config_path, FinalCombineConfig)
     run(config)
-    save_provenance_copy(
-        config_path, config.project_folder / "final_files", config.provenance_stem()
-    )
+    save_copy(config_path, config.project_folder / "final_files", config.provenance_stem())

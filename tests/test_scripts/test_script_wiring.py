@@ -133,7 +133,7 @@ def test_main_run_writes_provenance(tmp_path, monkeypatch):
     monkeypatch.setattr(main_mod, "GraphDataCSV", _make_fake(_Recorder()))
 
     main_mod.run(config)
-    main_mod.save_provenance_copy(cfg_path, config.data_folder, config.provenance_stem())
+    main_mod.save_copy(cfg_path, config.data_folder, config.provenance_stem())
 
     written = list(folder.glob("used_config_*.toml"))
     assert written == [folder / "used_config_SITE_2025-07-16_base.toml"]

@@ -6,7 +6,7 @@ Either edit ``DEFAULT_CONFIG`` below or pass a config path on the command line:
     python -m olaf.main_for_blanks configs/<CAMPAIGN>/blanks/blanks.toml
 """
 
-from olaf.config import BlankConfig, load_config, resolve_config_path, save_provenance_copy
+from olaf.config import BlankConfig, load_config, resolve_config_path, save_copy
 from olaf.processing.blank_correction import BlankCorrector
 
 # -----------------------------    CONFIG    ----------------------------------------
@@ -34,4 +34,4 @@ if __name__ == "__main__":
     config_path = resolve_config_path(DEFAULT_CONFIG)
     config = load_config(config_path, BlankConfig)
     run(config)
-    save_provenance_copy(config_path, config.project_folder, config.provenance_stem())
+    save_copy(config_path, config.project_folder, config.provenance_stem())

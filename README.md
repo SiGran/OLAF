@@ -204,13 +204,12 @@ python -m olaf.main configs/<CAMPAIGN>/samples/<your_config>.toml
 ```
 
 A copy of the config used is saved into the output folder as `used_config_*.toml` — named
-after the run's crucial variables (e.g. `used_config_SGP_2024-02-21_base.toml`) — so you can
-always trace which inputs produced a given output.
+after the config file (e.g. `used_config_SGP_2024-02-21_base.toml`).
 
 #### Using the GUI to validate the number of frozen wells
-The image-validation GUI block in `main.py` is commented out by default; uncomment it to
-open the reviewer when running.
-It is a simple user interface where you can increase or decrease the number of frozen wells for each sample.
+The GUI is a simple user interface where you can increase or decrease the number of frozen wells for each sample.
+Note: if you have already run this stage, you can comment it out to continue the other steps more automatically,
+or simply close the GUI pop-up to continue running the next steps.
 
 ![img_1.png](img_1.png)
 
@@ -219,6 +218,7 @@ Note: the *back* button is greyed out because we're looking at _image 0_.
 If every sample looks correct, you can move to the next image by clicking `good`.
 If the frozen well numbers displayed in the box above each sample are incorrect, use the `-1` and `+1` buttons for each sample that requires a change.
 If you made a mistake you can click on `back` to go back to the previous image.
+You can do these steps one image at a time, or go 10 images ahead (`+10`) or back (`-10`)
 
 Once you've validated all the images, the program will continue and will save files in the `data` directory with the processed data.
 

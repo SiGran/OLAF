@@ -8,7 +8,7 @@ Either edit ``DEFAULT_CONFIG`` below or pass a config path on the command line:
 
 import tkinter as tk
 
-from olaf.config import MainConfig, load_config, resolve_config_path, save_provenance_copy
+from olaf.config import MainConfig, load_config, resolve_config_path, save_copy
 from olaf.image_verification.freezing_reviewer import FreezingReviewer
 from olaf.processing.graph_data_csv import GraphDataCSV
 from olaf.processing.spaced_temp_csv import SpacedTempCSV
@@ -66,4 +66,4 @@ if __name__ == "__main__":
     config_path = resolve_config_path(DEFAULT_CONFIG)
     config = load_config(config_path, MainConfig)
     run(config)
-    save_provenance_copy(config_path, config.data_folder, config.provenance_stem())
+    save_copy(config_path, config.data_folder, config.provenance_stem())

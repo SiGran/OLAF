@@ -90,7 +90,8 @@ def plot_INPS_L(result_df, save_path, header_dict):
                 Patch(
                     facecolor="none",
                     edgecolor="none",
-                    label=f"Prop. filter used: {float(header_dict['proportion_filter_used'])*100}%",
+                    label="Prop. filter used: "
+                    f"{float(header_dict['proportion_filter_used']) * 100}%",
                 )
             )
     else:

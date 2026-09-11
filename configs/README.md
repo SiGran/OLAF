@@ -3,12 +3,12 @@
 Each OLAF pipeline stage is driven by a `.toml` config file instead of editing the
 `main_*.py` scripts. This keeps the scripts untouched and gives you a record of exactly
 which inputs produced a given output (a copy of the config is also written into each run's
-output folder as `used_config_*.toml`, named after the run's crucial variables, e.g.
+output folder as `used_config_*.toml`, with the same name as the config file, e.g.
 `used_config_RAM_CINC_2025-07-16_base.toml`).
 
 ## Layout
 
-Configs are organized **by campaign, then by stage**:
+Configs are organized **by campaign, then by analysis step**:
 
 ```
 configs/
@@ -40,6 +40,7 @@ typically need just one config per campaign.
    python -m olaf.main_final_combine configs/RAM_CINC/final_combine/final_combine.toml
    ```
 
+
    If you run a script with no argument, it uses the `DEFAULT_CONFIG` path set near the top
    of that script. A path given on the command line always overrides the default.
 
@@ -50,5 +51,11 @@ typically need just one config per campaign.
 - The `templates/` folder and example campaign are tracked in git. Whether you commit your
   own campaign configs is up to you and your team's provenance needs.
 - Relative `project_folder` / `data_folder` paths are resolved from the directory you run
-  the script in (typically the repo root).
-- The `project_folder` and `data_folder` paths can also be hard-coded to the preferred location`D:/campagins/campaign_x/data`
+  the script in (typically the repo root). (relative path: `Path.cwd()`)
+- The `project_folder` and `data_folder` paths can also be hard-coded to the preferred location, e.g. `D:/campaigns/campaign_x/data`
+
+## Migration notes
+
+- `dry_mass`, `lower_altitude` and `upper_altitude` moved from top-level keys into the
+  `[optional]` table (see `templates/main.example.toml`). Older stage-1 configs that
+  still declare them at the top level are rejected at load time with a hint.

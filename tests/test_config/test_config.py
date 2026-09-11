@@ -5,6 +5,7 @@ import warnings
 from pathlib import Path
 
 import pytest
+from pydantic import ValidationError
 
 from olaf.config import (
     BlankConfig,
@@ -12,9 +13,9 @@ from olaf.config import (
     MainConfig,
     load_config,
     resolve_config_path,
-    save_provenance_copy,
+    save_copy,
 )
-from olaf.config.models import sanitize_for_filename
+from olaf.config.models import detect_stage, sanitize_for_filename, stage_for_model
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 TEMPLATES = REPO_ROOT / "configs" / "templates"
@@ -49,6 +50,58 @@ def test_load_validation_error_raises(tmp_path):
         load_config(cfg, MainConfig)
 
 
+def test_wrong_stage_config_names_the_right_script():
+    """A stage-3 config run through the stage-2 model should say so, not just list extras."""
+    with pytest.raises(ValueError) as excinfo:
+        load_config(TEMPLATES / "final_combine.example.toml", BlankConfig)
+    message = str(excinfo.value)
+    assert "Expected a stage 2 (blank correction) config for BlankConfig" in message
+    assert "looks like a stage 3 (final combine) config" in message
+    assert "python -m olaf.main_final_combine" in message
+
+
+def test_wrong_stage_config_detected_in_both_directions():
+    with pytest.raises(ValueError) as excinfo:
+        load_config(TEMPLATES / "blanks.example.toml", FinalCombineConfig)
+    message = str(excinfo.value)
+    assert "looks like a stage 2 (blank correction) config" in message
+    assert "python -m olaf.main_for_blanks" in message
+
+
+def test_stage_hint_falls_back_to_config_folder_name(tmp_path):
+    """A file too broken to match any model is still placed by its folder."""
+    stage_dir = tmp_path / "final_combine"
+    stage_dir.mkdir()
+    cfg = stage_dir / "final_combine.toml"
+    # `includes` has the wrong type, so no model accepts the file at all
+    cfg.write_text('project_folder = "somewhere"\nincludes = 5\n')
+    with pytest.raises(ValueError) as excinfo:
+        load_config(cfg, BlankConfig)
+    assert "looks like a stage 3 (final combine) config" in str(excinfo.value)
+
+
+def test_no_stage_hint_when_config_is_merely_incomplete(tmp_path):
+    """An ordinary mistake in the right stage must not be blamed on the wrong stage."""
+    cfg = tmp_path / "cfg.toml"
+    cfg.write_text('site = "X"\n')
+    with pytest.raises(ValueError) as excinfo:
+        load_config(cfg, MainConfig)
+    assert "looks like a stage" not in str(excinfo.value)
+    assert "Expected a stage 1 (raw data processing) config" in str(excinfo.value)
+
+
+def test_detect_stage_is_none_when_ambiguous():
+    """project_folder alone fits both stage 2 and stage 3, so no stage may be claimed."""
+    assert detect_stage({"project_folder": "somewhere"}) is None
+
+
+def test_stage_for_model_covers_every_config_model():
+    for model_cls in (MainConfig, BlankConfig, FinalCombineConfig):
+        stage = stage_for_model(model_cls)
+        assert stage is not None
+        assert stage.model is model_cls
+
+
 def test_resolve_config_path_uses_default():
     assert resolve_config_path("a/default.toml", argv=[]) == Path("a/default.toml")
 
@@ -65,7 +118,7 @@ def test_save_provenance_copy(tmp_path):
     cfg.write_text('site = "X"\n')
     out = tmp_path / "out"
     out.mkdir()
-    copied = save_provenance_copy(cfg, out)
+    copied = save_copy(cfg, out)
     assert copied == out / "used_config_run.toml"
     assert copied.read_text() == 'site = "X"\n'
 
@@ -75,8 +128,8 @@ def test_save_provenance_copy_no_overwrite(tmp_path):
     cfg.write_text("a = 1\n")
     out = tmp_path / "out"
     out.mkdir()
-    first = save_provenance_copy(cfg, out)
-    second = save_provenance_copy(cfg, out)
+    first = save_copy(cfg, out)
+    second = save_copy(cfg, out)
     assert first != second
     assert second.name == "used_config_run(1).toml"
 
@@ -84,7 +137,7 @@ def test_save_provenance_copy_no_overwrite(tmp_path):
 def test_save_provenance_copy_missing_dir_returns_none(tmp_path):
     cfg = tmp_path / "run.toml"
     cfg.write_text("a = 1\n")
-    assert save_provenance_copy(cfg, tmp_path / "nope") is None
+    assert save_copy(cfg, tmp_path / "nope") is None
 
 
 def test_save_provenance_copy_with_name(tmp_path):
@@ -92,7 +145,7 @@ def test_save_provenance_copy_with_name(tmp_path):
     cfg.write_text("a = 1\n")
     out = tmp_path / "out"
     out.mkdir()
-    copied = save_provenance_copy(cfg, out, name="SGP_2024-02-21_base")
+    copied = save_copy(cfg, out, name="SGP_2024-02-21_base")
     assert copied == out / "used_config_SGP_2024-02-21_base.toml"
     assert copied.read_text() == "a = 1\n"
 
@@ -102,8 +155,8 @@ def test_save_provenance_copy_with_name_no_overwrite(tmp_path):
     cfg.write_text("a = 1\n")
     out = tmp_path / "out"
     out.mkdir()
-    first = save_provenance_copy(cfg, out, name="SITE_2024-01-01_heat")
-    second = save_provenance_copy(cfg, out, name="SITE_2024-01-01_heat")
+    first = save_copy(cfg, out, name="SITE_2024-01-01_heat")
+    second = save_copy(cfg, out, name="SITE_2024-01-01_heat")
     assert first != second
     assert second.name == "used_config_SITE_2024-01-01_heat(1).toml"
 
@@ -173,7 +226,7 @@ def test_main_effective_vol_air_filt_blank():
 
 
 def test_main_effective_vol_air_filt_soil():
-    config = MainConfig(**_main_data(sample_type="soil", vol_susp=10, dry_mass=2))
+    config = MainConfig(**_main_data(sample_type="soil", vol_susp=10, optional={"dry_mass": 2}))
     assert config.effective_vol_air_filt == 5
 
 
@@ -184,9 +237,31 @@ def test_main_to_header_contains_site_and_treatment():
 
 
 def test_main_to_header_tbs_adds_altitudes():
-    config = MainConfig(**_main_data(site="TBS_SITE", data_folder="data/TBS_SITE 07.16.25 base"))
+    config = MainConfig(
+        **_main_data(
+            site="TBS_SITE",
+            data_folder="data/TBS_SITE 07.16.25 base",
+            optional={"lower_altitude": 10.0, "upper_altitude": 250.0},
+        )
+    )
     header = config.to_header()
     assert "lower_altitude" in header and "upper_altitude" in header
+
+
+def test_main_soil_without_dry_mass_rejected():
+    with pytest.raises(ValidationError, match="dry_mass"):
+        MainConfig(**_main_data(sample_type="soil", vol_susp=10))
+
+
+def test_main_tbs_without_altitudes_rejected():
+    with pytest.raises(ValidationError, match="altitude"):
+        MainConfig(**_main_data(site="TBS_SITE", data_folder="data/TBS_SITE 07.16.25 base"))
+
+
+def test_main_unknown_optional_key_rejected():
+    """A core field misplaced under [optional] must fail loudly, not silently default."""
+    with pytest.raises(ValidationError, match="proportion_filter_used"):
+        MainConfig(**_main_data(optional={"proportion_filter_used": 0.5}))
 
 
 def test_main_warns_on_treatment_folder_mismatch():
