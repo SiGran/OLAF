@@ -122,6 +122,25 @@ The agent must never delete files. The following pre-existing files need manual 
 - [x] Drop the leftover git stash entry `wip-config-optional-table` (kept after a conflicted
   `stash pop` on 2026-09-11; its changes are all committed): `git stash drop`.
 
+### Develop-parity harness follow-ups (2026-09-17)
+- [ ] Repair `tests/test_data/goldens/inputs/sgp_2_21_24_base/frozen_at_temp_expected.csv`:
+  its temperature column is named with a literal Unicode ellipsis (`…`, U+2026) instead of
+  `degC`, so no engine can read it. That is why zero tests referenced it. Once fixed, add
+  `"sgp_2_21_24_base"` back to `_STAGE1_FIXTURES` in
+  `tests/test_integration/test_develop_parity.py` and regenerate its golden.
+- [ ] Delete the orphaned golden
+  `tests/test_data/goldens/expected/test_develop_parity/blank_corrected_10%_error_threshold_INPs_L_frozen_at_temp_reviewed_capek 7.09.24 a base(1).csv`
+  (untracked; superseded by `capek_blank_corrected_all.csv`, which covers all three
+  treatments in one file). The agent cannot delete paths.
+- [ ] After `numerical-core` merges into `develop`: retire or refresh `tests/reference/`
+  (the vendored develop snapshot) together with
+  `tests/test_integration/test_develop_differential.py`. Once develop carries these changes
+  the snapshot no longer describes "the other side". See `tests/reference/README.md`.
+- [ ] Four TBS files sit loose at the top of `tests/test_data/` and were staged in the index
+  without being added deliberately: `INPs_L_frozen_at_temp_reviewed_tbs bnf 03.21.25 ...`,
+  the matching `blank_corrected_...`, and two `.dat` files. Decide whether they belong in a
+  proper experiment folder, in `goldens/inputs/`, or nowhere.
+
 ### IDE files committed by mistake (2026-09-17)
 - [ ] Untrack the six `.idea/` files swept into commit `474c18f`: `copilotDiffState.xml`,
   `markdown.xml`, `modules.xml`, `olaf.iml`, `pyLspTools.xml`, `pyProjectModel.xml`. They

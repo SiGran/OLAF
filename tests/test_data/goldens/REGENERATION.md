@@ -301,6 +301,18 @@ itself and is wrong):
 
 ---
 
+## Interaction with the develop-parity goldens
+
+`expected/test_develop_parity/` is generated from develop's engines and pins the current
+behavior of both. **Any intentional behavior change - including anything decided in Part 1 -
+invalidates them.** After such a change:
+
+1. Re-run `bash scripts/regen_develop_baseline.sh` only if you still want a develop
+   reference; once develop itself carries the change, regenerate against the new baseline
+   instead and refresh `tests/reference/`.
+2. Re-run `python scripts/scan_trigger_conditions.py --root <archive>` to see which real
+   spectra the change touches.
+
 ## Session checklist
 
 - [ ] Input fixtures curated first (including one with an `ERROR_SIGNAL` gap)

@@ -103,9 +103,8 @@ Follow-ups from the 2026-09-17 A.3 science review (non-blocking):
       Re-curate golden fixtures that currently pin buggy output (e.g. `qc_flag`,
       `capek_combined_blank.csv` tuple cells — `bug #17`) to correct values via
       `OLAF_REGEN_GOLDEN=1` + review. Agent writes tests; human confirms the numbers.
-      Also add an `INPs_L_*` golden pinning `convert_INPs_L` output — no golden covers the
-      stage-1 numerical engine yet, so the `_error_calc` neutrality claim rests on analysis
-      alone (science review 2026-09-17).
+      The stage-1 gap is now CLOSED: `tests/test_integration/test_develop_parity.py` pins
+      `convert_INPs_L` output for two committed fixtures, generated from develop's engines.
 
 ---
 

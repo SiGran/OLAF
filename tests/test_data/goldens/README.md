@@ -44,6 +44,21 @@ goldens/
    path (or use an existing fixture if one fits).
 4. Commit the file. Goldens are part of the repo from now on.
 
+## Develop-parity goldens (`expected/test_develop_parity/`)
+
+These are generated from **develop's** engines, not from this branch, and must then pass
+unchanged here - that is what makes them proof rather than a self-portrait. Regenerate only
+with:
+
+```bash
+bash scripts/regen_develop_baseline.sh      # swaps develop's two engines in, then restores
+uv run pytest -m "not gui" -q               # must pass unchanged afterwards
+```
+
+They are one third of the assurance story; see
+`tests/test_integration/test_develop_parity.py` for the other two (differential fuzzing over
+generated spectra, and `scripts/scan_trigger_conditions.py` for checking a real archive).
+
 ## Regenerating goldens (`expected/`)
 
 > For a full re-curation — the decisions that need a scientist, un-skipping the

@@ -35,6 +35,9 @@ dev = [
 
 [tool.ruff]
 line-length = 100
+# Verbatim snapshots of develop's engines used by the differential tests. Linting or
+# reformatting them would alter the very thing they exist to preserve.
+extend-exclude = ["tests/reference"]
 
 [tool.ruff.lint]
 extend-select = ["I", "F", "E", "W", "B", "UP", "SIM", "RUF"]
