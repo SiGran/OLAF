@@ -68,6 +68,44 @@ worth more later than the decision alone.
 
 ---
 
+## Part 1b — Build the before/after comparison (do this *with* Part 1)
+
+The Part 1 questions are much easier to answer against real numbers than in the abstract.
+Generate the pre-fix output as a **throwaway reference** and diff it against current code.
+
+> Do **not** commit goldens generated from pre-fix code. They would pin the very behavior
+> Milestone A fixed — e.g. locking in an uncorrected non-monotonic drop as "expected" —
+> and you would have to regenerate a second time after merging.
+
+The pre-fix engine is whatever `develop` held before the Milestone A merge; extract just
+the module rather than checking the whole branch out:
+
+```bash
+SCRATCH=$(mktemp -d)
+git show <pre-milestone-A-commit>:olaf/processing/blank_correction.py > "$SCRATCH/bc_old.py"
+```
+
+Then run both against the same input and diff. For the `ERROR_SIGNAL`-gap case the
+difference looks like this (drop at -21.5 after a gap at -21.0):
+
+| degC | INPS_L before | INPS_L after | upper_CI before | upper_CI after | qc_flag |
+| --- | --- | --- | --- | --- | --- |
+| -21.0 | -9999 | -9999 | -9999 | -9999 | 0 -> 0 |
+| -21.5 | 30.0 | **50.0** | 45.0 | **61.85** | 0 -> **1** |
+
+That single row is Part 1 items 1 and 2 made concrete: the value is pulled up to the last
+usable reading, and the CI it inherits comes from a bin two `TEMP_STEP`s away. Ask the
+scientist to rule on that row, then regenerate.
+
+Recommended order for the whole session:
+
+1. Curate the input fixtures first — inputs do not depend on which code version you run.
+2. Generate outputs from both the pre-fix and current engine into a scratch folder.
+3. Diff, decide (Part 1), record the reasoning.
+4. Only then regenerate and commit the goldens (Part 2).
+
+---
+
 ## Part 2 — How to regenerate
 
 **Where:** repository root, on a branch (never directly on `develop`).
@@ -152,6 +190,8 @@ Highest value first:
 
 ## Session checklist
 
+- [ ] Input fixtures curated first (including one with an `ERROR_SIGNAL` gap)
+- [ ] Before/after comparison generated into a scratch folder (Part 1b), never committed
 - [ ] Part 1 decisions recorded in `TODO_overhaul.md`
 - [ ] Suite green before regenerating
 - [ ] Goldens regenerated per module, diff reviewed line by line with the scientist
