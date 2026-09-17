@@ -123,14 +123,19 @@ The agent must never delete files. The following pre-existing files need manual 
   `stash pop` on 2026-09-11; its changes are all committed): `git stash drop`.
 
 ### Data-quality blockers found surveying test_project (2026-09-17)
-- [ ] 4 sample folders (`SGP 5.15.24 heat`, `SGP 5.15.24 peroxide`, `SGP 6.02.24 heat`,
-  `SGP 6.02.24 peroxide`) have legacy `INPs_L` headers with no `proportion_filter_used`,
-  so stage 2 dies on them with a bare `KeyError`. Decide: re-process them from `.dat`, or
-  have the loader fail with a message naming the file and the missing key.
-- [ ] Headerless `INPs_L__*.csv` (double underscore) files sit next to the proper
-  single-underscore ones; `find_latest_file` picks the headerless one and stage 2 crashes.
-  Human deletion required (agent cannot delete) — at minimum in
-  `tests/test_data/test_project/SGP 6.20.24 base redo/`.
+- [ ] 8 of 12 sample folders have `INPs_L` files with **no metadata header block at all**
+  (the file starts at the `degC,dilution,...` row), so stage 2 dies with a bare
+  `KeyError: 'proportion_filter_used'`: `SGP 5.15.24 heat`, `5.15.24 peroxide`,
+  `5.21.24 base`, `6.02.24 heat`, `6.02.24 peroxide`, `6.07.24 base`, `6.14.24 base`,
+  `8.07.24 base`. Decide: re-process them from their reviewed `.dat`, or have the loader
+  fail with a message naming the file and the missing key instead of a bare `KeyError`.
+- [ ] **9 archived `INPs_L_*.csv` files contain `-inf` values** from the pre-A.1 logarithm
+  bug (e.g. `SGP 6.20.24`: 22 of 54 rows). They must never be used as golden inputs;
+  regenerate from the reviewed `.dat` instead. Consider re-processing the archive so the
+  stored products are correct.
+- [ ] The headerless file is usually the double-underscore `INPs_L__*.csv`, but not always
+  — in `SGP 7.20.24 heat` the un-numbered single-underscore file is the headerless one and
+  the `(1)` file is good. Check for the header, never trust the filename.
 
 ### Decisions needed (2026-09-11 review of PR #48)
 - [x] Stage-1 config folder name: resolved 2026-09-17 as `main-process/`. Code

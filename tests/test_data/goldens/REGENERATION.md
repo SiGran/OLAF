@@ -173,24 +173,58 @@ ones predate `qc_flag`.
 A survey of every sample folder in `tests/test_data/test_project/` (stage 2 re-run with
 current code, 2026-09-17) found these concrete candidates.
 
-### 4.1 `qc_flag = 1` fixture — **use `SGP 6.20.24 base redo`**
+### 4.1 `qc_flag = 1` fixture — regenerate from the reviewed `.dat`
 
-40 rows, **4 real monotonicity corrections**, no `ERROR_SIGNAL`. Source:
-`INPs_L_frozen_at_temp_reviewed_sgp 6.20.24 a base redo2.csv`.
+> **Do not curate a golden by copying an archived `INPs_L_*.csv`.** Nine of them under
+> `tests/test_data/` contain `-inf` values produced by the pre-A.1 logarithm bug — the
+> `SGP 6.20.24` one had 22 of its 54 rows as `-inf`. Always regenerate from the reviewed
+> `.dat`, which is the only trustworthy artifact in the archive.
 
-| degC | dilution | INPS_L | lower_CI | upper_CI | qc_flag |
+Two viable sources:
+
+**`SGP 7.20.24 heat`** — source intact, 2 corrections. Note the gotcha: the file carrying
+the metadata header is the *numbered* `INPs_L_frozen_at_temp_reviewed_SGP 7.20.24 heat(1).csv`,
+not the un-numbered one, which is headerless. `find_latest_file` happens to pick correctly.
+
+| degC | dilution | INPS_L | lower_CI | upper_CI |
+| --- | --- | --- | --- | --- |
+| -13.5 | 1 | 0.000635 | 0.000531 | 0.003191 |
+| -18.0 | 11 | 0.045374 | 0.031695 | 0.031332 |
+
+**`SGP 6.20.24 base redo`** — richer (5 corrections), and the preferred fixture. Its derived
+CSVs were removed from the working tree on 2026-09-17, but the reviewed `.dat` survives and
+the spectrum regenerates exactly from it:
+
+```python
+dil = {"Sample_0":1, "Sample_1":11, "Sample_2":121,
+       "Sample_3":1331, "Sample_4":14641, "Sample_5":float("inf")}
+# num_samples=6, wells_per_sample=32, sample_type="air"
+# site=SGP, start_time=2024-06-20 04:05:00, filter_color=white, treatment=base
+# vol_air_filt=5466.34, proportion_filter_used=1.0, vol_susp=10
+SpacedTempCSV(folder, num_samples=6, sample_type="air").create_temp_csv(
+    dil, {}, wells_per_sample=32, sample_type="air", save=True)
+GraphDataCSV(folder, num_samples=6, sample_type="air", vol_air_filt=5466.34,
+             wells_per_sample=32, filter_used=1.0, vol_susp=10,
+             dict_samples_to_dilution=dil).convert_INPs_L(header, save=True)
+```
+
+Regenerating and blank-correcting reproduces the four corrections observed in the archived
+output **exactly to six decimal places**:
+
+| degC | dilution | INPS_L | lower_CI | upper_CI | source |
 | --- | --- | --- | --- | --- | --- |
-| -16.5 | 11 | 0.360172 | 0.169566 | 0.149757 | 1 |
-| -18.5 | 121 | 0.947794 | 0.637230 | 0.587333 | 1 |
-| -19.0 | 121 | 0.947794 | 0.637230 | 0.728434 | 1 |
-| -19.5 | 121 | 0.947794 | 0.637230 | 0.819991 | 1 |
+| -16.5 | 11 | 0.360172 | 0.169566 | 0.149757 | both |
+| -18.5 | 121 | 0.947794 | 0.637230 | 0.587333 | both |
+| -19.0 | 121 | 0.947794 | 0.637230 | 0.728434 | both |
+| -19.5 | 121 | 0.947794 | 0.637230 | 0.819991 | both |
+| -21.0 | 121 | 1.457125 | 0.773668 | 1.062514 | **regenerated only** |
 
-The three-row plateau at 0.947794 is the correction holding a value flat across falling
-temperature, with `lower_CI` inherited unchanged and `upper_CI` growing through repeated
-`rms` combination — **Part 1 items 2 and 3 visible in real data**. Note the -16.5 row,
-where `upper_CI` (0.1498) came out *smaller* than `lower_CI` (0.1696): the `rms`
-combination shrank the upper half-width below the lower one. Ask the scientist whether
-that is physically acceptable before pinning it in a golden.
+The fifth correction appears only in the regenerated spectrum because the archived file's
+cold tail was `-inf` rather than a finite value. The regenerated spectrum is the correct
+one and is what a golden should pin.
+
+The -16.5 row is still the one to show the scientist: `upper_CI` (0.149757) is smaller than
+`lower_CI` (0.169566) — the deferred `rms` question (Part 1 item 3) in real data.
 
 ### 4.2 `ERROR_SIGNAL` fixture — `SGP 7.20.24 peroxide` (partial)
 
@@ -220,15 +254,21 @@ Still needed, for `compute_INPs_L`; input already exists at
 
 ### 4.5 Blockers found while surveying
 
-Only 4 of 12 sample folders could be processed at all:
+Only 4 of 12 sample folders could be processed. **One root cause, not two** (an earlier
+note here claimed some folders had no `INPs_L` file — that was an artifact of the survey
+itself and is wrong):
 
-- 4 folders (`SGP 5.15.24 heat/peroxide`, `SGP 6.02.24 heat/peroxide`) die with a bare
-  `KeyError: 'proportion_filter_used'` — legacy `INPs_L` headers predating that field.
-- 4 folders have no `INPs_L` file at all.
-- `find_latest_file` prefers the headerless `INPs_L__*.csv` (double underscore) variant
-  over the proper one, so `SGP 6.20.24 base redo` also crashes until that file is moved
-  aside. Whatever is curated into `goldens/inputs/` must use the single-underscore,
-  full-header file.
+- **8 folders have `INPs_L` files with no metadata header block at all** — the file starts
+  straight at the `degC,dilution,...` column row. Stage 2 then dies with a bare
+  `KeyError: 'proportion_filter_used'`. Affected: `SGP 5.15.24 heat`, `5.15.24 peroxide`,
+  `5.21.24 base`, `6.02.24 heat`, `6.02.24 peroxide`, `6.07.24 base`, `6.14.24 base`,
+  `8.07.24 base`.
+- The headerless files are usually, but **not always**, the double-underscore
+  `INPs_L__*.csv` variant — in `SGP 7.20.24 heat` it is the un-numbered single-underscore
+  file that lacks the header while the `(1)` file has it. Check for the header, never
+  trust the filename.
+- A missing header should fail with a message naming the file and the missing key rather
+  than a bare `KeyError`; tracked in `TODO.md`.
 
 ---
 
