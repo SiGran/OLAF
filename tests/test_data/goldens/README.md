@@ -46,6 +46,10 @@ goldens/
 
 ## Regenerating goldens (`expected/`)
 
+> For a full re-curation — the decisions that need a scientist, un-skipping the
+> `final_file_creation` tests, and which fixtures are still missing — follow
+> [`REGENERATION.md`](REGENERATION.md) in this folder.
+
 For tests that use `assert_csv_matches_golden(actual, golden_path)`:
 
 ```bash

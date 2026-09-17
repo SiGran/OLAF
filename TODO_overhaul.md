@@ -84,7 +84,10 @@ Follow-ups from the 2026-09-17 A.3 science review (non-blocking):
       with save=False no longer writes extrapolated-blank CSVs, and a filename with more than
       one "(" now skips with a message instead of crashing on an unbound variable (a fully
       covered extrapolation no longer crashes min() on an empty set either).
-- [ ] **(Human)** Re-curate golden fixtures that currently pin buggy output (e.g. `qc_flag`,
+- [ ] **(Human)** Re-curate goldens — full protocol in
+      `tests/test_data/goldens/REGENERATION.md` (run it together with a scientist; Part 1
+      lists the five behavior questions that need their ruling before regenerating).
+      Re-curate golden fixtures that currently pin buggy output (e.g. `qc_flag`,
       `capek_combined_blank.csv` tuple cells — `bug #17`) to correct values via
       `OLAF_REGEN_GOLDEN=1` + review. Agent writes tests; human confirms the numbers.
       Also add an `INPs_L_*` golden pinning `convert_INPs_L` output — no golden covers the
