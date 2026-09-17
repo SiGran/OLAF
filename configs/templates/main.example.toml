@@ -1,9 +1,9 @@
 # Stage 1 configuration template for OLAF main.py
 #
 # Copy this file into your campaign folder, e.g.:
-#   configs/<CAMPAIGN>/process/<sample>_<MM.DD.YY>_<treatment>.toml
+#   configs/<CAMPAIGN>/main-process/<sample>_<MM.DD.YY>_<treatment>.toml
 # then edit the values below. Run with:
-#   python -m olaf.main configs/<CAMPAIGN>/process/<your_config>.toml
+#   python -m olaf.main configs/<CAMPAIGN>/main-process/<your_config>.toml
 #
 # TOML notes:
 #   - strings must be quoted; numbers and booleans are bare (true/false)

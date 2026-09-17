@@ -3,7 +3,7 @@
 Configuration lives in a ``.toml`` file (see ``configs/templates/main.example.toml``).
 Either edit ``DEFAULT_CONFIG`` below or pass a config path on the command line:
 
-    python -m olaf.main configs/<CAMPAIGN>/process/<your_config>.toml
+    python -m olaf.main configs/<CAMPAIGN>/main-process/<your_config>.toml
 """
 
 import tkinter as tk
@@ -15,7 +15,7 @@ from olaf.processing.spaced_temp_csv import SpacedTempCSV
 
 # -----------------------------    CONFIG    ----------------------------------------
 # Default config used when no path is given on the command line.
-DEFAULT_CONFIG = "configs/RAM_CINC/process/A12_07.16.25_base.toml"
+DEFAULT_CONFIG = "configs/RAM_CINC/main-process/A12_07.16.25_base.toml"
 
 
 def run(config: MainConfig) -> None:

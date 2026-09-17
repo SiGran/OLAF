@@ -260,7 +260,7 @@ class StageInfo:
 
 
 CONFIG_STAGES: tuple[StageInfo, ...] = (
-    StageInfo(MainConfig, 1, "raw data processing", "olaf.main", "process"),
+    StageInfo(MainConfig, 1, "raw data processing", "olaf.main", "main-process"),
     StageInfo(BlankConfig, 2, "blank correction", "olaf.main_for_blanks", "blanks"),
     StageInfo(FinalCombineConfig, 3, "final combine", "olaf.main_final_combine", "final_combine"),
 )

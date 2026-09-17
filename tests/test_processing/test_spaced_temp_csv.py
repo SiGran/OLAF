@@ -188,9 +188,9 @@ class TestSaltSampleFPD:
         assert len(salt) > len(air)
         first_s0_air = air.loc[air["Sample_0"].ne(0).idxmax(), "degC"]
         first_s0_salt = salt.loc[salt["Sample_0"].ne(0).idxmax(), "degC"]
-        assert (
-            first_s0_salt > first_s0_air
-        ), f"salt Sample_0 should be shifted warmer: air={first_s0_air} salt={first_s0_salt}"
+        assert first_s0_salt > first_s0_air, (
+            f"salt Sample_0 should be shifted warmer: air={first_s0_air} salt={first_s0_salt}"
+        )
 
         assert_csv_matches_golden(
             salt,
@@ -246,15 +246,15 @@ class TestSavedFiles:
         )
 
         written = sorted(p.name for p in work.iterdir())
-        assert any(
-            n.startswith("frozen_at_temp_") and n.endswith(".csv") for n in written
-        ), f"missing frozen_at_temp_*.csv in {written}"
-        assert not any(
-            n.startswith("dilution_dict_") for n in written
-        ), f"dilution dict now lives in the saved config, got {written}"
-        assert not any(
-            n.startswith("frz_pnt_dep_dict_") for n in written
-        ), f"fpd dict now lives in the saved config, got {written}"
+        assert any(n.startswith("frozen_at_temp_") and n.endswith(".csv") for n in written), (
+            f"missing frozen_at_temp_*.csv in {written}"
+        )
+        assert not any(n.startswith("dilution_dict_") for n in written), (
+            f"dilution dict now lives in the saved config, got {written}"
+        )
+        assert not any(n.startswith("frz_pnt_dep_dict_") for n in written), (
+            f"fpd dict now lives in the saved config, got {written}"
+        )
 
     def test_salt_sample_writes_no_extra_dict_artifacts(
         self,
@@ -279,9 +279,9 @@ class TestSavedFiles:
 
         written = sorted(p.name for p in work.iterdir())
         assert any(n.startswith("frozen_at_temp_") and n.endswith(".csv") for n in written)
-        assert not any(
-            n.startswith("dilution_dict_") for n in written
-        ), f"dilution dict now lives in the saved config, got {written}"
-        assert not any(
-            n.startswith("frz_pnt_dep_dict_") for n in written
-        ), f"fpd dict now lives in the saved config, got {written}"
+        assert not any(n.startswith("dilution_dict_") for n in written), (
+            f"dilution dict now lives in the saved config, got {written}"
+        )
+        assert not any(n.startswith("frz_pnt_dep_dict_") for n in written), (
+            f"fpd dict now lives in the saved config, got {written}"
+        )

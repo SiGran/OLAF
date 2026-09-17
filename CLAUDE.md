@@ -75,7 +75,7 @@ Run from the repository root, passing a config path (or omit it to use the `DEFA
 set near the top of each script):
 ```bash
 # Stage 1: Process raw data (GUI validation block is opt-in, commented out in main.py)
-python -m olaf.main configs/<CAMPAIGN>/process/<your_config>.toml
+python -m olaf.main configs/<CAMPAIGN>/main-process/<your_config>.toml
 
 # Stage 2: Apply blank corrections
 python -m olaf.main_for_blanks configs/<CAMPAIGN>/blanks/blanks.toml
@@ -206,12 +206,12 @@ configs/
     blanks.example.toml
     final_combine.example.toml
   <CAMPAIGN>/                       # e.g. RAM_CINC
-    process/<sample>_<MM.DD.YY>_<treatment>.toml   # stage 1
+    main-process/<sample>_<MM.DD.YY>_<treatment>.toml   # stage 1
     blanks/blanks.toml                             # stage 2
     final_combine/final_combine.toml               # stage 3
 ```
 
-Example stage-1 config (`configs/<CAMPAIGN>/process/*.toml`):
+Example stage-1 config (`configs/<CAMPAIGN>/main-process/*.toml`):
 
 ```toml
 site = "SGP"
