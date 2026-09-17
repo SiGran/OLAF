@@ -233,3 +233,26 @@ def test_error_calc_all_wells_frozen_df_masks_to_nan(tmp_path):
     assert np.isfinite(lower.loc[0, 1]) and np.isfinite(upper.loc[0, 1])
     assert np.isnan(lower.loc[1, 1]) and np.isnan(upper.loc[1, 1])
     assert np.isfinite(lower.loc[2, 1]) and np.isfinite(upper.loc[2, 1])
+
+
+# ------------------------------------------------------------- A.3 I/O separation
+def test_compute_INPs_L_is_pure_and_matches_convert(tmp_path):
+    """compute_INPs_L writes no files; convert_INPs_L(save=False) returns its result."""
+    dilution = {"Sample_0": 1, "Sample_1": 10, "Sample_2": float("inf")}
+    temps = [-5.0, -6.0, -7.0, -8.0, -9.0, -10.0, -11.0, -12.0]
+    samples = {
+        "Sample_0": [1, 3, 6, 10, 15, 20, 26, 31],
+        "Sample_1": [0, 1, 2, 4, 6, 9, 14, 20],
+        "Sample_2": [0, 0, 0, 0, 1, 1, 1, 2],
+    }
+    _write_frozen(tmp_path, temps, samples)
+    graph = _make_graph(tmp_path, dilution)
+    before = sorted(p.name for p in tmp_path.iterdir())
+    result = graph.compute_INPs_L()
+    after = sorted(p.name for p in tmp_path.iterdir())
+    assert before == after
+    assert list(result.columns) == ["degC", "dilution", "INPS_L", "lower_CI", "upper_CI"]
+
+    graph2 = _make_graph(tmp_path, dilution)
+    via_convert = graph2.convert_INPs_L("site = SITE", save=False, show_plot=False)
+    pd.testing.assert_frame_equal(result, via_convert)

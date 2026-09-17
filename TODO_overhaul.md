@@ -64,8 +64,26 @@ Make the two calculation engines pure, testable, and correct; fold in the parked
       unchanged — Step 4 already pruned those rows to NaN downstream.
 
 ### A.3 Structure & fixtures
-- [ ] Separate calculation from I/O and plotting: engines return DataFrames; a thin caller does file
-      writes and `plot_INPS_L`. Reuse `math_utils.rms`, `df_utils.read_with_flexible_header`.
+Follow-ups from the 2026-09-17 A.3 science review (non-blocking):
+- [ ] Asymmetric CI-propagation guard in `_blank_correct_file`: it checks `lower_CI` on the
+  sample but `upper_CI` on the blanks; a frame with one but not the other silently skips
+  propagation or KeyErrors. Decide the intended contract and make the check symmetric.
+- [ ] Extrapolation gate/action mismatch: the gate tests the warm end
+  (`max(missing) > max(blank_temps)`) but `_extrapolate_blanks` only extends the cold end.
+  Pre-existing; documented in `_blank_correct_file`'s docstring. Scientist to confirm intent.
+- [ ] Add a test pinning cross-folder `df_blanks` threading: two sample folders in one blank
+  window where the first forces extrapolation and the second asserts the extended range is
+  reused rather than re-extrapolated.
+
+- [x] Separate calculation from I/O and plotting: `GraphDataCSV.compute_INPs_L()` is the pure
+      engine, `convert_INPs_L()` a thin save/plot wrapper; `BlankCorrector.apply_blanks()` is a
+      thin orchestrator over `_blank_correct_file()` (pure per-file correction),
+      `_select_sample_file()` and `_corrected_save_path()`. `read_with_flexible_header` reused;
+      `math_utils.rms` deliberately NOT substituted into the blank CI propagation — that formula
+      is root-SUM-square (rms would shrink CIs by sqrt(2)). Two behavior fixes: apply_blanks
+      with save=False no longer writes extrapolated-blank CSVs, and a filename with more than
+      one "(" now skips with a message instead of crashing on an unbound variable (a fully
+      covered extrapolation no longer crashes min() on an empty set either).
 - [ ] **(Human)** Re-curate golden fixtures that currently pin buggy output (e.g. `qc_flag`,
       `capek_combined_blank.csv` tuple cells — `bug #17`) to correct values via
       `OLAF_REGEN_GOLDEN=1` + review. Agent writes tests; human confirms the numbers.

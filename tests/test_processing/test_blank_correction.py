@@ -428,3 +428,48 @@ class TestExtrapolateBlanks:
         assert len(artifacts) == 1
         df_read = pd.read_csv(artifacts[0])
         assert len(df_read) == 6
+
+
+class TestIOSeparation:
+    """A.3: apply_blanks is a thin I/O orchestrator over pure computation."""
+
+    def test_apply_blanks_save_false_writes_nothing(self, synthetic_blank_folder) -> None:
+        df = pd.DataFrame(
+            {
+                "degC": [-20.0, -21.0, -22.0],
+                "dilution": [1, 1, 1],
+                "INPS_L": [10.0, 20.0, 40.0],
+                "lower_CI": [5.0, 10.0, 20.0],
+                "upper_CI": [15.0, 30.0, 60.0],
+            }
+        )
+        project = synthetic_blank_folder(
+            num_blanks=1, num_samples=1, blank_inps_df=df, sample_inps_df=df
+        )
+        bc = BlankCorrector(
+            project_folder=project,
+            blank_includes=("INPs_L",),
+            blank_excludes=("blank_corrected",),
+            sample_excludes=(),
+        )
+        bc.average_blanks(save=False)
+        before = sorted(p.name for p in project.rglob("*") if p.is_file())
+        bc.apply_blanks(save=False, only_within_dates=False)
+        after = sorted(p.name for p in project.rglob("*") if p.is_file())
+        assert before == after
+
+    def test_corrected_save_path_plain_name(self, tmp_path: Path) -> None:
+        result = BlankCorrector._corrected_save_path(tmp_path / "INPs_L_run.csv")
+        assert result is not None
+        assert result.name.startswith("blank_corrected_")
+        assert result.name.endswith("INPs_L_run.csv")
+
+    def test_corrected_save_path_collapses_version_suffix(self, tmp_path: Path) -> None:
+        result = BlankCorrector._corrected_save_path(tmp_path / "INPs_L_run(3).csv")
+        assert result is not None
+        assert "(3)" not in result.name
+        assert result.name.endswith("INPs_L_run.csv")
+
+    def test_corrected_save_path_multi_paren_returns_none(self, tmp_path: Path) -> None:
+        """Previously this branch left save_file unbound and crashed with NameError."""
+        assert BlankCorrector._corrected_save_path(tmp_path / "INPs_L_a(1)(2).csv") is None

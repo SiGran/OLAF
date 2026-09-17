@@ -142,9 +142,40 @@ class GraphDataCSV(DataHandler):
         return
 
     def convert_INPs_L(self, header: str, save=True, show_plot=False) -> pd.DataFrame:
+        """Compute the INP/L spectrum, then optionally save and plot it.
+
+        Thin I/O wrapper around :meth:`compute_INPs_L`, which does all the science and
+        returns the DataFrame; this method only writes the CSV and renders the plot.
+        ``header`` is used solely for the saved CSV header and the plot metadata/filename.
+
+        args:
+            header: multi-line experiment header written into the saved CSV.
+            save: whether to save the data to a .csv file (default: True)
+            show_plot: whether to render and save the INP spectrum plot (default: False)
+
+        Returns: the data as a pandas DataFrame
+        """
+        result_df = self.compute_INPs_L()
+
+        if save:
+            self.save_to_new_file(result_df, prefix="INPs_L", header=header)
+
+        if show_plot:
+            header_dict = header_to_dict(header)
+            current_time = datetime.now().strftime("%Y%m%d_%H%M%S")
+            save_path = self.folder_path / (
+                f"plot_{header_dict['site']}_{header_dict['start_time'][:10]}_"
+                f"{header_dict['treatment']}_INPs_L_generated-{current_time}.png"
+            )
+            plot_INPS_L(result_df, save_path, header_dict)
+
+        return result_df
+
+    def compute_INPs_L(self) -> pd.DataFrame:
         """
         Convert from # frozen wells at temperature for certain dilution to INPs/L.
-        The steps involved in this function are:
+        Pure calculation: no file writes and no plotting (see convert_INPs_L for the
+        I/O wrapper). The steps involved in this function are:
         1. Separate the temperature and # frozen well values.
         2. Create a column with the total number of wells per temperature
         as affected by the background.
@@ -162,15 +193,10 @@ class GraphDataCSV(DataHandler):
         the last 4 values of a dilution before it has more than 29/32 wells frozen.
         The logic for this is:
             <insert logic>
-        6. Save and return the data.
         The result is a dataframe with the temperature, dilution factor, INPs/L, and the
         lower and upper confidence intervals.
 
-        args:
-            save: whether to save the data to a .csv file (default: True)
-
         Returns: the data as a pandas DataFrame
-
         """
 
         "--------- Step 1: Separate temperature and # frozen well values -----------"
@@ -315,20 +341,6 @@ class GraphDataCSV(DataHandler):
             result_df.iloc[i + 1 :, 3] = upper_INPS_p_L[col_name][i + 1 :]
         # Add the temperature back as first column
         result_df.insert(0, "degC", temps)
-
-        "---------------------- Step 6: Save and return the data ----------------------"
-        if save:
-            self.save_to_new_file(result_df, prefix="INPs_L", header=header)
-
-        # Plotting option
-        if show_plot:
-            header_dict = header_to_dict(header)
-            current_time = datetime.now().strftime("%Y%m%d_%H%M%S")
-            save_path = self.folder_path / (
-                f"plot_{header_dict['site']}_{header_dict['start_time'][:10]}_"
-                f"{header_dict['treatment']}_INPs_L_generated-{current_time}.png"
-            )
-            plot_INPS_L(result_df, save_path, header_dict)
 
         return result_df
 
