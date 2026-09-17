@@ -256,3 +256,14 @@ def test_compute_INPs_L_is_pure_and_matches_convert(tmp_path):
     graph2 = _make_graph(tmp_path, dilution)
     via_convert = graph2.convert_INPs_L("site = SITE", save=False, show_plot=False)
     pd.testing.assert_frame_equal(result, via_convert)
+
+
+def test_error_calc_dataframe_input_with_scalar_dilution(tmp_path):
+    """A DataFrame n_frozen with a scalar dilution must stay elementwise, not collapse
+    into a bare truth test (which raised 'truth value of a DataFrame is ambiguous')."""
+    gdc = _minimal_graph(tmp_path)
+    n_frozen = pd.DataFrame({1: [10, 32, 0]})
+    n_total = pd.Series([32, 32, 32])
+    lower, upper = gdc._error_calc(n_frozen, n_total, vol_well=50, dilution=1)
+    assert np.isnan(lower.loc[1, 1]) and np.isnan(upper.loc[1, 1])
+    assert np.isfinite(lower.loc[0, 1]) and np.isfinite(upper.loc[0, 1])

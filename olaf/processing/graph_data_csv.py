@@ -406,16 +406,15 @@ class GraphDataCSV(DataHandler):
             if isinstance(dilution, int | float):  # dealing with a single value
                 limit_wells = (op(rem_num, plus_min_part) / denom) * n_total
                 # All wells frozen leaves no liquid wells to divide by; the CI is
-                # undefined there (like the INP value itself), so return NaN.
-                if n_total - n_frozen > 0:
-                    limit_INPS_ml = (
-                        dilution
-                        / (vol_well / 1000)
-                        * (n_frozen - limit_wells)
-                        / (n_total - n_frozen)
-                    )
+                # undefined there (like the INP value itself), so mask it to NaN.
+                # n_frozen may still be a Series/DataFrame here even though the dilution
+                # is scalar, so guard elementwise rather than with a bare `if`.
+                liquid_wells = n_total - n_frozen
+                numerator = dilution / (vol_well / 1000) * (n_frozen - limit_wells)
+                if isinstance(liquid_wells, pd.Series | pd.DataFrame):
+                    limit_INPS_ml = (numerator / liquid_wells).where(liquid_wells > 0)
                 else:
-                    limit_INPS_ml = np.nan
+                    limit_INPS_ml = numerator / liquid_wells if liquid_wells > 0 else np.nan
             else:  # We're dealing with matrices/dfs so dilution is the column names
                 limit_wells = rem_num.apply(
                     lambda col, op=op: (op(col, plus_min_part[col.name]) / denom) * n_total
