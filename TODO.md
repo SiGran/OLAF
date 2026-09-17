@@ -122,6 +122,16 @@ The agent must never delete files. The following pre-existing files need manual 
 - [x] Drop the leftover git stash entry `wip-config-optional-table` (kept after a conflicted
   `stash pop` on 2026-09-11; its changes are all committed): `git stash drop`.
 
+### Data-quality blockers found surveying test_project (2026-09-17)
+- [ ] 4 sample folders (`SGP 5.15.24 heat`, `SGP 5.15.24 peroxide`, `SGP 6.02.24 heat`,
+  `SGP 6.02.24 peroxide`) have legacy `INPs_L` headers with no `proportion_filter_used`,
+  so stage 2 dies on them with a bare `KeyError`. Decide: re-process them from `.dat`, or
+  have the loader fail with a message naming the file and the missing key.
+- [ ] Headerless `INPs_L__*.csv` (double underscore) files sit next to the proper
+  single-underscore ones; `find_latest_file` picks the headerless one and stage 2 crashes.
+  Human deletion required (agent cannot delete) — at minimum in
+  `tests/test_data/test_project/SGP 6.20.24 base redo/`.
+
 ### Decisions needed (2026-09-11 review of PR #48)
 - [x] Stage-1 config folder name: resolved 2026-09-17 as `main-process/`. Code
   (`StageInfo.dir_name`), both READMEs, `CLAUDE.md`, the template header, and

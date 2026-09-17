@@ -176,15 +176,65 @@ ones predate `qc_flag`.
 
 ## Part 4 — New fixtures worth curating in the same session
 
-Highest value first:
+A survey of every sample folder in `tests/test_data/test_project/` (stage 2 re-run with
+current code, 2026-09-17) found these concrete candidates.
 
-1. **A blank-correction fixture containing `ERROR_SIGNAL` rows.** Without one, the bug #5
-   behavior change is unpinned end-to-end. Pick a real spectrum with a `-9999` gap and a
-   drop after it — exactly the case Part 1 item 1 decides.
-2. **A stage-1 `INPs_L` golden** for `compute_INPs_L`, so the INP/L engine has a
-   regression fixture at all. Input already exists at
-   `goldens/inputs/sgp_2_21_24_base/reviewed.dat`.
-3. **A fixture producing `qc_flag = 1`** so the ordinary monotonicity correction is locked.
+### 4.1 `qc_flag = 1` fixture — **use `SGP 6.20.24 base redo`**
+
+40 rows, **4 real monotonicity corrections**, no `ERROR_SIGNAL`. Source:
+`INPs_L_frozen_at_temp_reviewed_sgp 6.20.24 a base redo2.csv`.
+
+| degC | dilution | INPS_L | lower_CI | upper_CI | qc_flag |
+| --- | --- | --- | --- | --- | --- |
+| -16.5 | 11 | 0.360172 | 0.169566 | 0.149757 | 1 |
+| -18.5 | 121 | 0.947794 | 0.637230 | 0.587333 | 1 |
+| -19.0 | 121 | 0.947794 | 0.637230 | 0.728434 | 1 |
+| -19.5 | 121 | 0.947794 | 0.637230 | 0.819991 | 1 |
+
+The three-row plateau at 0.947794 is the correction holding a value flat across falling
+temperature, with `lower_CI` inherited unchanged and `upper_CI` growing through repeated
+`rms` combination — **Part 1 items 2 and 3 visible in real data**. Note the -16.5 row,
+where `upper_CI` (0.1498) came out *smaller* than `lower_CI` (0.1696): the `rms`
+combination shrank the upper half-width below the lower one. Ask the scientist whether
+that is physically acceptable before pinning it in a golden.
+
+### 4.2 `ERROR_SIGNAL` fixture — `SGP 7.20.24 peroxide` (partial)
+
+24 rows of which **23 are `-9999`**, contiguous and trailing. Pins the `THRESHOLD_ERROR`
+replacement path, which no golden currently covers. It is degenerate (almost the whole
+spectrum is error) and it does **not** exercise bug #5.
+
+### 4.3 Bug #5 (gap followed by a drop) — **no real data available**
+
+Scanned every processed `.csv` under `tests/test_data/` and `data/`, then re-ran stage 2
+over all 12 sample folders of `test_project`. **Zero** spectra contain a usable value after
+an `ERROR_SIGNAL` gap, so none can trigger the bug #5 correction. Every `-9999` run found
+is trailing: the threshold replacement fires at the cold tail, where nothing follows.
+
+Two consequences:
+
+- The real-world blast radius of bug #5 in this archive appears to be **nil** — worth
+  saying out loud to the scientists, since it lowers the urgency of re-processing old data.
+- A fixture for it has to come from the wider campaign archive (look for a spectrum whose
+  below-CI rows are scattered mid-spectrum rather than at the cold tail) or be derived by
+  hand from a real spectrum. Until then bug #5 stays covered by unit tests only.
+
+### 4.4 Stage-1 `INPs_L` golden
+
+Still needed, for `compute_INPs_L`; input already exists at
+`goldens/inputs/sgp_2_21_24_base/reviewed.dat`.
+
+### 4.5 Blockers found while surveying
+
+Only 4 of 12 sample folders could be processed at all:
+
+- 4 folders (`SGP 5.15.24 heat/peroxide`, `SGP 6.02.24 heat/peroxide`) die with a bare
+  `KeyError: 'proportion_filter_used'` — legacy `INPs_L` headers predating that field.
+- 4 folders have no `INPs_L` file at all.
+- `find_latest_file` prefers the headerless `INPs_L__*.csv` (double underscore) variant
+  over the proper one, so `SGP 6.20.24 base redo` also crashes until that file is moved
+  aside. Whatever is curated into `goldens/inputs/` must use the single-underscore,
+  full-header file.
 
 ---
 
