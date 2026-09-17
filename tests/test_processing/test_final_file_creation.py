@@ -139,7 +139,7 @@ class TestGetFilesPerDate:
 
         assert len(ffc.files_per_date) == 1
         ((date_key, files),) = ffc.files_per_date.items()
-        assert date_key == "2024-05-15 00:00:00"
+        assert date_key == "SGP_2024-05-15 00:00:00"
         assert len(files) == 3
         treatments_in_filenames = {f.stem.rsplit("_", 1)[-1] for f in files}
         assert treatments_in_filenames == {"base", "heat", "peroxide"}
@@ -160,8 +160,8 @@ class TestGetFilesPerDate:
         )
         ffc = FinalFileCreation(root, _INCLUDES, _EXCLUDES)
         assert set(ffc.files_per_date.keys()) == {
-            "2024-05-15 00:00:00",
-            "2024-05-16 00:00:00",
+            "SGP_2024-05-15 00:00:00",
+            "SGP_2024-05-16 00:00:00",
         }
 
     def test_excludes_filter_removes_folder(self, tmp_path: Path) -> None:

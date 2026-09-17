@@ -104,7 +104,35 @@ The agent must never delete files. The following pre-existing files need manual 
 - [x] Delete `tests/test_processing/test_spaced_temp_csv.py.new` — leftover; the original `test_spaced_temp_csv.py` has already been overwritten with the new scaffold content. The `.new` file is redundant and can simply be removed.
 - [x] Delete `tests/test_image_verification/test_freezing_reviewer.py.new` — same situation; original has been overwritten.
 - [x] Delete stray file `olaf/processing/on openpyxl` (accidental commit; one-line note).
-- [ ] Delete `olaf/__pycache__/`, `olaf/processing/__pycache__/`, etc. from git if tracked (should be in `.gitignore`).
+- [x] Delete `olaf/__pycache__/`, `olaf/processing/__pycache__/`, etc. from git if tracked (should be in `.gitignore`).
+- [x] Delete the stray nested virtualenv `olaf/.venv/` (untracked; not in git). It makes local
+  `bandit -r olaf` runs scan ~25k venv findings and take minutes; CI is unaffected (clean
+  checkout). Until deleted, run bandit locally as `bandit -r olaf -x olaf/.venv`.
+- [ ] Delete the superseded stage-1 config folders `configs/RAM_CINC/process/` and
+  `configs/RAM_CINC/main/` (each holds a copy of `A12_07.16.25_base.toml`). The folder was
+  renamed to `main-process/` on 2026-09-17 and the live config now sits at
+  `configs/RAM_CINC/main-process/A12_07.16.25_base.toml` — the agent cannot delete the old
+  paths. After deleting, run `git add configs/RAM_CINC` so git picks up the move.
+- [ ] Clean up untracked clutter in `tests/test_data/SGP 2.21.24 base/`: ~50 duplicate
+  `*(1)…(35).csv` / `*(N).dat` files, the Office lock file `.~lock.SGP 2.21.24 A base fully
+  processed.xlsx#`, and the `*.xlsx` / `*.xlsm` spreadsheets. Also decide whether the
+  untracked `tests/test_data/KCG 09.23.24 base/`, `tests/test_data/SGP 3.28.24 base/` and
+  `tests/test_data/test_project/` folders are real fixtures (then `git add` them) or
+  leftovers (then delete).
+- [x] Drop the leftover git stash entry `wip-config-optional-table` (kept after a conflicted
+  `stash pop` on 2026-09-11; its changes are all committed): `git stash drop`.
+
+### Decisions needed (2026-09-11 review of PR #48)
+- [x] Stage-1 config folder name: resolved 2026-09-17 as `main-process/`. Code
+  (`StageInfo.dir_name`), both READMEs, `CLAUDE.md`, the template header, and
+  `configs/RAM_CINC/main-process/` now agree; only the old-folder deletion above remains.
+- [ ] Scientist call: `effective_vol_air_filt` only forces `vol_air_filt = 1` when the
+  treatment list contains exactly `"blank"`, so `"blank heat"` / `"blank peroxide"` (both
+  advertised in `configs/templates/main.example.toml`) keep the air volume — a blank's INP/L
+  gets divided by e.g. 620 L instead of 1 unless the user manually sets `vol_air_filt = 1`.
+  Legacy `main.py` behaved identically, so this was NOT changed silently; fix would be
+  `any("blank" in t for t in self.treatment)` in `olaf/config/models.py`, and it would move
+  numbers for anyone who didn't set `vol_air_filt = 1` manually.
 
 ### Environment / external setup
 - [ ] Create the `bugfix/critical-issues` git branch from current HEAD when Phase 1 is green.

@@ -1,0 +1,8 @@
+# Stage 2 blank-correction config for the RAM_CINC campaign.
+project_folder = "tests/test_data/NSA_qc_flag_test"
+blank_includes = ["INPs_L_frozen_at_temp_reviewed", "blank"]
+blank_excludes = []
+sample_excludes = ["05.22.25"]
+multiple_per_day = true
+only_within_dates = false
+show_comp_plot = true
