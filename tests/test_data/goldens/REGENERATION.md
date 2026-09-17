@@ -180,6 +180,31 @@ current code, 2026-09-17) found these concrete candidates.
 > `SGP 6.20.24` one had 22 of its 54 rows as `-inf`. Always regenerate from the reviewed
 > `.dat`, which is the only trustworthy artifact in the archive.
 
+#### Why: the archived products are numerically wrong (verified 2026-09-17)
+
+Not merely "stale". Controlled test — the **same** archived `frozen_at_temp` input run
+through the old and current engines, both compared against the documented formula
+`INP/mL = -ln((Dx-Ex)/Dx)/(Cx/1000)*Fx` computed by hand from the raw frozen-well counts:
+
+| | matches hand calculation | mismatches | undefined (`-inf`) |
+| --- | --- | --- | --- |
+| **Current code** | **54 of 54** | 0 | 0 |
+| Archived file (old code) | 4 | 19 | 31 |
+
+Monotonicity violations in the same spectrum: archived 14, current 2 (and those 2 are
+expected — stage 1 output is pre-blank-correction, and `_final_check` resolves them in
+stage 2).
+
+The archived file reports a **constant `-0.001162` across 13 of its 54 rows**, spanning
+about 5 °C, where the formula gives a rising curve — e.g. at -9.5 °C the counts
+(`Sample_0 = 3`, background 0, so `Dx = 32`, `Ex = 3`) give 0.003602, and at -11.5 °C
+(`Sample_0 = 11`) they give 0.015411. Current code returns exactly those values; the
+archived file returns `-0.001162` at both.
+
+Reproduce with the frozen-well counts from any archived `frozen_at_temp_*.csv`; the check
+needs no OLAF code beyond the formula itself, which is why it is trustworthy as an
+independent verification rather than the code confirming itself.
+
 Two viable sources:
 
 **`SGP 7.20.24 heat`** — source intact, 2 corrections. Note the gotcha: the file carrying
