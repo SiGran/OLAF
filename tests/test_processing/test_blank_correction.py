@@ -350,21 +350,25 @@ class TestFinalCheck:
         assert result.iloc[3]["INPS_L"] == 60.0
         assert result.iloc[3]["qc_flag"] == 0
 
-    def test_zero_baseline_stops_walk_back_and_suppresses_correction(self, tmp_path: Path) -> None:
-        """A zero-INP row is a deliberate hard stop: the walk-back does not skip past it,
-        and no correction is made against it (legacy prev != 0 semantics)."""
+    def test_walk_back_skips_zero_rows_like_error_signal(self, tmp_path: Path) -> None:
+        """A zero row carries no usable value, so the walk-back steps over it exactly as
+        it steps over ERROR_SIGNAL (scientist ruling, 2026-09-17). Here the walk crosses
+        both a zero and an ERROR_SIGNAL row to reach the last real value."""
         bc = _empty_corrector(tmp_path)
         # lower_CI chosen so the 0.0 row is NOT below (inps - lower_CI) and therefore
-        # survives the threshold check as a genuine zero baseline for the walk-back.
+        # survives the threshold check as a genuine zero row in the walk-back path.
         df_c, df_i = _final_check_inputs(
             inps_l=[10.0, 50.0, 4.0, 5.0, 160.0],
             corrected=[10.0, ERROR_SIGNAL, 0.0, 5.0, 160.0],
             lower_ci=[5.0, 25.0, 4.0, 2.5, 80.0],
         )
         result = bc._final_check(df_c, df_i)
+        # The zero row itself is left alone and never flagged
         assert result.iloc[2]["INPS_L"] == 0.0
-        assert result.iloc[3]["INPS_L"] == 5.0
-        assert result.iloc[3]["qc_flag"] == 0
+        assert result.iloc[2]["qc_flag"] == 0
+        # 5.0 < 10.0 (last usable value, two unusable rows back) -> corrected
+        assert result.iloc[3]["INPS_L"] == 10.0
+        assert result.iloc[3]["qc_flag"] == 1
 
 
 def _blank_df(temps, inps, lower=None, upper=None):

@@ -385,10 +385,10 @@ class BlankCorrector:
         Add info with how many times corrected value is below lower CI
         Check for monotonicity - INP/L should not decrease with decreasing temperature.
 
-        The monotonicity baseline walks back past ERROR_SIGNAL rows, so a drop across a
-        gap is corrected against the last usable value; the propagated CIs then come from
-        a temperature bin that may be several TEMP_STEPs away (the row carries qc_flag=1,
-        so this is auditable). A zero baseline stops the walk and suppresses correction.
+        The monotonicity baseline walks back past unusable rows — both ERROR_SIGNAL and
+        zero — so a drop across a gap is corrected against the last usable value; the
+        propagated CIs then come from a temperature bin that may be several TEMP_STEPs
+        away (the row carries qc_flag=1, so this is auditable).
         """
         # Remove zero value rows from corrected INPS_L (copy: we add qc_flag below,
         # and writing into a mask slice breaks under pandas copy-on-write)
@@ -430,11 +430,15 @@ class BlankCorrector:
             if current_val == ERROR_SIGNAL or current_val == 0:
                 continue
 
-            # Walk back by position (not by temperature label) past ERROR_SIGNAL rows so an
-            # ERROR_SIGNAL gap cannot hide a non-monotonic drop across it.
+            # Walk back by position (not by temperature label) past unusable rows, so a
+            # gap cannot hide a non-monotonic drop across it. ERROR_SIGNAL and zero rows
+            # are both skipped: neither carries a value worth comparing against.
             j = i - 1
-            while j >= 0 and df_corrected.loc[indices[j], "INPS_L"] == ERROR_SIGNAL:
-                print(f"previous INP_L value of {ERROR_SIGNAL} at {indices[j]}.")
+            while j >= 0:
+                candidate = df_corrected.loc[indices[j], "INPS_L"]
+                if candidate != ERROR_SIGNAL and candidate != 0:
+                    break
+                print(f"skipping unusable INP_L value of {candidate} at {indices[j]}.")
                 j -= 1
             if j < 0:
                 continue
@@ -442,9 +446,8 @@ class BlankCorrector:
             prev_val = df_corrected.loc[prev_temp, "INPS_L"]
 
             # Check if INP/L decreases with lower temperature (non-monotonic).
-            # A zero baseline is a deliberate hard stop (matches the legacy prev != 0
-            # semantics): we never "correct" against a zero-INP row.
-            if current_val < prev_val and prev_val != 0:
+            # prev_val is guaranteed usable (neither ERROR_SIGNAL nor zero) by the walk.
+            if current_val < prev_val:
                 print(f"Correcting value at temperature {current_temp} due to non-monotonicity.")
                 df_corrected.loc[current_temp, "INPS_L"] = prev_val
 

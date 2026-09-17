@@ -64,6 +64,19 @@ Make the two calculation engines pure, testable, and correct; fold in the parked
       unchanged — Step 4 already pruned those rows to NaN downstream.
 
 ### A.3 Structure & fixtures
+**OPEN SCIENTIFIC QUESTION — error-combination formula (raised 2026-09-17, deferred).**
+Two different error-combination conventions coexist in the pipeline:
+- Blank subtraction (`_blank_correct_file`) propagates as root-**sum**-square:
+  `sqrt(sample² + blank²)`.
+- The monotonicity correction (`_final_check`) uses `math_utils.rms`, root-**mean**-square:
+  `sqrt((a² + b²)/2)` — i.e. the RSS value divided by sqrt(2), about 29 % narrower.
+The scientist reviewed this on 2026-09-17, deferred a ruling, and flagged it as something
+that "might be an issue indeed". Evidence it is not hypothetical: in
+`SGP 6.20.24 base redo`, the corrected row at -16.5 degC comes out with `upper_CI`
+(0.149757) *smaller* than `lower_CI` (0.169566), because the `rms` combination shrank the
+upper half-width below the lower one. Any golden curated before this is settled may need
+regenerating if the formula changes. Decide before the next data release.
+
 Follow-ups from the 2026-09-17 A.3 science review (non-blocking):
 - [ ] Asymmetric CI-propagation guard in `_blank_correct_file`: it checks `lower_CI` on the
   sample but `upper_CI` on the blanks; a frame with one but not the other silently skips

@@ -27,46 +27,40 @@ precisely because it never touches the changed code paths.
 
 ---
 
-## Part 1 — Decide these first (scientist's call, not the code's)
+## Part 1 — Behavior decisions — **SETTLED 2026-09-17**
 
-Each item states what the code does **today**. Confirm or overrule before regenerating,
-because the answer changes what the new goldens should contain.
+All five questions were ruled on by the scientist. Recorded here so the goldens curated
+below can be checked against the intended behavior rather than merely against the code.
 
-1. **Correcting across an `ERROR_SIGNAL` gap.** When INP/L drops with decreasing
-   temperature, the value is replaced with the previous one and flagged. Before Milestone
-   A, a drop sitting immediately after a `-9999` gap was silently kept. Now the code walks
-   back past the gap and corrects against the last usable value.
-   *Question:* should a gap break the monotonicity chain (old behavior, arguably "we don't
-   know what happened across the gap"), or bridge it (new behavior)?
-   → `olaf/processing/blank_correction.py`, `_final_check`
+1. **Correcting across an `ERROR_SIGNAL` gap — CONFIRMED, keep the new behavior.**
+   A non-monotonic drop after a `-9999` gap is corrected against the last usable value
+   (`INPS_L` replaced, `qc_flag = 1`). The physical constraint — INP/L cannot fall as
+   temperature falls — does not lapse because an intervening bin was untrustworthy.
+   → no code change; this is what `_final_check` already does.
 
-2. **Confidence intervals inherited across a gap.** When a correction bridges a gap, the
-   replacement `upper_CI` is combined from a temperature bin that may be several
-   `TEMP_STEP`s away, and `lower_CI` is inherited outright.
-   *Question:* is inheriting a CI from a distant bin acceptable, or should a bridged
-   correction widen the CI, or emit `ERROR_SIGNAL` instead?
+2. **Confidence intervals across a gap — CONFIRMED as is.** The CI is independent of
+   previous values and there is no physical reason for it to widen with bridge distance;
+   the current treatment is already conservative enough. `upper_CI` stays
+   `rms(current, previous)` and `lower_CI` stays inherited.
+   → no code change.
 
-3. **Two different error-combination formulas coexist.** Blank subtraction propagates
-   error as root-**sum**-square: `sqrt(sample² + blank²)`. The monotonicity correction in
-   `_final_check` uses `math_utils.rms`, which is root-**mean**-square — for two terms
-   that is `sqrt((a² + b²)/2)`, i.e. RSS ÷ √2, about 29 % narrower.
-   *Question:* is that intentional (different physical meaning) or a latent bug? Nothing
-   was changed here; the inconsistency is pre-existing and needs a scientist to rule.
+3. **`rms` vs root-sum-square — DEFERRED, flagged as a possible real issue.** Blank
+   subtraction propagates error as `sqrt(a² + b²)` while the monotonicity correction uses
+   `math_utils.rms` = `sqrt((a² + b²)/2)`, which is ~29 % narrower. Not resolved in this
+   session; **tracked in `TODO_overhaul.md` (Milestone A.3) as an open question.**
+   → no code change for now. Note that goldens curated before this is settled may need
+   regenerating if the formula changes.
 
-4. **Zero baseline.** The code never corrects a value against a row whose INP/L is `0`;
-   the walk-back stops there and the current value is left alone. Kept deliberately from
-   the legacy implementation.
-   *Question:* correct, or should a zero row be skipped like `ERROR_SIGNAL`?
+4. **Zero baseline — CHANGED.** A zero row carries no usable value, so the walk-back now
+   steps over it exactly as it steps over `ERROR_SIGNAL`, instead of stopping there and
+   suppressing the correction.
+   → code changed in `_final_check`. Verified against every processable spectrum in
+   `test_project`: no corrected spectrum contains a zero row, so **real output is
+   unchanged**; the change only affects data that has not been seen yet.
 
-5. **`qc_flag` vocabulary.** Currently `0` = untouched, `1` = replaced for monotonicity.
-   *Question:* worth distinguishing a plain correction from a gap-bridging correction
-   (e.g. `2`) so the ARM output records which happened? Changing this changes the ARM file
-   schema, so decide now rather than after regeneration.
-
-Record the answers in `TODO_overhaul.md` under Milestone A.3 as you go — the reasoning is
-worth more later than the decision alone.
-
----
+5. **`qc_flag` vocabulary — CONFIRMED as is.** Stays `0` = untouched, `1` = replaced. No
+   separate code for gap-bridging corrections, so the ARM schema is unaffected.
+   → no code change.
 
 ## Part 1b — Build the before/after comparison (do this *with* Part 1)
 
@@ -242,7 +236,7 @@ Only 4 of 12 sample folders could be processed at all:
 
 - [ ] Input fixtures curated first (including one with an `ERROR_SIGNAL` gap)
 - [ ] Before/after comparison generated into a scratch folder (Part 1b), never committed
-- [ ] Part 1 decisions recorded in `TODO_overhaul.md`
+- [x] Part 1 decisions settled 2026-09-17 (see above); item 3 deferred and tracked
 - [ ] Suite green before regenerating
 - [ ] Goldens regenerated per module, diff reviewed line by line with the scientist
 - [ ] Suite green after regenerating
