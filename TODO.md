@@ -122,6 +122,18 @@ The agent must never delete files. The following pre-existing files need manual 
 - [x] Drop the leftover git stash entry `wip-config-optional-table` (kept after a conflicted
   `stash pop` on 2026-09-11; its changes are all committed): `git stash drop`.
 
+### IDE files committed by mistake (2026-09-17)
+- [ ] Untrack the six `.idea/` files swept into commit `474c18f`: `copilotDiffState.xml`,
+  `markdown.xml`, `modules.xml`, `olaf.iml`, `pyLspTools.xml`, `pyProjectModel.xml`. They
+  were already staged in the index and the agent's `git commit` picked them up along with
+  the intended paths. `.idea/` is *not* in `.gitignore` (line 162 is commented out) and
+  several `.idea/` files were already tracked, so this is noise rather than a leak.
+  Fix (human — the agent may not run `git rm`):
+  `git rm --cached .idea/copilotDiffState.xml .idea/markdown.xml .idea/modules.xml .idea/olaf.iml .idea/pyLspTools.xml .idea/pyProjectModel.xml`
+- [ ] Decide whether `.idea/` should be tracked at all. Note `.idea/OLAF.iml` and
+  `.idea/olaf.iml` now both exist — same module, different case, which will collide on
+  case-insensitive filesystems.
+
 ### Data-quality blockers found surveying test_project (2026-09-17)
 - [ ] 8 of 12 sample folders have `INPs_L` files with **no metadata header block at all**
   (the file starts at the `degC,dilution,...` row), so stage 2 dies with a bare
