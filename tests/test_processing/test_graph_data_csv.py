@@ -207,3 +207,29 @@ def test_blend_neither_within_averages_with_rms_ci():
     assert inp == 22.5  # (20 + 25) / 2
     assert lower == 2.5  # sqrt(3**2 + 4**2) / 2 = 5 / 2
     assert upper == 5.0  # sqrt(6**2 + 8**2) / 2 = 10 / 2
+
+
+# ------------------------------------------------------- all-wells-frozen CI guard
+def _minimal_graph(tmp_path):
+    _write_frozen(tmp_path, temps=[-10.0, -10.5], samples={"Sample_0": [0, 1]})
+    return _make_graph(tmp_path, {"Sample_0": 1})
+
+
+def test_error_calc_all_wells_frozen_scalar_returns_nan(tmp_path):
+    """With every well frozen there are no liquid wells to divide by; the CI is
+    undefined and must come back NaN instead of raising ZeroDivisionError."""
+    gdc = _minimal_graph(tmp_path)
+    lower, upper = gdc._error_calc(n_frozen=32, n_total=32, vol_well=50, dilution=1)
+    assert np.isnan(lower)
+    assert np.isnan(upper)
+
+
+def test_error_calc_all_wells_frozen_df_masks_to_nan(tmp_path):
+    """DataFrame path: only the all-frozen rows are NaN; other rows keep finite CIs."""
+    gdc = _minimal_graph(tmp_path)
+    n_frozen = pd.DataFrame({1: [10, 32, 0]})
+    n_total = pd.Series([32, 32, 32])
+    lower, upper = gdc._error_calc(n_frozen, n_total, vol_well=50, dilution=n_frozen.columns)
+    assert np.isfinite(lower.loc[0, 1]) and np.isfinite(upper.loc[0, 1])
+    assert np.isnan(lower.loc[1, 1]) and np.isnan(upper.loc[1, 1])
+    assert np.isfinite(lower.loc[2, 1]) and np.isfinite(upper.loc[2, 1])

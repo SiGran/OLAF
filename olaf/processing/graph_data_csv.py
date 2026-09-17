@@ -393,18 +393,30 @@ class GraphDataCSV(DataHandler):
         for op in [operator.sub, operator.add]:
             if isinstance(dilution, int | float):  # dealing with a single value
                 limit_wells = (op(rem_num, plus_min_part) / denom) * n_total
-                limit_INPS_ml = (
-                    dilution / (vol_well / 1000) * (n_frozen - limit_wells) / (n_total - n_frozen)
-                )
+                # All wells frozen leaves no liquid wells to divide by; the CI is
+                # undefined there (like the INP value itself), so return NaN.
+                if n_total - n_frozen > 0:
+                    limit_INPS_ml = (
+                        dilution
+                        / (vol_well / 1000)
+                        * (n_frozen - limit_wells)
+                        / (n_total - n_frozen)
+                    )
+                else:
+                    limit_INPS_ml = np.nan
             else:  # We're dealing with matrices/dfs so dilution is the column names
                 limit_wells = rem_num.apply(
                     lambda col, op=op: (op(col, plus_min_part[col.name]) / denom) * n_total
                 )
+                # Mask rows with no liquid wells left (all frozen) to NaN instead of
+                # dividing by zero.
                 limit_INPS_ml = limit_wells.apply(
-                    lambda col: col.name
-                    / (vol_well / 1000)
-                    * abs(n_frozen[col.name] - col)
-                    / (n_total - n_frozen[col.name])
+                    lambda col: (
+                        col.name
+                        / (vol_well / 1000)
+                        * abs(n_frozen[col.name] - col)
+                        / (n_total - n_frozen[col.name])
+                    ).where(n_total - n_frozen[col.name] > 0)
                 )
             limit_INPS_L = self._INP_ml_to_L(limit_INPS_ml)
             conf_intervals.append(limit_INPS_L)

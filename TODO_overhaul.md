@@ -49,12 +49,19 @@ Make the two calculation engines pure, testable, and correct; fold in the parked
       Behaviour-preserving (output byte-identical) and removes the numpy `RuntimeWarning`s.
 
 ### A.2 `blank_correction.py`
-- [ ] Fix `bug #3`: `df_corrected["qc_flag"] = int` (assigns the type) → `= 0` with integer dtype
-      (line ~393); currently writes `<class 'int'>` into ARM files for uncorrected rows.
-- [ ] Fix `bug #4`: rewrite the pathological chained comparison (lines ~402–409) as explicit `and`s.
-- [ ] Fix `bug #5`: the ERROR_SIGNAL walk-back at line ~411 is dead code (unreachable given the
-      current condition) and decrements a float temp label — make it reachable and index-based.
-- [ ] Fix the all-wells-frozen division-by-zero in the error/CI calculation (`_error_calc`).
+- [x] Fix `bug #3`: `df_corrected["qc_flag"] = int` → `= 0` with integer dtype. qc_flag is now
+      a plain int64 0/1 column. Output-affecting only in dtype/formatting, not in values;
+      goldens that pin the legacy 5-col schema still need human regeneration (A.3).
+- [x] Fix `bug #4`: chained comparison rewritten as explicit reads + comparisons.
+      Behaviour-preserving (the chain was semantically equivalent, just unreadable).
+- [x] Fix `bug #5`: walk-back is now reachable and index-based — it skips ERROR_SIGNAL rows by
+      position to compare against the last usable value, so an ERROR_SIGNAL gap no longer hides
+      a non-monotonic drop. **Output-affecting** for spectra with ERROR_SIGNAL gaps: such drops
+      are now corrected (INPS_L replaced, qc_flag=1, CIs propagated) where they were silently
+      kept before. Covered by test_error_signal_gap_does_not_hide_non_monotonic_drop.
+- [x] Fix the all-wells-frozen division-by-zero in `_error_calc`: rows with no liquid wells
+      left get NaN CIs (scalar path no longer raises ZeroDivisionError). Pipeline output
+      unchanged — Step 4 already pruned those rows to NaN downstream.
 
 ### A.3 Structure & fixtures
 - [ ] Separate calculation from I/O and plotting: engines return DataFrames; a thin caller does file
@@ -62,6 +69,9 @@ Make the two calculation engines pure, testable, and correct; fold in the parked
 - [ ] **(Human)** Re-curate golden fixtures that currently pin buggy output (e.g. `qc_flag`,
       `capek_combined_blank.csv` tuple cells — `bug #17`) to correct values via
       `OLAF_REGEN_GOLDEN=1` + review. Agent writes tests; human confirms the numbers.
+      Also add an `INPs_L_*` golden pinning `convert_INPs_L` output — no golden covers the
+      stage-1 numerical engine yet, so the `_error_calc` neutrality claim rests on analysis
+      alone (science review 2026-09-17).
 
 ---
 

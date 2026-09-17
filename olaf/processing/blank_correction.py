@@ -358,10 +358,16 @@ class BlankCorrector:
     def _final_check(self, df_corrected, df_inps):
         """
         Add info with how many times corrected value is below lower CI
-        Check for monotonicity - INP/L should not decrease with decreasing temperature
+        Check for monotonicity - INP/L should not decrease with decreasing temperature.
+
+        The monotonicity baseline walks back past ERROR_SIGNAL rows, so a drop across a
+        gap is corrected against the last usable value; the propagated CIs then come from
+        a temperature bin that may be several TEMP_STEPs away (the row carries qc_flag=1,
+        so this is auditable). A zero baseline stops the walk and suppresses correction.
         """
-        # Remove zero value rows from corrected INPS_L
-        df_corrected = df_corrected[df_inps["INPS_L"] != 0]
+        # Remove zero value rows from corrected INPS_L (copy: we add qc_flag below,
+        # and writing into a mask slice breaks under pandas copy-on-write)
+        df_corrected = df_corrected[df_inps["INPS_L"] != 0].copy()
 
         # Check how many times corrected values go below the lower CI of originals
         corrected_below_ci = []
@@ -389,30 +395,33 @@ class BlankCorrector:
         # Get sorted temperatures for monotonic check
         indices = sorted(df_corrected.index)  # Higher to lower temp
 
-        # adding a qc flag column
-        df_corrected["qc_flag"] = int
-        df_corrected.loc[indices[0], "qc_flag"] = 0
+        # adding a qc flag column: 0 = untouched, 1 = replaced for monotonicity
+        df_corrected["qc_flag"] = 0
 
         # Loop through temperatures, starting from the second one
         for i in range(1, len(indices)):
             current_temp = indices[i]
-            prev_temp = indices[i - 1]
+            current_val = df_corrected.loc[current_temp, "INPS_L"]
+            if current_val == ERROR_SIGNAL or current_val == 0:
+                continue
 
-            # Check if INP/L decreases with lower temperature (non-monotonic)
-            if (
-                df_corrected.loc[current_temp, "INPS_L"]
-                < df_corrected.loc[prev_temp, "INPS_L"]
-                != ERROR_SIGNAL
-                != df_corrected.loc[current_temp, "INPS_L"]
-                and df_corrected.loc[prev_temp, "INPS_L"]
-                != 0
-                != df_corrected.loc[current_temp, "INPS_L"]
-            ):
-                while df_corrected.loc[prev_temp, "INPS_L"] == ERROR_SIGNAL:
-                    print(f"previous INP_L value of {ERROR_SIGNAL} at {prev_temp}.")
-                    prev_temp -= 1
+            # Walk back by position (not by temperature label) past ERROR_SIGNAL rows so an
+            # ERROR_SIGNAL gap cannot hide a non-monotonic drop across it.
+            j = i - 1
+            while j >= 0 and df_corrected.loc[indices[j], "INPS_L"] == ERROR_SIGNAL:
+                print(f"previous INP_L value of {ERROR_SIGNAL} at {indices[j]}.")
+                j -= 1
+            if j < 0:
+                continue
+            prev_temp = indices[j]
+            prev_val = df_corrected.loc[prev_temp, "INPS_L"]
+
+            # Check if INP/L decreases with lower temperature (non-monotonic).
+            # A zero baseline is a deliberate hard stop (matches the legacy prev != 0
+            # semantics): we never "correct" against a zero-INP row.
+            if current_val < prev_val and prev_val != 0:
                 print(f"Correcting value at temperature {current_temp} due to non-monotonicity.")
-                df_corrected.loc[current_temp, "INPS_L"] = df_corrected.loc[prev_temp, "INPS_L"]
+                df_corrected.loc[current_temp, "INPS_L"] = prev_val
 
                 # if correction occurs, add 1 to qc column
                 df_corrected.loc[current_temp, "qc_flag"] = 1
@@ -426,9 +435,6 @@ class BlankCorrector:
                 )
                 # Lower CI is just the lower CI
                 df_corrected.loc[current_temp, "lower_CI"] = df_corrected.loc[prev_temp, "lower_CI"]
-
-            else:
-                df_corrected.loc[current_temp, "qc_flag"] = 0
 
         return df_corrected
 
