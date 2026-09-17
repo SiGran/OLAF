@@ -175,35 +175,39 @@ current code, 2026-09-17) found these concrete candidates.
 
 ### 4.1 `qc_flag = 1` fixture — regenerate from the reviewed `.dat`
 
-> **Do not curate a golden by copying an archived `INPs_L_*.csv`.** Nine of them under
-> `tests/test_data/` contain `-inf` values produced by the pre-A.1 logarithm bug — the
-> `SGP 6.20.24` one had 22 of its 54 rows as `-inf`. Always regenerate from the reviewed
-> `.dat`, which is the only trustworthy artifact in the archive.
+> **Do not curate a golden by copying an archived `INPs_L_*.csv`.** They are not
+> reproducible from the inputs beside them (see below), and nine under `tests/test_data/`
+> contain `-inf` values — the `SGP 6.20.24` one has 22 of its 54 rows as `-inf`. Always
+> regenerate from the reviewed `.dat`, the only artifact whose provenance is clear.
 
-#### Why: the archived products are numerically wrong (verified 2026-09-17)
+#### Why: the archived products are not reproducible (investigated 2026-09-17)
 
-Not merely "stale". Controlled test — the **same** archived `frozen_at_temp` input run
-through the old and current engines, both compared against the documented formula
-`INP/mL = -ln((Dx-Ex)/Dx)/(Cx/1000)*Fx` computed by hand from the raw frozen-well counts:
+**Correction.** An earlier revision of this section claimed the archived products were
+"numerically wrong" because of the pre-A.1 logarithm bug. That attribution was wrong and
+is retracted. What the evidence actually supports:
 
-| | matches hand calculation | mismatches | undefined (`-inf`) |
-| --- | --- | --- | --- |
-| **Current code** | **54 of 54** | 0 | 0 |
-| Archived file (old code) | 4 | 19 | 31 |
+- **Current code is correct.** Run on the archived `frozen_at_temp` input, it matches the
+  documented formula `INP/mL = -ln((Dx-Ex)/Dx)/(Cx/1000)*Fx` — hand-computed from the raw
+  frozen-well counts — on **54 of 54 rows**. This check uses only the formula, not OLAF's
+  code paths, so it is independent verification.
+- **The pre-A.1 code is *also* correct on this input.** Extracted from git
+  (`ba9f1b7^:olaf/processing/graph_data_csv.py`) and run on the same file, it produces the
+  same rising curve, no `-inf`, and none of the archived file's values. So the A.1 bugs do
+  **not** explain the archived numbers.
+- **The archived `INPs_L` cannot be reproduced from any input in its own folder.** All 29
+  `frozen_at_temp_*` variants were run through current code; the best match is 4 of 54
+  rows identical. Its archived `blank_corrected` companion has no `degC` column at all
+  (legacy 4-column schema), so the whole chain predates the current formats.
 
-Monotonicity violations in the same spectrum: archived 14, current 2 (and those 2 are
-expected — stage 1 output is pre-blank-correction, and `_final_check` resolves them in
-stage 2).
+The archived file reports a constant `-0.001162` across 13 rows spanning ~5 degC. That
+value corresponds arithmetically to `Ex = -1, Dx = 31, Fx = 1` — a sample count one *below*
+its background — but **no row in any variant in that folder has that combination**, so it
+was not computed from the data that sits next to it.
 
-The archived file reports a **constant `-0.001162` across 13 of its 54 rows**, spanning
-about 5 °C, where the formula gives a rising curve — e.g. at -9.5 °C the counts
-(`Sample_0 = 3`, background 0, so `Dx = 32`, `Ex = 3`) give 0.003602, and at -11.5 °C
-(`Sample_0 = 11`) they give 0.015411. Current code returns exactly those values; the
-archived file returns `-0.001162` at both.
-
-Reproduce with the frozen-well counts from any archived `frozen_at_temp_*.csv`; the check
-needs no OLAF code beyond the formula itself, which is why it is trustworthy as an
-independent verification rather than the code confirming itself.
+**Conclusion: the archived products came from inputs and/or a code version that no longer
+exist in this repository. Their provenance is unknown and they are not reproducible.** That
+is the reason not to use them as golden inputs — not a demonstrated numerical bug. Whether
+they were ever wrong cannot be determined from what is in the repo.
 
 Two viable sources:
 

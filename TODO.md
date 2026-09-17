@@ -141,16 +141,17 @@ The agent must never delete files. The following pre-existing files need manual 
   `5.21.24 base`, `6.02.24 heat`, `6.02.24 peroxide`, `6.07.24 base`, `6.14.24 base`,
   `8.07.24 base`. Decide: re-process them from their reviewed `.dat`, or have the loader
   fail with a message naming the file and the missing key instead of a bare `KeyError`.
-- [ ] **Archived `INPs_L_*.csv` products are numerically wrong, not just stale.** Verified
-  2026-09-17 against the documented formula computed by hand from raw well counts: for
-  `SGP 6.20.24`, current code matches on 54/54 rows while the archived file matches on 4,
-  mismatches on 19 and is `-inf` on 31. It reports a constant `-0.001162` across 13 rows
-  spanning ~5 degC where the formula gives a rising curve. Nine archived `INPs_L` files
-  under `tests/test_data/` contain `-inf`.
+- [ ] **Archived `INPs_L_*.csv` products are not reproducible from the inputs beside them.**
+  Investigated 2026-09-17. Current code matches the documented formula on 54/54 rows for
+  `SGP 6.20.24`; the archived file matches on 4, mismatches on 19, is `-inf` on 31, and
+  holds a constant `-0.001162` across 13 rows. But the **pre-A.1 code produces the same
+  correct curve as current code** on that input, and no `frozen_at_temp` variant in the
+  folder reproduces the archived values (best 4/54), so the difference is NOT attributable
+  to the A.1 bugs. The archived `blank_corrected` companion has no `degC` column at all.
+  → The archive came from inputs/code no longer in the repo; provenance unknown.
   → Never use archived products as golden inputs; regenerate from the reviewed `.dat`.
-  → **Decide whether any published or shared results derive from these files.** If OLAF
-  output was released before the A.1 fixes, those numbers are affected and the affected
-  campaigns should be re-processed. This is a scientist/PI call, not an agent one.
+  → Worth a scientist's eye on whether the archive should be re-processed for
+  reproducibility, but there is **no evidence here that released results are wrong**.
 - [ ] The headerless file is usually the double-underscore `INPs_L__*.csv`, but not always
   — in `SGP 7.20.24 heat` the un-numbered single-underscore file is the headerless one and
   the `(1)` file is good. Check for the header, never trust the filename.
