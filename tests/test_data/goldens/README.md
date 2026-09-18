@@ -1,27 +1,65 @@
 # Test Data Goldens
 
-This is the **only** committed test-data tree. All tests should reference files
-under `tests/test_data/goldens/`, never the raw `tests/test_data/<real-folder>/`
-trees (those are local-only and untracked).
+This is the committed test-data tree. Tests should reference files under
+`tests/test_data/goldens/`, never the raw `tests/test_data/<real-folder>/` trees, which are
+local-only and untracked.
+
+> Not quite the *only* committed tree: four legacy files under
+> `tests/test_data/SGP 2.21.24 base/` are still tracked and used by `sgp_test_folder`. Those
+> tests skip in CI because the versioned copies they need are untracked. Migrating them here
+> is listed under Coverage gaps below.
 
 ## Structure
 
+Verified 2026-09-17. `inputs/` holds committed test inputs; `expected/` holds generated
+goldens.
+
 ```
 goldens/
-├── inputs/                      # canonical inputs for tests + their expected outputs
-│   ├── sgp_2_21_24_base/        # primary SGP fixture (used by SpacedTempCSV tests)
-│   │   ├── reviewed.dat                    # input: reviewed .dat (8970 rows)
-│   │   ├── frozen_at_temp_expected.csv     # golden: SpacedTempCSV output (verified)
-│   │   ├── frozen_at_temp_changed.csv      # alt golden: pre-verification output
-│   │   ├── inps_L_expected.csv             # golden: GraphDataCSV final INPs/L
-│   │   └── dat_images/                     # 3 images for FreezingReviewer GUI smoke
-│   ├── sgp_3_28_24_base/        # needs human curation — see .NEEDED.md
-│   ├── kcg_09_23_24_base/       # needs human curation — see .NEEDED.md
-│   ├── capek/                   # needs human curation — see .NEEDED.md
-│   └── test_project/            # needs human curation — see .NEEDED.md
-└── expected/                    # per-test goldens generated via OLAF_REGEN_GOLDEN=1
-    └── (empty for now)
+├── inputs/
+│   ├── sgp_2_21_24_base/        ✅ curated — primary SGP fixture
+│   │   ├── reviewed.dat                    input: reviewed .dat, used by 16 references
+│   │   ├── frozen_at_temp_expected.csv     ⚠️ BROKEN: temperature column is named with a
+│   │   │                                   literal "…" (U+2026) not "degC"; unreadable by
+│   │   │                                   any engine, referenced by no test
+│   │   ├── frozen_at_temp_changed.csv      referenced by no test
+│   │   ├── inps_L_expected.csv             used only as a header-parsing fixture in
+│   │   │                                   test_df_utils, NOT as a numerical golden
+│   │   └── dat_images/                     3 images for the FreezingReviewer GUI smoke test
+│   ├── sgp_3_28_24_base/        ✅ curated (reviewed.dat + frozen_at_temp_expected.csv)
+│   ├── kcg_09_23_24_base/       ✅ curated (all 4 files present and in use)
+│   ├── capek/                   ✅ curated — blanks + base/heat/peroxide; final_files/ EMPTY
+│   └── test_project/            ❌ EMPTY — nothing curated yet
+└── expected/
+    ├── test_spaced_temp_csv/    3 goldens
+    ├── test_blank_correction/   2 goldens
+    ├── test_develop_parity/     5 goldens (generated from develop — see below)
+    └── test_final_file_creation/ ❌ does not exist; stage 3 has no golden coverage
 ```
+
+## Coverage gaps (what still needs adding)
+
+Ranked. Status verified 2026-09-17 by running the suite, not by reading these docs.
+
+1. **Stage 3 (`FinalFileCreation`) has no golden at all.** Both
+   `TestRealProjectIntegration` golden tests skip because their `blank_corrected_*.csv`
+   inputs use the legacy 5-column schema without `qc_flag`. Fix by re-running stage 2 with
+   current code and curating the output into `inputs/capek/` and `inputs/test_project/`.
+   This is the largest remaining hole in the pipeline.
+2. **`inputs/test_project/` is empty**, so `test_test_project_final_files_golden` can never
+   run. Note the real `tests/test_data/test_project/` is 4.6 GB — curate only the handful of
+   small CSVs needed, never the tree.
+3. **`inputs/capek/final_files/` is empty**, so the ARM-format output of
+   `create_all_final_files` is unpinned.
+4. **`sgp_3_28_24_base/` is curated but unused.** Its `.NEEDED.md` names a
+   `test_air_sample_sgp_3_28_golden` that was never written. The fixture is ready; only the
+   test is missing. (It *is* used by the develop-parity tests.)
+5. **`sgp_2_21_24_base/frozen_at_temp_expected.csv` is unreadable** — see the ⚠️ above.
+   Repair the column name, then it can back a real `SpacedTempCSV` golden.
+
+Lower priority: `frozen_at_temp_changed.csv` is referenced by no test; the four tracked
+files under `tests/test_data/SGP 2.21.24 base/` should migrate here so their tests stop
+skipping in CI.
 
 ## Conventions
 
