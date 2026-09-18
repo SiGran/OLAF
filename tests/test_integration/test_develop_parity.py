@@ -34,6 +34,7 @@ import pytest
 
 from olaf.CONSTANTS import ERROR_SIGNAL
 from olaf.processing.blank_correction import BlankCorrector
+from olaf.processing.final_file_creation import FinalFileCreation
 from olaf.processing.graph_data_csv import GraphDataCSV
 from olaf.utils.df_utils import read_with_flexible_header
 
@@ -334,3 +335,79 @@ class TestDirectParityAgainstDevelop:
                 check_dtype=False,
                 obj=new_path.name,
             )
+
+
+def _read_arm_body(path: Path) -> pd.DataFrame:
+    """Split an emitted ARM CSV and return just the numeric body.
+
+    Body rows start two lines after the ``Temperature (degC)`` column header, skipping the
+    UTC-seconds metadata line. Mirrors ``_read_arm_output`` in test_final_file_creation.py.
+    """
+    lines = path.read_text().splitlines()
+    body_start = next(
+        (i + 2 for i, line in enumerate(lines) if line.startswith("Temperature (degC)")), None
+    )
+    assert body_start is not None, f"no Temperature row in {path}"
+    return pd.read_csv(
+        path,
+        skiprows=body_start,
+        header=None,
+        names=[
+            "Temperature (degC)",
+            "n_INP_STP (per L)",
+            "lower_CL (per L)",
+            "upper_CL (per L)",
+            "QC_flag",
+            "Treatment_flag",
+        ],
+    )
+
+
+class TestStage3Parity:
+    """``FinalFileCreation`` end-to-end on committed inputs.
+
+    Stage 3 previously had **no golden at all**: both real-project tests in
+    test_final_file_creation.py skip, because they require a pre-committed
+    ``blank_corrected_*.csv`` carrying ``qc_flag`` and neither fixture has one.
+
+    Running stage 2 first removes that dependency entirely - the correct 6-column input is
+    produced here rather than curated - so this runs in CI on committed data.
+    """
+
+    def test_arm_output_matches_develop(
+        self, capek_golden_folder, goldens_root, assert_csv_matches_golden, tmp_path
+    ) -> None:
+        if not any(capek_golden_folder.rglob("INPs_L*.csv")):
+            pytest.skip("capek golden inputs not curated")
+
+        work = tmp_path / "capek"
+        shutil.copytree(capek_golden_folder, work)
+        pre_existing = set(work.rglob("blank_corrected_*.csv"))
+
+        bc = BlankCorrector(
+            project_folder=work,
+            blank_includes=_CAPEK_INCLUDES,
+            blank_excludes=_CAPEK_EXCLUDES,
+            sample_excludes=(),
+        )
+        bc.average_blanks(save=False)
+        bc.apply_blanks(save=True, only_within_dates=False)
+        assert set(work.rglob("blank_corrected_*.csv")) - pre_existing, "stage 2 produced nothing"
+
+        # The legacy blank_corrected shipped with the fixture would otherwise be picked up
+        # alongside the freshly produced ones; "10%" is in every produced filename, so it
+        # cannot be used to exclude it the way test_final_file_creation.py does.
+        for stale in pre_existing:
+            stale.replace(stale.with_suffix(".legacy"))
+
+        ffc = FinalFileCreation(work, ("blank_corrected",), ("combined", "extrap"))
+        ffc.create_all_final_files(
+            treatment_dict={"base": 0, "heat": 1, "peroxide": 2},
+            header_start="ARM_HEADER\n",
+        )
+        emitted = sorted((work / "final_files").glob("*.csv"))
+        assert emitted, "stage 3 emitted no final file"
+        assert_csv_matches_golden(
+            _read_arm_body(emitted[0]),
+            goldens_root / "expected" / "test_develop_parity" / f"arm_{emitted[0].stem}.csv",
+        )

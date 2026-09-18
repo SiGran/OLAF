@@ -14,7 +14,7 @@ Last verified against the repository on 2026-09-17.
 
 ## Part 1 — Two questions (no files needed, ~5 minutes)
 
-### Q1. A peroxide sample is labelled `heat`. Which is right?
+### Q1. A peroxide sample is labelled `heat` in its header. Which is right?
 
 File: `goldens/inputs/capek/KCG 7.09.24 peroxide/INPs_L_frozen_at_temp_reviewed_capek 7.09.24 a peroxide.csv`
 
@@ -27,12 +27,18 @@ treatment = heat
 The original in `tests/test_data/capek/KCG 7.09.24 peroxide/` says the same, so this is not a
 copying mistake — it is in the source data.
 
-**Why it matters:** the final ARM file carries a `Treatment_flag` taken from that header
-(0 = untreated, 1 = heat, 2 = peroxide). As it stands this sample would be published as heat
-treated.
+**Why it matters — and what it does *not* affect.** We checked
+(`final_file_creation.py:95-99`): the ARM `Treatment_flag` is read from the **filename**, not
+from this header, so the published ARM file labels this sample correctly as peroxide. The
+wrong header is not currently corrupting released data.
 
-**What we need:** was this run peroxide or heat? If peroxide, the header needs fixing at the
-source and anywhere it was already published.
+Where it does show up is anything that reads the header's `treatment` field: the plot
+filenames and the "Treatment:" labels drawn on the INP spectrum plots
+(`plot_utils.py:62,104,188,220`) would say *heat* for this peroxide sample. It is also
+simply a mislabelled file, which is worth correcting before it misleads someone.
+
+**What we need:** was this run peroxide or heat? If peroxide, the header should be fixed at
+the source.
 
 ### Q2. Which SGP 2.21.24 binned file is the verified one?
 

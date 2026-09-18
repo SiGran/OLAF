@@ -46,14 +46,16 @@ goldens/
 
 Ranked. Status verified 2026-09-17 by running the suite, not by reading these docs.
 
-1. **Stage 3 (`FinalFileCreation`) has no golden at all.** Both
-   `TestRealProjectIntegration` golden tests skip because their `blank_corrected_*.csv`
-   inputs use the legacy 5-column schema without `qc_flag`. Fix by re-running stage 2 with
-   current code and curating the output into `inputs/capek/` and `inputs/test_project/`.
-   This is the largest remaining hole in the pipeline.
+1. ~~**Stage 3 (`FinalFileCreation`) has no golden at all.**~~ **CLOSED 2026-09-17** by
+   `TestStage3Parity` in `tests/test_integration/test_develop_parity.py`, which runs stage 2
+   first to produce a 6-column input instead of requiring a curated one, then pins the ARM
+   body (111 rows, all three `Treatment_flag` values). The two `TestRealProjectIntegration`
+   tests still skip, but they are no longer the only stage-3 coverage.
 2. **`inputs/test_project/` is empty**, so `test_test_project_final_files_golden` can never
-   run. Note the real `tests/test_data/test_project/` is 4.6 GB — curate only the handful of
-   small CSVs needed, never the tree.
+   run. This is now the only *skipping* test without an equivalent elsewhere: it would add
+   multi-date and multi-site grouping, which the single-day capek fixture cannot cover. Note
+   the real `tests/test_data/test_project/` is 4.6 GB — curate only the handful of small CSVs
+   needed, never the tree.
 3. **`inputs/capek/final_files/` is empty**, so the ARM-format output of
    `create_all_final_files` is unpinned.
 4. **`sgp_3_28_24_base/` is curated but unused.** Its `.NEEDED.md` names a
