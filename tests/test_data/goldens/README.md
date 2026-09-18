@@ -19,9 +19,9 @@ goldens/
 ├── inputs/
 │   ├── sgp_2_21_24_base/        ✅ curated — primary SGP fixture
 │   │   ├── reviewed.dat                    input: reviewed .dat, used by 16 references
-│   │   ├── frozen_at_temp_expected.csv     ⚠️ BROKEN: temperature column is named with a
-│   │   │                                   literal "…" (U+2026) not "degC"; unreadable by
-│   │   │                                   any engine, referenced by no test
+│   │   ├── frozen_at_temp_expected.csv     backs a stage-1 develop-parity golden (the
+│   │   │                                   corrupted "…" column name was repaired
+│   │   │                                   2026-09-17; counts unchanged)
 │   │   ├── frozen_at_temp_changed.csv      referenced by no test
 │   │   ├── inps_L_expected.csv             used only as a header-parsing fixture in
 │   │   │                                   test_df_utils, NOT as a numerical golden
@@ -61,8 +61,11 @@ Ranked. Status verified 2026-09-17 by running the suite, not by reading these do
 4. **`sgp_3_28_24_base/` is curated but unused.** Its `.NEEDED.md` names a
    `test_air_sample_sgp_3_28_golden` that was never written. The fixture is ready; only the
    test is missing. (It *is* used by the develop-parity tests.)
-5. **`sgp_2_21_24_base/frozen_at_temp_expected.csv` is unreadable** — see the ⚠️ above.
-   Repair the column name, then it can back a real `SpacedTempCSV` golden.
+5. ~~**`sgp_2_21_24_base/frozen_at_temp_expected.csv` is unreadable**~~ **FIXED 2026-09-17.**
+   Re-curated from `test1_frozen_at_temp_sgp men 02.21.24 a base.csv`, whose well counts are
+   cell-for-cell identical to the corrupted copy (only the column name and `-5` vs `-5.0`
+   formatting differed), so no numbers changed. The fixture is now a third stage-1
+   develop-parity case.
 
 Lower priority: `frozen_at_temp_changed.csv` is referenced by no test; the four tracked
 files under `tests/test_data/SGP 2.21.24 base/` should migrate here so their tests stop

@@ -38,10 +38,7 @@ from olaf.processing.final_file_creation import FinalFileCreation
 from olaf.processing.graph_data_csv import GraphDataCSV
 from olaf.utils.df_utils import read_with_flexible_header
 
-# ``sgp_2_21_24_base`` is deliberately absent: its committed frozen_at_temp_expected.csv has
-# a literal Unicode ellipsis as the temperature column name instead of ``degC``, so no engine
-# can read it. Tracked in TODO.md; restore it here once the fixture is repaired.
-_STAGE1_FIXTURES = ["kcg_09_23_24_base", "sgp_3_28_24_base"]
+_STAGE1_FIXTURES = ["kcg_09_23_24_base", "sgp_3_28_24_base", "sgp_2_21_24_base"]
 
 _DILUTION = {
     "Sample_0": 1,

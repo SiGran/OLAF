@@ -14,6 +14,9 @@ Last verified against the repository on 2026-09-17.
 
 ## Part 1 — Two questions (no files needed, ~5 minutes)
 
+*Q2's header half was
+resolved on 2026-09-17; only its second half still needs an answer.*
+
 ### Q1. A peroxide sample is labelled `heat` in its header. Which is right?
 
 File: `goldens/inputs/capek/KCG 7.09.24 peroxide/INPs_L_frozen_at_temp_reviewed_capek 7.09.24 a peroxide.csv`
@@ -40,21 +43,40 @@ simply a mislabelled file, which is worth correcting before it misleads someone.
 **What we need:** was this run peroxide or heat? If peroxide, the header should be fixed at
 the source.
 
-### Q2. Which SGP 2.21.24 binned file is the verified one?
+### Q2. Which SGP 2.21.24 binned counts are the reviewed ones?
 
-Two files in `tests/test_data/SGP 2.21.24 base/` claim to be the binned frozen-well counts:
+**The header part of this question is resolved — no action needed there.** The file marked
+`VERIFIED` had a corrupted temperature column name (a literal `…` instead of `degC`), but we
+compared it cell by cell against `test1_frozen_at_temp_sgp men 02.21.24 a base.csv` and the
+**frozen-well counts are identical**. The only other difference is cosmetic: whole-number
+temperatures written `-5` instead of `-5.0`. The golden has been repaired from the
+clean-header copy, so no numbers changed.
 
-| File | Temperature column |
+**What is still worth a look.** A third file,
+`test1_changed_frozen_at_temp_sgp men 02.21.24 a base.csv`, has **9 different well counts**
+across 8 temperatures:
+
+| degC | change |
 |---|---|
-| `test1_VERIFIED_changed_frozen_at_temp_sgp men 02.21.24 a base.csv` | `…` — corrupted |
-| `test1_frozen_at_temp_sgp men 02.21.24 a base.csv` | `degC` — correct |
+| -9.5 | Sample_5: 12 → 13 |
+| -10.5 | Sample_4: 8 → 9, Sample_5: 26 → 30 |
+| -11.5 | Sample_4: 18 → 19 |
+| -20.5 | Sample_4: 32 → 31 |
+| -24.0 | Sample_2: 15 → 16 |
+| -25.5 | Sample_0: 5 → 6 |
+| -26.0 | Sample_1: 13 → 14 |
+| -29.0 | Sample_0: 14 → 15 |
 
-The one marked **VERIFIED** has a corrupted header: its temperature column is named with a
-literal ellipsis character instead of `degC`, which no part of OLAF can read. The copy in
-`goldens/inputs/sgp_2_21_24_base/frozen_at_temp_expected.csv` inherited the problem.
+These look like manual well-count adjustments from the review GUI (mostly ±1, plus one +4).
 
-**What we need:** which of the two is the manually verified output? If it is the VERIFIED
-one, we will repair the column name and keep the numbers untouched.
+**What we need:** which set is the reviewed, publishable one — the counts above, or the ones
+without them? Confusingly the file named `VERIFIED_changed` holds the *unchanged* counts,
+so the naming cannot be trusted to answer it.
+
+**Context, not a question:** neither set can be reproduced from the `reviewed.dat` committed
+here, which covers only -20.0 to -29.5 degC while these files run from -4.5. The committed
+`.dat` is evidently a trimmed copy. That is fine for testing, but it means these curated
+counts cannot be regenerated from anything in the repository.
 
 ---
 
