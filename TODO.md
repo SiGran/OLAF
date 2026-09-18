@@ -89,6 +89,51 @@ Each test gets a body + golden file. Run `OLAF_REGEN_GOLDEN=1 pytest <test>` to 
 ## Human-Needs-To-Do
 Tasks the AI agent is NOT allowed to perform — must be done by the human.
 
+### ⚠️ Before merging `numerical-core`: scan the campaign archive (for a scientist)
+
+- [ ] **Run the trigger scan over the real campaign data and review any findings.**
+
+**What this is.** The `numerical-core` branch fixes a bug in the blank-correction step. When
+INP/L *dropped* as temperature fell — which is physically impossible, so it means a
+measurement artifact — the code was supposed to replace the value with the last good one and
+flag it. It did, *except* when the row just above was a `-9999` (a measurement we had thrown
+out). In that one case the impossible drop was silently kept in the published file. It is now
+corrected, which the scientist ruling on 2026-09-17 confirmed is what we want.
+
+**Why you are being asked.** That fix means some spectra will come out with different numbers
+than before. Every difference is a correction we now make and previously failed to make — none
+of them is a regression — but they are *your* numbers, so you should see them before we merge.
+Nothing in our test data triggers this, so the only open question is the wider archive.
+
+**What to run.** From a terminal, in the OLAF repository folder:
+
+```bash
+git checkout numerical-core
+uv run python scripts/scan_trigger_conditions.py --root /path/to/campaign/data
+```
+
+Point `--root` at whatever folder holds the processed campaign data — a network drive or an
+external disk is fine. It only reads `.csv` files, never runs the pipeline and never writes,
+moves or deletes anything, so it is safe to point anywhere. A full archive takes seconds.
+Add `--verbose` to watch it work through each file.
+
+**How to read the result.** The last line is the summary.
+
+- *"no definite triggers"* — nothing changes. The old and new code produce identical output
+  on that data, and the merge cannot affect any of those numbers.
+- *"N definite trigger(s)"* — those spectra WILL change. Each is listed with its file, its
+  temperature, and the old and new value, e.g.
+  `at -21.5degC: value 30 rises to 50 (from -20.5degC)`. Send that list to whoever is
+  handling the merge, and look at the listed spectra to confirm the correction reads
+  sensibly for those samples.
+- A *"zero-bridge shape"* block may also appear. Those are **informational only** and almost
+  never change anything — the code discards those rows before the correction runs. No action
+  needed unless someone asks.
+
+**Sanity check.** `uv run python scripts/scan_trigger_conditions.py --self-test` confirms the
+detector still detects; it should print five `[ok ]` lines.
+
+
 ### CI/CD modernization (from ci-modernize-consolidate-workflows branch)
 
 > **⚠️ Allowlist already configured** — `astral-sh/setup-uv@*` and `codecov/codecov-action@*` are in the allowlist; CI is green.
