@@ -207,3 +207,63 @@ def test_blend_neither_within_averages_with_rms_ci():
     assert inp == 22.5  # (20 + 25) / 2
     assert lower == 2.5  # sqrt(3**2 + 4**2) / 2 = 5 / 2
     assert upper == 5.0  # sqrt(6**2 + 8**2) / 2 = 10 / 2
+
+
+# ------------------------------------------------------- all-wells-frozen CI guard
+def _minimal_graph(tmp_path):
+    _write_frozen(tmp_path, temps=[-10.0, -10.5], samples={"Sample_0": [0, 1]})
+    return _make_graph(tmp_path, {"Sample_0": 1})
+
+
+def test_error_calc_all_wells_frozen_scalar_returns_nan(tmp_path):
+    """With every well frozen there are no liquid wells to divide by; the CI is
+    undefined and must come back NaN instead of raising ZeroDivisionError."""
+    gdc = _minimal_graph(tmp_path)
+    lower, upper = gdc._error_calc(n_frozen=32, n_total=32, vol_well=50, dilution=1)
+    assert np.isnan(lower)
+    assert np.isnan(upper)
+
+
+def test_error_calc_all_wells_frozen_df_masks_to_nan(tmp_path):
+    """DataFrame path: only the all-frozen rows are NaN; other rows keep finite CIs."""
+    gdc = _minimal_graph(tmp_path)
+    n_frozen = pd.DataFrame({1: [10, 32, 0]})
+    n_total = pd.Series([32, 32, 32])
+    lower, upper = gdc._error_calc(n_frozen, n_total, vol_well=50, dilution=n_frozen.columns)
+    assert np.isfinite(lower.loc[0, 1]) and np.isfinite(upper.loc[0, 1])
+    assert np.isnan(lower.loc[1, 1]) and np.isnan(upper.loc[1, 1])
+    assert np.isfinite(lower.loc[2, 1]) and np.isfinite(upper.loc[2, 1])
+
+
+# ------------------------------------------------------------- A.3 I/O separation
+def test_compute_INPs_L_is_pure_and_matches_convert(tmp_path):
+    """compute_INPs_L writes no files; convert_INPs_L(save=False) returns its result."""
+    dilution = {"Sample_0": 1, "Sample_1": 10, "Sample_2": float("inf")}
+    temps = [-5.0, -6.0, -7.0, -8.0, -9.0, -10.0, -11.0, -12.0]
+    samples = {
+        "Sample_0": [1, 3, 6, 10, 15, 20, 26, 31],
+        "Sample_1": [0, 1, 2, 4, 6, 9, 14, 20],
+        "Sample_2": [0, 0, 0, 0, 1, 1, 1, 2],
+    }
+    _write_frozen(tmp_path, temps, samples)
+    graph = _make_graph(tmp_path, dilution)
+    before = sorted(p.name for p in tmp_path.iterdir())
+    result = graph.compute_INPs_L()
+    after = sorted(p.name for p in tmp_path.iterdir())
+    assert before == after
+    assert list(result.columns) == ["degC", "dilution", "INPS_L", "lower_CI", "upper_CI"]
+
+    graph2 = _make_graph(tmp_path, dilution)
+    via_convert = graph2.convert_INPs_L("site = SITE", save=False, show_plot=False)
+    pd.testing.assert_frame_equal(result, via_convert)
+
+
+def test_error_calc_dataframe_input_with_scalar_dilution(tmp_path):
+    """A DataFrame n_frozen with a scalar dilution must stay elementwise, not collapse
+    into a bare truth test (which raised 'truth value of a DataFrame is ambiguous')."""
+    gdc = _minimal_graph(tmp_path)
+    n_frozen = pd.DataFrame({1: [10, 32, 0]})
+    n_total = pd.Series([32, 32, 32])
+    lower, upper = gdc._error_calc(n_frozen, n_total, vol_well=50, dilution=1)
+    assert np.isnan(lower.loc[1, 1]) and np.isnan(upper.loc[1, 1])
+    assert np.isfinite(lower.loc[0, 1]) and np.isfinite(upper.loc[0, 1])

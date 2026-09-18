@@ -3,8 +3,14 @@ repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.6.0
     hooks:
+      # Golden fixtures are byte-exact copies of real instrument output and curated
+      # results. Rewriting them - e.g. stripping the trailing tab that marks an empty
+      # Picture column in a .dat - silently edits scientific source data, which the
+      # goldens README explicitly forbids.
       - id: trailing-whitespace
+        exclude: ^tests/test_data/
       - id: end-of-file-fixer
+        exclude: ^tests/test_data/
       - id: check-yaml
       - id: check-toml
       - id: check-merge-conflict

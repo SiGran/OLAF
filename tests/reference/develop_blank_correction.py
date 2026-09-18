@@ -169,230 +169,199 @@ class BlankCorrector:
         return save_file, clean_df
 
     def apply_blanks(self, save=True, only_within_dates=True, show_comp_plot=False):
-        """Apply the blank correction to all INPs/L files in the project folder.
+        """Apply the blank correction to all INPs/L files in the project folder"""
 
-        Thin I/O orchestrator: folder matching, file selection, plotting and saving live
-        here; the correction itself is computed by :meth:`_blank_correct_file`, which
-        returns DataFrames. With ``save=False`` nothing is written to disk (including
-        extrapolated-blank CSVs).
-        """
         for dates, data in self.combined_blank.items():
             df_blanks, header_info_blanks = data
             for experiment_folder in self.project_folder.iterdir():
                 if (
-                    "blank" in experiment_folder.name
-                    or any(excl in experiment_folder.name for excl in self.sample_excludes)
-                    or not (is_within_dates(dates, experiment_folder.name) or not only_within_dates)
+                    "blank" not in experiment_folder.name
+                    and not any(excl in experiment_folder.name for excl in self.sample_excludes)
+                    and (is_within_dates(dates, experiment_folder.name) or not only_within_dates)
                 ):
-                    continue
+                    # Collect all INPs/L files in the experiment folder
+                    input_files = list(experiment_folder.rglob("INPs_L*.csv"))
+                    # Process the latest INPS file (assumes one relevant per folder)
+                    # Select the appropriate INPs/L file for processing
+                    if not input_files:
+                        print(FileNotFoundError(f"No INPs_L files found in {experiment_folder}"))
+                        continue
 
-                inps_file = self._select_sample_file(experiment_folder)
-                if inps_file is None:
-                    continue
+                    # Filter out any previously blank-corrected files
+                    original_files = [f for f in input_files if "blank_corrected" not in f.name]
 
-                # df_blanks may come back extended by extrapolation; keep it for the
-                # remaining folders of this blank window.
-                df_corrected, df_original, dict_header, df_blanks = self._blank_correct_file(
-                    inps_file, df_blanks, header_info_blanks, dates, save_extrapolated=save
-                )
+                    if not original_files:
+                        print(
+                            FileNotFoundError(
+                                f"Only blank-corrected files found in {experiment_folder}"
+                            )
+                        )
+                        continue
 
-                # Plot blank corrected and non-corrected INP spectra on same plot
-                if show_comp_plot:
-                    current_time = datetime.now().strftime("%Y%m%d_%H%M%S")
-                    save_path = inps_file.parent / (
-                        f"blank_corrected_comp_plot_{THRESHOLD_ERROR}%_error_threshold_"
-                        f"{dict_header['site']}_"
-                        f"{dict_header['start_time'][:10]}_"
-                        f"{dict_header['treatment']}_INPs_L_created_on-{current_time}.png"
+                    # Get the latest original file (highest numbered or most recent)
+                    inps_file = find_latest_file(original_files)
+                    print(f"Selected {inps_file.name} for blank correction")
+
+                    header_lines, df_inps = read_with_flexible_header(inps_file)
+                    dict_header = header_to_dict(header_lines)
+                    # Check if the blank correction covers all temperatures from inps
+
+                    # Store the original dataframe before filtering
+                    df_original = df_inps.copy()
+
+                    # Find zero INPS rows to be preserved in the final output
+                    zero_rows_mask = df_inps["INPS_L"] == 0
+                    df_zero_rows = df_inps[zero_rows_mask].copy()
+
+                    # Remove rows with zero INPS values for blank correction
+                    df_inps = df_inps[~zero_rows_mask]
+
+                    # Continue with the blank correction process using the filtered dataframe
+                    inps_temps = df_inps["degC"]
+                    blank_temps = df_blanks.index.to_series()
+                    missing_temps = set(inps_temps) - set(blank_temps)
+                    if missing_temps:
+                        # If missing temp higher than highest blank temp, extrapolate
+                        if max(missing_temps) > max(blank_temps):
+                            # Extrapolate the blank correction
+                            df_blanks, blank_temps = self._extrapolate_blanks(
+                                df_blanks, blank_temps, missing_temps, dates
+                            )
+                            missing_temps = set(inps_temps) - set(blank_temps)
+                        if min(missing_temps) < min(blank_temps):
+                            print(f"Missing temperatures in blank correction: {missing_temps}")
+
+                    # Extract parameters
+                    prop_filter_used = float(dict_header["proportion_filter_used"])
+                    vol_susp = float(dict_header["vol_susp"])
+                    vol_air_filt = float(dict_header["vol_air_filt"])
+                    prop_filter_used_blanks = float(header_info_blanks["proportion_filter_used"])
+                    vol_susp_blanks = float(header_info_blanks["vol_susp"])
+                    vol_air_filt_blanks = float(header_info_blanks["vol_air_filt"])
+
+                    # Set index to temperature for alignment
+                    df_inps.set_index("degC", inplace=True)
+                    # Create a new DataFrame for the corrected values
+                    df_corrected = df_inps.copy()
+
+                    # Convert to per filter units (vectorized)
+                    df_inps["INPS_per_ml"] = inps_L_to_ml(
+                        df_inps["INPS_L"], vol_air_filt, prop_filter_used, vol_susp
                     )
-                    plot_blank_corrected_vs_pre_corrected_inps(
-                        df_corrected, df_original, save_path, dict_header
+
+                    # Get blank values for matching temperatures
+                    common_temps = df_inps.index.intersection(df_blanks.index)
+
+                    # Vectorized operations for matching temperatures
+
+                    blank_values = df_blanks.loc[common_temps, "INPS_L"]
+                    blank_per_ml = inps_L_to_ml(
+                        blank_values, vol_air_filt_blanks, prop_filter_used_blanks, vol_susp_blanks
                     )
 
-                if save:
-                    save_file = self._corrected_save_path(inps_file)
-                    if save_file is not None:
+                    # Subtract blanks (only for matching temperatures)
+                    df_inps.loc[common_temps, "INPS_per_ml"] -= blank_per_ml
+
+                    # Convert back to INPS/L (vectorized)
+                    df_corrected["INPS_L"] = inps_ml_to_L(
+                        df_inps["INPS_per_ml"], vol_air_filt, prop_filter_used, vol_susp
+                    )
+
+                    # Confidence interval correction (vectorized)
+                    if "lower_CI" in df_inps.columns and "upper_CI" in df_blanks.columns:
+                        sample_lower = df_inps.loc[common_temps, "lower_CI"]
+                        sample_lower = inps_L_to_ml(
+                            sample_lower, vol_air_filt, prop_filter_used, vol_susp
+                        )
+                        sample_upper = df_inps.loc[common_temps, "upper_CI"]
+                        sample_upper = inps_L_to_ml(
+                            sample_upper, vol_air_filt, prop_filter_used, vol_susp
+                        )
+                        blank_lower = df_blanks.loc[common_temps, "lower_CI"]
+                        blank_lower = inps_L_to_ml(
+                            blank_lower,
+                            vol_air_filt_blanks,
+                            prop_filter_used_blanks,
+                            vol_susp_blanks,
+                        )
+                        blank_upper = df_blanks.loc[common_temps, "upper_CI"]
+                        blank_upper = inps_L_to_ml(
+                            blank_upper,
+                            vol_air_filt_blanks,
+                            prop_filter_used_blanks,
+                            vol_susp_blanks,
+                        )
+
+                        # Root sum of squares for error propagation
+                        df_corrected.loc[common_temps, "lower_CI"] = inps_ml_to_L(
+                            np.sqrt(sample_lower**2 + blank_lower**2),
+                            vol_air_filt,
+                            prop_filter_used,
+                            vol_susp,
+                        )
+                        df_corrected.loc[common_temps, "upper_CI"] = inps_ml_to_L(
+                            np.sqrt(sample_upper**2 + blank_upper**2),
+                            vol_air_filt,
+                            prop_filter_used,
+                            vol_susp,
+                        )
+
+                    # Before concatenating, ensure the index is set to temperature
+                    df_zero_rows.set_index("degC", inplace=True)
+                    if not df_zero_rows.empty:
+                        # Reinsert zero INPS rows
+                        df_corrected = pd.concat([df_zero_rows, df_corrected], axis=0)
+
+                    # Reset index to restore temperature column and sort
+                    df_corrected = df_corrected.sort_index(ascending=False)
+                    df_corrected.reset_index(inplace=True)
+                    df_corrected = self._final_check(df_corrected, df_original)
+
+                    # Plot blank corrected and non-corrected INP spectra on same plot
+                    if show_comp_plot:
+                        plot_header_info = dict_header
+                        current_time = datetime.now().strftime("%Y%m%d_%H%M%S")
+                        save_path = inps_file.parent / (
+                            f"blank_corrected_comp_plot_{THRESHOLD_ERROR}%_error_threshold_"
+                            f"{dict_header['site']}_"
+                            f"{dict_header['start_time'][:10]}_"
+                            f"{dict_header['treatment']}_INPs_L_created_on-{current_time}.png"
+                        )
+                        plot_blank_corrected_vs_pre_corrected_inps(
+                            df_corrected, df_original, save_path, plot_header_info
+                        )
+
+                    # Save to output file
+                    if save:
+                        # Check if file has number in () at end and remove
+                        if inps_file.stem.endswith(")"):
+                            split_files = inps_file.stem.split("(")
+                            if len(split_files) == 2:
+                                save_file = (
+                                    inps_file.parent / f"blank_corrected_{THRESHOLD_ERROR}%_error_"
+                                    f"threshold_{split_files[0]}{inps_file.suffix}"
+                                )
+                            else:
+                                print(
+                                    f"Difficulty saving corrected file name \n"
+                                    f": {inps_file.stem} has more than one ()"
+                                )
+
+                        else:
+                            save_file = (
+                                inps_file.parent
+                                / f"blank_corrected_{THRESHOLD_ERROR}%_error_threshold_"
+                                f"{inps_file.name}"
+                            )
                         save_df_file(df_corrected, save_file, dict_header, index=False)
-
-    def _select_sample_file(self, experiment_folder):
-        """Pick the INPs_L file to correct in ``experiment_folder``, or None (with a
-        printed reason) when the folder holds no suitable file."""
-        input_files = list(experiment_folder.rglob("INPs_L*.csv"))
-        if not input_files:
-            print(FileNotFoundError(f"No INPs_L files found in {experiment_folder}"))
-            return None
-
-        # Filter out any previously blank-corrected files
-        original_files = [f for f in input_files if "blank_corrected" not in f.name]
-        if not original_files:
-            print(FileNotFoundError(f"Only blank-corrected files found in {experiment_folder}"))
-            return None
-
-        # Get the latest original file (highest numbered or most recent)
-        inps_file = find_latest_file(original_files)
-        print(f"Selected {inps_file.name} for blank correction")
-        return inps_file
-
-    @staticmethod
-    def _corrected_save_path(inps_file):
-        """Build the blank_corrected output path for ``inps_file``; a versioned name like
-        ``name(3).csv`` is collapsed to ``name.csv``. Returns None (with a printed
-        message) for names the collapse rule cannot handle."""
-        if inps_file.stem.endswith(")"):
-            split_files = inps_file.stem.split("(")
-            if len(split_files) != 2:
-                print(
-                    f"Difficulty saving corrected file name \n"
-                    f": {inps_file.stem} has more than one ()"
-                )
-                return None
-            return (
-                inps_file.parent / f"blank_corrected_{THRESHOLD_ERROR}%_error_"
-                f"threshold_{split_files[0]}{inps_file.suffix}"
-            )
-        return (
-            inps_file.parent
-            / f"blank_corrected_{THRESHOLD_ERROR}%_error_threshold_{inps_file.name}"
-        )
-
-    def _blank_correct_file(
-        self, inps_file, df_blanks, header_info_blanks, dates, save_extrapolated=True
-    ):
-        """Blank-correct one INPs_L file and return DataFrames (no file writes, except
-        that extrapolating the blanks saves the extended blank CSV when
-        ``save_extrapolated`` is True).
-
-        Returns:
-            (df_corrected, df_original, dict_header, df_blanks) — ``df_blanks`` is the
-            input blank frame, extended downward (colder than the blank range) by linear
-            extrapolation when the extrapolation gate fires. Note: the gate tests the
-            warm end while the extrapolation extends the cold end — pre-existing
-            behavior, tracked in TODO_overhaul.md.
-        """
-        header_lines, df_inps = read_with_flexible_header(inps_file)
-        dict_header = header_to_dict(header_lines)
-
-        # Store the original dataframe before filtering
-        df_original = df_inps.copy()
-
-        # Find zero INPS rows to be preserved in the final output
-        zero_rows_mask = df_inps["INPS_L"] == 0
-        df_zero_rows = df_inps[zero_rows_mask].copy()
-
-        # Remove rows with zero INPS values for blank correction
-        df_inps = df_inps[~zero_rows_mask]
-
-        # Check if the blank correction covers all temperatures from inps
-        inps_temps = df_inps["degC"]
-        blank_temps = df_blanks.index.to_series()
-        missing_temps = set(inps_temps) - set(blank_temps)
-        if missing_temps:
-            # If missing temp higher than highest blank temp, extrapolate
-            if max(missing_temps) > max(blank_temps):
-                # Extrapolate the blank correction
-                df_blanks, blank_temps = self._extrapolate_blanks(
-                    df_blanks, blank_temps, missing_temps, dates, save=save_extrapolated
-                )
-                missing_temps = set(inps_temps) - set(blank_temps)
-            if missing_temps and min(missing_temps) < min(blank_temps):
-                print(f"Missing temperatures in blank correction: {missing_temps}")
-
-        # Extract parameters
-        prop_filter_used = float(dict_header["proportion_filter_used"])
-        vol_susp = float(dict_header["vol_susp"])
-        vol_air_filt = float(dict_header["vol_air_filt"])
-        prop_filter_used_blanks = float(header_info_blanks["proportion_filter_used"])
-        vol_susp_blanks = float(header_info_blanks["vol_susp"])
-        vol_air_filt_blanks = float(header_info_blanks["vol_air_filt"])
-
-        # Set index to temperature for alignment
-        df_inps.set_index("degC", inplace=True)
-        # Create a new DataFrame for the corrected values
-        df_corrected = df_inps.copy()
-
-        # Convert to per filter units (vectorized)
-        df_inps["INPS_per_ml"] = inps_L_to_ml(
-            df_inps["INPS_L"], vol_air_filt, prop_filter_used, vol_susp
-        )
-
-        # Get blank values for matching temperatures
-        common_temps = df_inps.index.intersection(df_blanks.index)
-
-        # Vectorized operations for matching temperatures
-        blank_values = df_blanks.loc[common_temps, "INPS_L"]
-        blank_per_ml = inps_L_to_ml(
-            blank_values, vol_air_filt_blanks, prop_filter_used_blanks, vol_susp_blanks
-        )
-
-        # Subtract blanks (only for matching temperatures)
-        df_inps.loc[common_temps, "INPS_per_ml"] -= blank_per_ml
-
-        # Convert back to INPS/L (vectorized)
-        df_corrected["INPS_L"] = inps_ml_to_L(
-            df_inps["INPS_per_ml"], vol_air_filt, prop_filter_used, vol_susp
-        )
-
-        # Confidence interval correction (vectorized)
-        if "lower_CI" in df_inps.columns and "upper_CI" in df_blanks.columns:
-            sample_lower = df_inps.loc[common_temps, "lower_CI"]
-            sample_lower = inps_L_to_ml(sample_lower, vol_air_filt, prop_filter_used, vol_susp)
-            sample_upper = df_inps.loc[common_temps, "upper_CI"]
-            sample_upper = inps_L_to_ml(sample_upper, vol_air_filt, prop_filter_used, vol_susp)
-            blank_lower = df_blanks.loc[common_temps, "lower_CI"]
-            blank_lower = inps_L_to_ml(
-                blank_lower,
-                vol_air_filt_blanks,
-                prop_filter_used_blanks,
-                vol_susp_blanks,
-            )
-            blank_upper = df_blanks.loc[common_temps, "upper_CI"]
-            blank_upper = inps_L_to_ml(
-                blank_upper,
-                vol_air_filt_blanks,
-                prop_filter_used_blanks,
-                vol_susp_blanks,
-            )
-
-            # Root sum of squares for error propagation
-            df_corrected.loc[common_temps, "lower_CI"] = inps_ml_to_L(
-                np.sqrt(sample_lower**2 + blank_lower**2),
-                vol_air_filt,
-                prop_filter_used,
-                vol_susp,
-            )
-            df_corrected.loc[common_temps, "upper_CI"] = inps_ml_to_L(
-                np.sqrt(sample_upper**2 + blank_upper**2),
-                vol_air_filt,
-                prop_filter_used,
-                vol_susp,
-            )
-
-        # Before concatenating, ensure the index is set to temperature
-        df_zero_rows.set_index("degC", inplace=True)
-        if not df_zero_rows.empty:
-            # Reinsert zero INPS rows
-            df_corrected = pd.concat([df_zero_rows, df_corrected], axis=0)
-
-        # Reset index to restore temperature column and sort
-        df_corrected = df_corrected.sort_index(ascending=False)
-        df_corrected.reset_index(inplace=True)
-        df_corrected = self._final_check(df_corrected, df_original)
-
-        return df_corrected, df_original, dict_header, df_blanks
 
     def _final_check(self, df_corrected, df_inps):
         """
         Add info with how many times corrected value is below lower CI
-        Check for monotonicity - INP/L should not decrease with decreasing temperature.
-
-        The monotonicity baseline walks back past unusable rows — both ERROR_SIGNAL and
-        zero — so a drop across a gap is corrected against the last usable value; the
-        propagated CIs then come from a temperature bin that may be several TEMP_STEPs
-        away (the row carries qc_flag=1, so this is auditable).
+        Check for monotonicity - INP/L should not decrease with decreasing temperature
         """
-        # Remove zero value rows from corrected INPS_L (copy: we add qc_flag below,
-        # and writing into a mask slice breaks under pandas copy-on-write)
-        df_corrected = df_corrected[df_inps["INPS_L"] != 0].copy()
+        # Remove zero value rows from corrected INPS_L
+        df_corrected = df_corrected[df_inps["INPS_L"] != 0]
 
         # Check how many times corrected values go below the lower CI of originals
         corrected_below_ci = []
@@ -420,36 +389,30 @@ class BlankCorrector:
         # Get sorted temperatures for monotonic check
         indices = sorted(df_corrected.index)  # Higher to lower temp
 
-        # adding a qc flag column: 0 = untouched, 1 = replaced for monotonicity
-        df_corrected["qc_flag"] = 0
+        # adding a qc flag column
+        df_corrected["qc_flag"] = int
+        df_corrected.loc[indices[0], "qc_flag"] = 0
 
         # Loop through temperatures, starting from the second one
         for i in range(1, len(indices)):
             current_temp = indices[i]
-            current_val = df_corrected.loc[current_temp, "INPS_L"]
-            if current_val == ERROR_SIGNAL or current_val == 0:
-                continue
+            prev_temp = indices[i - 1]
 
-            # Walk back by position (not by temperature label) past unusable rows, so a
-            # gap cannot hide a non-monotonic drop across it. ERROR_SIGNAL and zero rows
-            # are both skipped: neither carries a value worth comparing against.
-            j = i - 1
-            while j >= 0:
-                candidate = df_corrected.loc[indices[j], "INPS_L"]
-                if candidate != ERROR_SIGNAL and candidate != 0:
-                    break
-                print(f"skipping unusable INP_L value of {candidate} at {indices[j]}.")
-                j -= 1
-            if j < 0:
-                continue
-            prev_temp = indices[j]
-            prev_val = df_corrected.loc[prev_temp, "INPS_L"]
-
-            # Check if INP/L decreases with lower temperature (non-monotonic).
-            # prev_val is guaranteed usable (neither ERROR_SIGNAL nor zero) by the walk.
-            if current_val < prev_val:
+            # Check if INP/L decreases with lower temperature (non-monotonic)
+            if (
+                df_corrected.loc[current_temp, "INPS_L"]
+                < df_corrected.loc[prev_temp, "INPS_L"]
+                != ERROR_SIGNAL
+                != df_corrected.loc[current_temp, "INPS_L"]
+                and df_corrected.loc[prev_temp, "INPS_L"]
+                != 0
+                != df_corrected.loc[current_temp, "INPS_L"]
+            ):
+                while df_corrected.loc[prev_temp, "INPS_L"] == ERROR_SIGNAL:
+                    print(f"previous INP_L value of {ERROR_SIGNAL} at {prev_temp}.")
+                    prev_temp -= 1
                 print(f"Correcting value at temperature {current_temp} due to non-monotonicity.")
-                df_corrected.loc[current_temp, "INPS_L"] = prev_val
+                df_corrected.loc[current_temp, "INPS_L"] = df_corrected.loc[prev_temp, "INPS_L"]
 
                 # if correction occurs, add 1 to qc column
                 df_corrected.loc[current_temp, "qc_flag"] = 1
@@ -463,6 +426,9 @@ class BlankCorrector:
                 )
                 # Lower CI is just the lower CI
                 df_corrected.loc[current_temp, "lower_CI"] = df_corrected.loc[prev_temp, "lower_CI"]
+
+            else:
+                df_corrected.loc[current_temp, "qc_flag"] = 0
 
         return df_corrected
 

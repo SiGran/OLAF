@@ -89,6 +89,60 @@ Each test gets a body + golden file. Run `OLAF_REGEN_GOLDEN=1 pytest <test>` to 
 ## Human-Needs-To-Do
 Tasks the AI agent is NOT allowed to perform — must be done by the human.
 
+### Data wanted from the scientists (test fixtures)
+
+- [ ] **Hand `tests/test_data/goldens/FIXTURES_WANTED.md` to a scientist.** Two questions
+  (a peroxide sample whose header says `treatment = heat`; which SGP 2.21.24 binned file is
+  the verified one, since the one marked VERIFIED has a corrupted column name) and four
+  small files to find (a `-9999` gap with real values after it; a multi-date/multi-site
+  project; a TBS run with altitudes; a soil run with its `dry_mass`). Deliberately short -
+  every other coverage gap can be filled from files already in the repo.
+
+### ⚠️ Before merging `numerical-core`: scan the campaign archive (for a scientist)
+
+- [ ] **Run the trigger scan over the real campaign data and review any findings.**
+
+**What this is.** The `numerical-core` branch fixes a bug in the blank-correction step. When
+INP/L *dropped* as temperature fell — which is physically impossible, so it means a
+measurement artifact — the code was supposed to replace the value with the last good one and
+flag it. It did, *except* when the row just above was a `-9999` (a measurement we had thrown
+out). In that one case the impossible drop was silently kept in the published file. It is now
+corrected, which the scientist ruling on 2026-09-17 confirmed is what we want.
+
+**Why you are being asked.** That fix means some spectra will come out with different numbers
+than before. Every difference is a correction we now make and previously failed to make — none
+of them is a regression — but they are *your* numbers, so you should see them before we merge.
+Nothing in our test data triggers this, so the only open question is the wider archive.
+
+**What to run.** From a terminal, in the OLAF repository folder:
+
+```bash
+git checkout numerical-core
+uv run python scripts/scan_trigger_conditions.py --root /path/to/campaign/data
+```
+
+Point `--root` at whatever folder holds the processed campaign data — a network drive or an
+external disk is fine. It only reads `.csv` files, never runs the pipeline and never writes,
+moves or deletes anything, so it is safe to point anywhere. A full archive takes seconds.
+Add `--verbose` to watch it work through each file.
+
+**How to read the result.** The last line is the summary.
+
+- *"no definite triggers"* — nothing changes. The old and new code produce identical output
+  on that data, and the merge cannot affect any of those numbers.
+- *"N definite trigger(s)"* — those spectra WILL change. Each is listed with its file, its
+  temperature, and the old and new value, e.g.
+  `at -21.5degC: value 30 rises to 50 (from -20.5degC)`. Send that list to whoever is
+  handling the merge, and look at the listed spectra to confirm the correction reads
+  sensibly for those samples.
+- A *"zero-bridge shape"* block may also appear. Those are **informational only** and almost
+  never change anything — the code discards those rows before the correction runs. No action
+  needed unless someone asks.
+
+**Sanity check.** `uv run python scripts/scan_trigger_conditions.py --self-test` confirms the
+detector still detects; it should print five `[ok ]` lines.
+
+
 ### CI/CD modernization (from ci-modernize-consolidate-workflows branch)
 
 > **⚠️ Allowlist already configured** — `astral-sh/setup-uv@*` and `codecov/codecov-action@*` are in the allowlist; CI is green.
@@ -121,6 +175,59 @@ The agent must never delete files. The following pre-existing files need manual 
   leftovers (then delete).
 - [x] Drop the leftover git stash entry `wip-config-optional-table` (kept after a conflicted
   `stash pop` on 2026-09-11; its changes are all committed): `git stash drop`.
+
+### Develop-parity harness follow-ups (2026-09-17)
+- [ ] Repair `tests/test_data/goldens/inputs/sgp_2_21_24_base/frozen_at_temp_expected.csv`:
+  its temperature column is named with a literal Unicode ellipsis (`…`, U+2026) instead of
+  `degC`, so no engine can read it. That is why zero tests referenced it. Once fixed, add
+  `"sgp_2_21_24_base"` back to `_STAGE1_FIXTURES` in
+  `tests/test_integration/test_develop_parity.py` and regenerate its golden.
+- [ ] Delete the orphaned golden
+  `tests/test_data/goldens/expected/test_develop_parity/blank_corrected_10%_error_threshold_INPs_L_frozen_at_temp_reviewed_capek 7.09.24 a base(1).csv`
+  (untracked; superseded by `capek_blank_corrected_all.csv`, which covers all three
+  treatments in one file). The agent cannot delete paths.
+- [ ] After `numerical-core` merges into `develop`: retire or refresh `tests/reference/`
+  (the vendored develop snapshot) together with
+  `tests/test_integration/test_develop_differential.py`. Once develop carries these changes
+  the snapshot no longer describes "the other side". See `tests/reference/README.md`.
+- [ ] Four TBS files sit loose at the top of `tests/test_data/` and were staged in the index
+  without being added deliberately: `INPs_L_frozen_at_temp_reviewed_tbs bnf 03.21.25 ...`,
+  the matching `blank_corrected_...`, and two `.dat` files. Decide whether they belong in a
+  proper experiment folder, in `goldens/inputs/`, or nowhere.
+
+### IDE files committed by mistake (2026-09-17)
+- [x] Untrack the six `.idea/` files swept into commit `474c18f`: `copilotDiffState.xml`,
+  `markdown.xml`, `modules.xml`, `olaf.iml`, `pyLspTools.xml`, `pyProjectModel.xml`. They
+  were already staged in the index and the agent's `git commit` picked them up along with
+  the intended paths. `.idea/` is *not* in `.gitignore` (line 162 is commented out) and
+  several `.idea/` files were already tracked, so this is noise rather than a leak.
+  Fix (human — the agent may not run `git rm`):
+  `git rm --cached .idea/copilotDiffState.xml .idea/markdown.xml .idea/modules.xml .idea/olaf.iml .idea/pyLspTools.xml .idea/pyProjectModel.xml`
+- [x] Decide whether `.idea/` should be tracked at all. Note `.idea/OLAF.iml` and
+  `.idea/olaf.iml` now both exist — same module, different case, which will collide on
+  case-insensitive filesystems.
+
+### Data-quality blockers found surveying test_project (2026-09-17)
+- [ ] 8 of 12 sample folders have `INPs_L` files with **no metadata header block at all**
+  (the file starts at the `degC,dilution,...` row), so stage 2 dies with a bare
+  `KeyError: 'proportion_filter_used'`: `SGP 5.15.24 heat`, `5.15.24 peroxide`,
+  `5.21.24 base`, `6.02.24 heat`, `6.02.24 peroxide`, `6.07.24 base`, `6.14.24 base`,
+  `8.07.24 base`. Decide: re-process them from their reviewed `.dat`, or have the loader
+  fail with a message naming the file and the missing key instead of a bare `KeyError`.
+- [ ] **Archived `INPs_L_*.csv` products are not reproducible from the inputs beside them.**
+  Investigated 2026-09-17. Current code matches the documented formula on 54/54 rows for
+  `SGP 6.20.24`; the archived file matches on 4, mismatches on 19, is `-inf` on 31, and
+  holds a constant `-0.001162` across 13 rows. But the **pre-A.1 code produces the same
+  correct curve as current code** on that input, and no `frozen_at_temp` variant in the
+  folder reproduces the archived values (best 4/54), so the difference is NOT attributable
+  to the A.1 bugs. The archived `blank_corrected` companion has no `degC` column at all.
+  → The archive came from inputs/code no longer in the repo; provenance unknown.
+  → Never use archived products as golden inputs; regenerate from the reviewed `.dat`.
+  → Worth a scientist's eye on whether the archive should be re-processed for
+  reproducibility, but there is **no evidence here that released results are wrong**.
+- [ ] The headerless file is usually the double-underscore `INPs_L__*.csv`, but not always
+  — in `SGP 7.20.24 heat` the un-numbered single-underscore file is the headerless one and
+  the `(1)` file is good. Check for the header, never trust the filename.
 
 ### Decisions needed (2026-09-11 review of PR #48)
 - [x] Stage-1 config folder name: resolved 2026-09-17 as `main-process/`. Code
