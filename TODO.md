@@ -89,6 +89,15 @@ Each test gets a body + golden file. Run `OLAF_REGEN_GOLDEN=1 pytest <test>` to 
 ## Human-Needs-To-Do
 Tasks the AI agent is NOT allowed to perform — must be done by the human.
 
+### Data wanted from the scientists (test fixtures)
+
+- [ ] **Hand `tests/test_data/goldens/FIXTURES_WANTED.md` to a scientist.** Two questions
+  (a peroxide sample whose header says `treatment = heat`; which SGP 2.21.24 binned file is
+  the verified one, since the one marked VERIFIED has a corrupted column name) and four
+  small files to find (a `-9999` gap with real values after it; a multi-date/multi-site
+  project; a TBS run with altitudes; a soil run with its `dry_mass`). Deliberately short -
+  every other coverage gap can be filled from files already in the repo.
+
 ### ⚠️ Before merging `numerical-core`: scan the campaign archive (for a scientist)
 
 - [ ] **Run the trigger scan over the real campaign data and review any findings.**
@@ -187,14 +196,14 @@ The agent must never delete files. The following pre-existing files need manual 
   proper experiment folder, in `goldens/inputs/`, or nowhere.
 
 ### IDE files committed by mistake (2026-09-17)
-- [ ] Untrack the six `.idea/` files swept into commit `474c18f`: `copilotDiffState.xml`,
+- [x] Untrack the six `.idea/` files swept into commit `474c18f`: `copilotDiffState.xml`,
   `markdown.xml`, `modules.xml`, `olaf.iml`, `pyLspTools.xml`, `pyProjectModel.xml`. They
   were already staged in the index and the agent's `git commit` picked them up along with
   the intended paths. `.idea/` is *not* in `.gitignore` (line 162 is commented out) and
   several `.idea/` files were already tracked, so this is noise rather than a leak.
   Fix (human — the agent may not run `git rm`):
   `git rm --cached .idea/copilotDiffState.xml .idea/markdown.xml .idea/modules.xml .idea/olaf.iml .idea/pyLspTools.xml .idea/pyProjectModel.xml`
-- [ ] Decide whether `.idea/` should be tracked at all. Note `.idea/OLAF.iml` and
+- [x] Decide whether `.idea/` should be tracked at all. Note `.idea/OLAF.iml` and
   `.idea/olaf.iml` now both exist — same module, different case, which will collide on
   case-insensitive filesystems.
 

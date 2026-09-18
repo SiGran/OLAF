@@ -39,6 +39,11 @@ goldens/
 
 ## Coverage gaps (what still needs adding)
 
+> Anything on this list that needs **real campaign data or a scientist's judgement** is
+> written up for them in [`FIXTURES_WANTED.md`](FIXTURES_WANTED.md). Everything else is a
+> developer job and can be done from files already in this repository.
+
+
 Ranked. Status verified 2026-09-17 by running the suite, not by reading these docs.
 
 1. **Stage 3 (`FinalFileCreation`) has no golden at all.** Both
