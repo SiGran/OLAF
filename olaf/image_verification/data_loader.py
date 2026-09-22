@@ -12,14 +12,18 @@ class DataLoader(DataHandler):
         folder_path: Path,
         num_samples: int,
         includes: tuple,
+        excludes: tuple = (),
     ) -> None:
         """
         Class to initialize the gui and load data and images for button handling.
         Args:
             root: tkinter root object
             folder_path: path to the project folder containing the images and .dat file
+            includes: substrings the .dat filename must contain
+            excludes: substrings the .dat filename must not contain, used to keep a
+                cold-plate DI file out of the sample review
         """
-        super().__init__(folder_path, num_samples, includes=includes)
+        super().__init__(folder_path, num_samples, includes=includes, excludes=excludes)
         self.root = root
 
         # Set up the window

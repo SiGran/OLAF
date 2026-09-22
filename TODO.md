@@ -89,6 +89,15 @@ Each test gets a body + golden file. Run `OLAF_REGEN_GOLDEN=1 pytest <test>` to 
 ## Human-Needs-To-Do
 Tasks the AI agent is NOT allowed to perform — must be done by the human.
 
+### Stale stage-1 config duplicates still carry the old `IS` key
+
+- [ ] **Delete `configs/RAM_CINC/main/` and `configs/RAM_CINC/process/`.** These are
+  leftovers from the pre-`main-process/` folder naming (see "Decisions needed" below) and
+  still declare `IS = "IS2"`, which is now rejected at load time. The live copy at
+  `configs/RAM_CINC/main-process/A12_07.16.25_base.toml` has been migrated to
+  `instrument = "IS2"`. The agent is not allowed to delete files, so these two need a human.
+  Either delete them or add `instrument` to them — do not leave them loadable-looking.
+
 ### Data wanted from the scientists (test fixtures)
 
 - [ ] **Hand `tests/test_data/goldens/FIXTURES_WANTED.md` to a scientist.** Two questions

@@ -127,9 +127,21 @@ class MainConfig(BaseModel):
                 "relative to data_folder — see configs/templates/main.example.toml"
             )
 
+        wrong_suffix = [str(p) for p in self.di_files if p.suffix != ".dat"]
+        if wrong_suffix:
+            raise ValueError(f"di_files must be raw .dat files, got: {wrong_suffix}")
+
         missing = [str(p) for p in self.resolved_di_files if not p.is_file()]
         if missing:
             raise ValueError(f"di_files not found: {missing}")
+
+        infinite = [k for k, v in self.dict_samples_to_dilution.items() if v == float("inf")]
+        if infinite:
+            raise ValueError(
+                f"cold-plate runs take their background from di_files, but "
+                f"dict_samples_to_dilution still marks {infinite} as `inf` (the undiluted "
+                "background column of an ice spectrometer plate) — remove it"
+            )
 
         if len(self.di_files) > 1:
             if self.di_combined is None:

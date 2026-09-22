@@ -6,6 +6,9 @@ import pandas as pd
 from olaf.CONSTANTS import TEMP_STEP
 from olaf.utils.data_handler import DataHandler
 
+# Default filename substrings that must not match the .dat being binned.
+DEFAULT_EXCLUDES = ("frozen",)
+
 
 class SpacedTempCSV(DataHandler):
     def __init__(
@@ -13,7 +16,7 @@ class SpacedTempCSV(DataHandler):
         folder_path: Path,
         num_samples,
         includes: tuple = ("base",),
-        excludes: tuple = ("frozen",),
+        excludes: tuple = DEFAULT_EXCLUDES,
         date_col: str = "Date",
         sample_type: str = "salt",
     ) -> None:

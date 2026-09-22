@@ -15,6 +15,7 @@ class FreezingReviewer(ButtonHandler):
         wells_per_sample: int,
         dict_samples_to_dilution: dict,
         includes: tuple,
+        excludes: tuple = (),
     ) -> None:
         """
         Class that creates a GUI for reviewing well freezing images and
@@ -29,7 +30,7 @@ class FreezingReviewer(ButtonHandler):
         # Initialize temperature display widget references
         self.temp_frame: tk.LabelFrame | None = None
         self.temp_label: tk.Label | None = None
-        super().__init__(root, folder_path, num_samples, includes)
+        super().__init__(root, folder_path, num_samples, includes, excludes)
         return
 
     def _update_image(self, sample: int, change: int) -> None:

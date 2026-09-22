@@ -5,14 +5,23 @@ from .data_loader import DataLoader
 
 
 class ButtonHandler(DataLoader):
-    def __init__(self, root: tk.Tk, folder_path: Path, num_samples: int, includes: tuple) -> None:
+    def __init__(
+        self,
+        root: tk.Tk,
+        folder_path: Path,
+        num_samples: int,
+        includes: tuple,
+        excludes: tuple = (),
+    ) -> None:
         """
         Class to handle the buttons for the gui to review well freezing images.
         Args:
             root: tkinter root object
             folder_path: folder path to the project folder containing the images and .dat file
+            includes: substrings the .dat filename must contain
+            excludes: substrings the .dat filename must not contain
         """
-        super().__init__(root, folder_path, num_samples, includes)
+        super().__init__(root, folder_path, num_samples, includes, excludes)
         self.num_samples = num_samples
         self.photo_image_ref, self.back_button, self.minus_10_button = (
             tk.PhotoImage(),

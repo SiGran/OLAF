@@ -10,7 +10,10 @@ import tkinter as tk
 
 from olaf.config import MainConfig, load_config, resolve_config_path, save_copy
 from olaf.image_verification.freezing_reviewer import FreezingReviewer
+from olaf.processing.di_background import resolve_di_background
+from olaf.processing.graph_data_csv import DEFAULT_EXCLUDES as GRAPH_EXCLUDES
 from olaf.processing.graph_data_csv import GraphDataCSV
+from olaf.processing.spaced_temp_csv import DEFAULT_EXCLUDES as SPACED_EXCLUDES
 from olaf.processing.spaced_temp_csv import SpacedTempCSV
 
 # -----------------------------    CONFIG    ----------------------------------------
@@ -21,6 +24,15 @@ DEFAULT_CONFIG = "configs/RAM_CINC/main-process/A12_07.16.25_base.toml"
 def run(config: MainConfig) -> None:
     """Run stage 1 processing for a single experiment described by ``config``."""
     treatment = tuple(config.treatment)
+    # A cold-plate plate has no DI column, so its background comes from separate .dat
+    # files. Resolve those first: a missing DI review should surface before the
+    # researcher works through the sample images.
+    di_excludes: tuple[str, ...] = ()
+    di_background = None
+    if config.is_cold_plate:
+        di_excludes = tuple(path.stem for path in config.resolved_di_files)
+        di_background = resolve_di_background(config)
+        print(f"cold-plate DI background: {di_background}")
 
     window = tk.Tk()
     FreezingReviewer(
@@ -30,17 +42,34 @@ def run(config: MainConfig) -> None:
         config.wells_per_sample,
         config.dict_samples_to_dilution,
         includes=treatment,
+        excludes=di_excludes,
     )
     window.mainloop()
 
     # Processing to create the temperature-binned .csv file
-    spaced_temp_csv = SpacedTempCSV(config.data_folder, config.num_samples, includes=treatment)
+    spaced_temp_csv = SpacedTempCSV(
+        config.data_folder,
+        config.num_samples,
+        includes=treatment,
+        excludes=(*SPACED_EXCLUDES, *di_excludes),
+    )
     spaced_temp_csv.create_temp_csv(
         config.dict_samples_to_dilution,
         config.freezing_point_depression_dict,
         config.wells_per_sample,
         config.sample_type,
     )
+
+    if di_background is not None:
+        # Out of scope means stop, not fall through. GraphDataCSV reads the background from
+        # the `inf` dilution column, which a cold-plate plate does not have; carrying on
+        # would either crash deep in the maths or, worse, quietly substitute a real sample
+        # column for the DI and write a plausible-looking INPs_L file.
+        raise NotImplementedError(
+            "Cold-plate stage 1 stops after binning: the INP calculation still reads its "
+            "background from the `inf` dilution column and is not wired to the DI file yet. "
+            f"The DI background is ready at {di_background}."
+        )
 
     # Processing to create INPs/L for each date found in the folder name
     header = config.to_header()
@@ -58,6 +87,7 @@ def run(config: MainConfig) -> None:
             config.vol_susp,
             config.dict_samples_to_dilution,
             includes=includes,
+            excludes=(*GRAPH_EXCLUDES, *di_excludes),
         )
         graph_data_csv.convert_INPs_L(header, show_plot=True)
 

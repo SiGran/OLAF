@@ -290,6 +290,8 @@ def _cold_plate_data(tmp_path, names=("DI 07.16.25.dat",), **overrides):
     for name in names:
         (tmp_path / name).write_text("")
     overrides.setdefault("instrument", "cold-plate")
+    # A cold-plate plate has no `inf` background column; that is what di_files replaces.
+    overrides.setdefault("dict_samples_to_dilution", {"Sample_0": 1, "Sample_1": 11})
     return _main_data(data_folder=tmp_path, di_files=list(names), **overrides)
 
 
@@ -354,6 +356,27 @@ def test_di_combined_rejects_unknown_method(tmp_path):
         MainConfig(**_cold_plate_data(tmp_path, di_combined="median"))
 
 
+def test_cold_plate_rejects_inf_dilution(tmp_path):
+    """The `inf` column is the ice spectrometer's background; a cold plate has none."""
+    data = _cold_plate_data(
+        tmp_path, dict_samples_to_dilution={"Sample_0": 1, "Sample_5": math.inf}
+    )
+    with pytest.raises(ValidationError, match="still marks"):
+        MainConfig(**data)
+
+
+def test_cold_plate_rejects_non_dat_di_file(tmp_path):
+    (tmp_path / "DI 07.16.25.csv").write_text("")
+    data = _main_data(
+        instrument="cold-plate",
+        data_folder=tmp_path,
+        di_files=["DI 07.16.25.csv"],
+        dict_samples_to_dilution={"Sample_0": 1},
+    )
+    with pytest.raises(ValidationError, match="must be raw .dat files"):
+        MainConfig(**data)
+
+
 def test_resolved_di_files_handles_relative_and_absolute(tmp_path):
     rel = tmp_path / "DI 07.16.25.dat"
     rel.write_text("")
@@ -366,6 +389,7 @@ def test_resolved_di_files_handles_relative_and_absolute(tmp_path):
         data_folder=tmp_path,
         di_files=["DI 07.16.25.dat", str(absolute)],
         di_combined="avg",
+        dict_samples_to_dilution={"Sample_0": 1, "Sample_1": 11},
     )
     config = MainConfig(**data)
     assert config.resolved_di_files == [rel, absolute]

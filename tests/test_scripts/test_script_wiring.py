@@ -121,6 +121,62 @@ def test_main_run_wires_processing_classes(tmp_path, monkeypatch):
     assert "site = SITE" in graph_rec.calls["convert_INPs_L"]["args"][0]
 
 
+def test_main_run_keeps_default_excludes_for_an_ice_spectrometer(tmp_path, monkeypatch):
+    """The cold-plate excludes threading must be an exact no-op for every existing run."""
+    folder = tmp_path / "SITE 07.16.25 base"
+    folder.mkdir()
+    config = _main_config(folder)
+
+    reviewer_rec, spaced_rec, graph_rec = _Recorder(), _Recorder(), _Recorder()
+    monkeypatch.setattr(main_mod.tk, "Tk", lambda *args, **kwargs: _FakeWindow())
+    monkeypatch.setattr(main_mod, "FreezingReviewer", _make_fake(reviewer_rec))
+    monkeypatch.setattr(main_mod, "SpacedTempCSV", _make_fake(spaced_rec))
+    monkeypatch.setattr(main_mod, "GraphDataCSV", _make_fake(graph_rec))
+
+    main_mod.run(config)
+
+    assert reviewer_rec.init_kwargs["excludes"] == ()
+    assert spaced_rec.init_kwargs["excludes"] == ("frozen",)
+    assert graph_rec.init_kwargs["excludes"] == ("INPs_L", "dict")
+
+
+def test_main_run_excludes_di_files_on_a_cold_plate_run(tmp_path, monkeypatch):
+    """A DI .dat must not be picked up by the sample review or binning."""
+    folder = tmp_path / "SITE 07.16.25 base"
+    folder.mkdir()
+    (folder / "SITE DI 07.16.25.dat").write_text("")
+    config = MainConfig(
+        data_folder=str(folder),
+        site="SITE",
+        start_time="2025-07-16 16:20:00",
+        end_time="2025-07-16 17:52:00",
+        filter_color="white",
+        notes="none",
+        user="tester",
+        instrument="cold-plate",
+        num_samples=6,
+        wells_per_sample=32,
+        treatment=["base"],
+        dict_samples_to_dilution={"Sample_0": 1},
+        di_files=["SITE DI 07.16.25.dat"],
+    )
+
+    reviewer_rec, spaced_rec = _Recorder(), _Recorder()
+    monkeypatch.setattr(main_mod.tk, "Tk", lambda *args, **kwargs: _FakeWindow())
+    monkeypatch.setattr(main_mod, "FreezingReviewer", _make_fake(reviewer_rec))
+    monkeypatch.setattr(main_mod, "SpacedTempCSV", _make_fake(spaced_rec))
+    monkeypatch.setattr(
+        main_mod, "resolve_di_background", lambda cfg: folder / "combined_DI_single_07.16.25.csv"
+    )
+
+    # stage 1 stops before the INP calculation on a cold plate: it has no DI column to use
+    with pytest.raises(NotImplementedError, match="Cold-plate stage 1 stops"):
+        main_mod.run(config)
+
+    assert reviewer_rec.init_kwargs["excludes"] == ("SITE DI 07.16.25",)
+    assert spaced_rec.init_kwargs["excludes"] == ("frozen", "SITE DI 07.16.25")
+
+
 def test_main_run_writes_provenance(tmp_path, monkeypatch):
     folder = tmp_path / "SITE 07.16.25 base"
     folder.mkdir()

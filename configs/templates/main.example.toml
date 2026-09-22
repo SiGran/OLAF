@@ -42,8 +42,14 @@ treatment = ["base"]
 #   "sum"    total frozen well counts
 #   "single" no combining; only valid with exactly one di_files entry (the default then)
 # di_combined = "avg"
+#
+# Note: under "sum" the frozen well counts add but one plate's wells_per_sample does not,
+# so the combined file carries a `di_wells` column with the real pooled denominator. Read
+# that, not wells_per_sample. Cold-plate stage 1 currently stops after writing this file.
 
 # Per-sample dilution factors. Use `inf` for the undiluted suspension (background).
+# Cold-plate runs must NOT have an `inf` entry: their background is the DI plate named
+# in di_files above, not a column of this plate. A stray `inf` is rejected at load.
 [dict_samples_to_dilution]
 Sample_0 = 1
 Sample_1 = 11

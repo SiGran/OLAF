@@ -11,6 +11,9 @@ from olaf.utils.data_handler import DataHandler
 from olaf.utils.df_utils import header_to_dict
 from olaf.utils.plot_utils import plot_INPS_L
 
+# Default filename substrings that must not match the frozen_at_temp csv being read.
+DEFAULT_EXCLUDES = ("INPs_L", "dict")
+
 
 def _select_blended_value(
     prev_inp: float,
@@ -94,7 +97,7 @@ class GraphDataCSV(DataHandler):
         dict_samples_to_dilution: dict,
         suffix: str = ".csv",
         includes: tuple = ("base",),
-        excludes: tuple = ("INPs_L", "dict"),
+        excludes: tuple = DEFAULT_EXCLUDES,
         date_col=False,
     ) -> None:
         # Add class specific includes to make sure we get the right file

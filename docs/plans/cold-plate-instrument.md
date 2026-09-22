@@ -231,3 +231,34 @@ combined file already exists.
 6. Cold-plate happy path, in a scratch copy of a data folder with two DI `.dat` files: first
    run opens the GUI once per DI (plus the sample) and writes `combined_DI_avg_<date>.csv`;
    re-running finds both `frozen_at_temp` files and the combined file and opens **no** DI GUI.
+
+---
+
+## As built — deltas from the plan above
+
+Implemented on branch `cold-plate-instrument`. Where the code differs from the plan:
+
+- **No golden regeneration was needed.** Confirmed empirically: `git status tests/test_data/`
+  stays clean across the full suite, and no `goldens/expected/` file carries a header.
+- **`excludes` was threaded through the GUI stack.** `FreezingReviewer` had no `excludes`
+  parameter, so the sample review could still match a DI `.dat` whose name happened to
+  contain the treatment. Added an optional `excludes: tuple = ()` to `FreezingReviewer` →
+  `ButtonHandler` → `DataLoader`. With `di_excludes = ()` on a non-cold-plate run, `main.py`
+  passes exactly the previous defaults (`("frozen",)`, `("INPs_L", "dict")`, `()`), so this
+  is an exact no-op for every existing workflow.
+- **`resolve_di_background(config)`** is the single entry point `main.py` calls; it wraps
+  `ensure_frozen_at_temp` → `di_dates` → `combine_di`.
+- **A `di_count` column** was added to the combined file. DI runs need not cover the same
+  temperature range, so a bin fed by fewer runs than its neighbours would otherwise be
+  silently indistinguishable — for `sum` especially, that would understate the bin. This
+  follows the `blank_count` precedent in `BlankCorrector.average_blanks`.
+- **`_match_versions` replaced the plan's trailing-wildcard globs.** A trailing `*` let one
+  name swallow another that merely starts the same way: `combined_DI_avg_07.16.25` matched
+  `combined_DI_avg_07.16.25_07.17.25.csv`, a different DI set. Matching is now the exact
+  name plus its `(N)` versions, covered by regression tests.
+- **The combined file carries a provenance header** (`di_combined`, `di_date`,
+  `di_source_files`) via `save_df_file`. Read it back with `read_with_flexible_header`, not
+  a bare `pd.read_csv`.
+
+Still out of scope, unchanged: feeding the DI spectrum into `graph_data_csv.py`. A
+cold-plate run produces its combined DI file and then still needs `inf`-column handling.
