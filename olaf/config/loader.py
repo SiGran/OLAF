@@ -120,6 +120,16 @@ def _validation_message(
             "see configs/templates/main.example.toml."
         )
 
+    missing_keys = {
+        str(err["loc"][0]) for err in exc.errors() if err["type"] == "missing" and err["loc"]
+    }
+    if "IS" in extra_keys or "instrument" in missing_keys:
+        lines.append(
+            "Note: the 'IS' field was renamed to 'instrument' — set it to the ice "
+            'spectrometer unit (e.g. "IS2") or to "cold-plate". See '
+            "configs/templates/main.example.toml."
+        )
+
     lines.append(str(exc))
     return "\n".join(lines)
 

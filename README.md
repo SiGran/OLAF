@@ -102,7 +102,7 @@ uv sync
 It is recommended to use a Python IDE (e.g. PyCharm) to run and work with the code.
 
 There are three main scripts to run in the `olaf` directory:
-1. `main.py` - This is the main script to process INS (or Ice Spectometer, i.e. "IS") data and run the application.
+1. `main.py` - This is the main script to process instrument data (an ice spectrometer, i.e. "IS", or the cold plate) and run the application.
 2. `main_for_blanks.py` - This script is used to average the blank data and apply it to the processed ice nucleating particle (INP) data.
 3. `main_final_combine.py` - This script combines the different treatments for the same sample into one `.csv` file in a format that is preferred for further processing by Atmopheric Radiation Measurement (ARM).
 
@@ -114,7 +114,7 @@ OLAF/
 │   ├── __init__.py
 │   ├── CONSTANTS.py
 │   ├── config/             # Config loading & pydantic validation models
-│   ├── main.py            # main script to process IS data and run the application
+│   ├── main.py            # main script to process instrument data and run the application
 │   ├── main_for_blanks.py # 2nd script to average the blank data and apply to the processed INP data
 │   ├── main_final_combine.py # combines all the treatments into one .csv file
 │   ├── utils/               # Folder with utility/helper classes and functions
@@ -172,7 +172,7 @@ end_time = "2025-02-22 22:08:00"
 filter_color = "Write a color"
 notes = "NOTES HERE"
 user = "JOHN DOE"
-IS = "IS3a"
+instrument = "IS3a"           # ice spectrometer unit, or "cold-plate"
 num_samples = 6
 vol_air_filt = 620.48                 # L
 wells_per_sample = 32

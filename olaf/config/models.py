@@ -50,7 +50,7 @@ class MainConfig(BaseModel):
     filter_color: str
     notes: str
     user: str
-    IS: str
+    instrument: str  # Ice spectrometer unit (e.g. "IS2") or "cold-plate"
     num_samples: int
     sample_type: str = "air"
     vol_air_filt: float = Field(default=1.0, gt=0.0)  # L; divides INP/L, must be positive
@@ -115,6 +115,16 @@ class MainConfig(BaseModel):
         return self
 
     @property
+    def is_cold_plate(self) -> bool:
+        """Whether this run came off the cold plate rather than an ice spectrometer.
+
+        Normalised so that ``cold-plate``, ``cold plate``, ``Cold_Plate`` and ``coldplate``
+        all match: a typo here would otherwise silently take the ice-spectrometer path and
+        process a cold-plate run with no DI background at all.
+        """
+        return re.sub(r"[^a-z]", "", self.instrument.lower()) == "coldplate"
+
+    @property
     def effective_vol_air_filt(self) -> float:
         """Volume of air filtered after applying the automatic blank/soil adjustments."""
         vol_air_filt = self.vol_air_filt
@@ -132,7 +142,7 @@ class MainConfig(BaseModel):
             f"vol_air_filt = {self.effective_vol_air_filt}\n"
             f"proportion_filter_used = {self.proportion_filter_used}\n"
             f"vol_susp = {self.vol_susp}\ntreatment = {self.treatment[0]}\nnotes = {self.notes}\n"
-            f"user = {self.user}\nIS = {self.IS}\n"
+            f"user = {self.user}\ninstrument = {self.instrument}\n"
         )
         if "TBS" in self.site:
             header += (

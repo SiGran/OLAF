@@ -184,7 +184,7 @@ def _main_data(**overrides):
         "filter_color": "white",
         "notes": "none",
         "user": "tester",
-        "IS": "IS2",
+        "instrument": "IS2",
         "num_samples": 6,
         "wells_per_sample": 32,
         "dict_samples_to_dilution": {"Sample_0": 1, "Sample_5": math.inf},
@@ -234,6 +234,52 @@ def test_main_to_header_contains_site_and_treatment():
     header = MainConfig(**_main_data()).to_header()
     assert "site = SITE" in header
     assert "treatment = base" in header
+
+
+def test_main_to_header_uses_instrument_key():
+    """The stage-1 header writes `instrument = `, the field formerly called `IS`."""
+    header = MainConfig(**_main_data()).to_header()
+    assert "instrument = IS2" in header
+    assert "IS = " not in header
+
+
+def test_main_requires_instrument():
+    data = _main_data()
+    del data["instrument"]
+    with pytest.raises(ValidationError):
+        MainConfig(**data)
+
+
+def test_main_rejects_old_is_key():
+    """A pre-rename config must fail rather than silently drop its instrument."""
+    with pytest.raises(ValidationError):
+        MainConfig(**_main_data(IS="IS2"))
+
+
+def test_load_pre_rename_config_hints_at_instrument(tmp_path):
+    """An un-migrated config should name the rename, not a wrong-stage guess."""
+    cfg = tmp_path / "old.toml"
+    cfg.write_text(
+        'data_folder = "data/SITE 07.16.25 base"\n'
+        'site = "SITE"\n'
+        'start_time = "2025-07-16 16:20:00"\n'
+        'end_time = "2025-07-16 17:52:00"\n'
+        'filter_color = "white"\n'
+        'notes = "none"\n'
+        'user = "tester"\n'
+        'IS = "IS2"\n'
+        "num_samples = 6\n"
+        "wells_per_sample = 32\n"
+        "[dict_samples_to_dilution]\n"
+        "Sample_0 = 1\n"
+    )
+    with pytest.raises(ValueError, match="renamed to 'instrument'"):
+        load_config(cfg, MainConfig)
+
+
+@pytest.mark.parametrize("instrument", ["IS2", "IS3a", "INS", "plate", "cold"])
+def test_is_cold_plate_false_for_other_instruments(instrument):
+    assert not MainConfig(**_main_data(instrument=instrument)).is_cold_plate
 
 
 def test_main_to_header_tbs_adds_altitudes():

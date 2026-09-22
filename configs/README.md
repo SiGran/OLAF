@@ -59,3 +59,7 @@ typically need just one config per campaign.
 - `dry_mass`, `lower_altitude` and `upper_altitude` moved from top-level keys into the
   `[optional]` table (see `templates/main.example.toml`). Older stage-1 configs that
   still declare them at the top level are rejected at load time with a hint.
+- `IS` was renamed to `instrument` on stage-1 configs. The value is still the ice
+  spectrometer unit (e.g. `"IS2"`), or `"cold-plate"` for cold-plate runs. Stage-1 output
+  headers now carry `instrument = ` instead of `IS = `. Older configs that still declare
+  `IS` are rejected at load time with a hint.

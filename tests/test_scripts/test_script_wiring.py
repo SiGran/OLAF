@@ -75,7 +75,7 @@ def _main_config(folder):
         filter_color="white",
         notes="none",
         user="tester",
-        IS="IS2",
+        instrument="IS2",
         num_samples=6,
         sample_type="air",
         vol_air_filt=620.48,
