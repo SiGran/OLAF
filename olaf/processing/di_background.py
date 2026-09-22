@@ -71,7 +71,13 @@ def find_frozen_at_temp(di_dat: Path) -> Path | None:
     *reviewed* ``.dat``, so the name picks up a ``reviewed_`` infix along the way. The
     leading wildcard absorbs it; ``find_latest_file`` resolves ``(N)`` versions.
     """
-    matches = _match_versions(di_dat.parent, f"frozen_at_temp_*{_glob.escape(di_dat.stem)}")
+    stem = _glob.escape(di_dat.stem)
+    # Anchored on purpose. `frozen_at_temp_*{stem}` would let "DI a 07.16.25" also match
+    # "frozen_at_temp_reviewed_second DI a 07.16.25.csv", so two di_files whose stems are
+    # suffixes of one another would resolve to the same csv — averaging one plate with
+    # itself, or claiming two plates' wells for one plate's counts.
+    matches = _match_versions(di_dat.parent, f"frozen_at_temp_{stem}")
+    matches += _match_versions(di_dat.parent, f"frozen_at_temp_reviewed_{stem}")
     if not matches:
         return None
     return find_latest_file(matches) if len(matches) > 1 else matches[0]
@@ -94,17 +100,31 @@ def ensure_frozen_at_temp(di_dat: Path, config: MainConfig) -> Path:
     includes = (di_dat.stem,)
 
     window = tk.Tk()
-    FreezingReviewer(
-        window,
-        di_dat.parent,
-        config.num_samples,
-        config.wells_per_sample,
-        config.dict_samples_to_dilution,
-        includes=includes,
-    )
-    window.mainloop()
+    try:
+        FreezingReviewer(
+            window,
+            di_dat.parent,
+            config.num_samples,
+            config.wells_per_sample,
+            config.dict_samples_to_dilution,
+            includes=includes,
+        )
+        window.mainloop()
+    finally:
+        # ButtonHandler ends the review with quit(), which leaves tkinter._default_root
+        # pinned to this root. The next Tk() would then build its PhotoImages in this dead
+        # interpreter and die with `image "pyimageN" doesn't exist` the moment the sample
+        # review shows its first photo. Only destroy() clears the default root.
+        window.destroy()
 
     spaced_temp_csv = SpacedTempCSV(di_dat.parent, config.num_samples, includes=includes)
+    if spaced_temp_csv.data_file is None:
+        # DataHandler *returns* the FileNotFoundError instead of raising it, so without this
+        # guard create_temp_csv dies on `'FileNotFoundError' object is not subscriptable`.
+        raise FileNotFoundError(
+            f"No reviewed .dat was written for DI file {di_dat.name}. The review window was "
+            "closed before the last image was confirmed, so nothing was saved."
+        )
     # Deionized water has no solute, so no freezing point depression: bin the DI plate on
     # the pure-water path rather than shifting its temperature axis by the *sample* plate's
     # correction, which for a salt run displaces it by up to 2 degC.
@@ -118,8 +138,8 @@ def ensure_frozen_at_temp(di_dat: Path, config: MainConfig) -> Path:
     created = find_frozen_at_temp(di_dat)
     if created is None:
         raise FileNotFoundError(
-            f"No frozen_at_temp csv was produced for DI file {di_dat}. The review may have "
-            "been closed before the last image was confirmed."
+            f"No frozen_at_temp csv was produced for DI file {di_dat} even though its "
+            "reviewed .dat was binned."
         )
     return created
 
@@ -154,20 +174,21 @@ def find_combined(data_folder: Path, method: str, date: str) -> Path | None:
     return find_latest_file(matches) if len(matches) > 1 else matches[0]
 
 
-def _combined_sources(path: Path) -> list[str]:
-    """The ``di_source_files`` recorded in an existing combined DI file's header."""
+def _combined_header(path: Path) -> dict[str, str]:
+    """The metadata header of an existing combined DI file, as a dict."""
+    header: dict[str, str] = {}
     with open(path) as f:
         for line in f:
             if line.startswith("degC,"):
                 break
-            key, _, value = line.partition(" = ")
-            if key.strip() == "di_source_files":
-                return [name.strip() for name in value.strip().split(SOURCE_SEPARATOR)]
-    return []
+            key, sep, value = line.partition(" = ")
+            if sep:
+                header[key.strip()] = value.strip()
+    return header
 
 
 def _reusable_combined(
-    data_folder: Path, method: str, date: str, frozen_csvs: list[Path]
+    data_folder: Path, method: str, date: str, frozen_csvs: list[Path], wells_per_sample: int
 ) -> Path | None:
     """An existing combined file for this set, but only if it was built from these inputs.
 
@@ -179,11 +200,20 @@ def _reusable_combined(
     if existing is None:
         return None
     wanted = [path.name for path in frozen_csvs]
-    recorded = _combined_sources(existing)
-    if recorded != wanted:
+    header = _combined_header(existing)
+    recorded = [
+        name.strip()
+        for name in header.get("di_source_files", "").split(SOURCE_SEPARATOR)
+        if name.strip()
+    ]
+    # di_wells, and for "sum" the whole denominator, come from wells_per_sample, so a file
+    # built against a different plate size is stale even with identical inputs.
+    recorded_wells = header.get("wells_per_sample")
+    if recorded != wanted or recorded_wells != str(wells_per_sample):
         warnings.warn(
-            f"{existing.name} was built from {recorded or 'unrecorded inputs'}, but this run "
-            f"uses {wanted}; writing a new combined DI file rather than reusing it",
+            f"{existing.name} was built from {recorded or 'unrecorded inputs'} at "
+            f"wells_per_sample={recorded_wells}, but this run uses {wanted} at "
+            f"wells_per_sample={wells_per_sample}; writing a new combined DI file",
             stacklevel=2,
         )
         return None
@@ -238,8 +268,10 @@ def _align_di_frames(
     for frame in frames:
         run = frame.set_index("degC")[sample_cols].sort_index(ascending=False)
         aligned.append(run.reindex(index).ffill().fillna(0))
-        covered = (index <= run.index.max()) & (index >= run.index.min())
-        coverage += pd.Series(covered.astype("int64"), index=index)
+        # Rows this run actually has, not the span it covers: the off-grid first-frozen
+        # rows that make the alignment necessary sit *inside* every run's span, so a span
+        # test would report full coverage exactly where a value was carried forward.
+        coverage += pd.Series(index.isin(run.index).astype("int64"), index=index)
     return aligned, coverage
 
 
@@ -283,7 +315,7 @@ def combine_di(
             f'di_combined = "single" needs exactly one DI file, got {len(frozen_csvs)}'
         )
 
-    existing = _reusable_combined(data_folder, method, date, frozen_csvs)
+    existing = _reusable_combined(data_folder, method, date, frozen_csvs, wells_per_sample)
     if existing is not None:
         return existing
 

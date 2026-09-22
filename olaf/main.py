@@ -35,16 +35,20 @@ def run(config: MainConfig) -> None:
         print(f"cold-plate DI background: {di_background}")
 
     window = tk.Tk()
-    FreezingReviewer(
-        window,
-        config.data_folder,
-        config.num_samples,
-        config.wells_per_sample,
-        config.dict_samples_to_dilution,
-        includes=treatment,
-        excludes=di_excludes,
-    )
-    window.mainloop()
+    try:
+        FreezingReviewer(
+            window,
+            config.data_folder,
+            config.num_samples,
+            config.wells_per_sample,
+            config.dict_samples_to_dilution,
+            includes=treatment,
+            excludes=di_excludes,
+        )
+        window.mainloop()
+    finally:
+        # The review ends with quit(), which leaves tkinter._default_root pointing here.
+        window.destroy()
 
     # Processing to create the temperature-binned .csv file
     spaced_temp_csv = SpacedTempCSV(
@@ -95,5 +99,10 @@ def run(config: MainConfig) -> None:
 if __name__ == "__main__":
     config_path = resolve_config_path(DEFAULT_CONFIG)
     config = load_config(config_path, MainConfig)
-    run(config)
-    save_copy(config_path, config.data_folder, config.provenance_stem())
+    try:
+        run(config)
+    finally:
+        # A cold-plate run stops early by design, and a crash can still leave reviewed and
+        # binned files behind. Those are the cases where the inputs are hardest to
+        # reconstruct later, so record the config whatever happened.
+        save_copy(config_path, config.data_folder, config.provenance_stem())

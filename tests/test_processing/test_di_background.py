@@ -6,6 +6,7 @@ import pandas as pd
 import pytest
 
 from olaf.config import MainConfig
+from olaf.processing import di_background
 from olaf.processing.di_background import (
     combine_di,
     combined_path,
@@ -187,6 +188,46 @@ def test_combine_di_records_partial_temperature_coverage(tmp_path):
     assert list(df["di_count"]) == [2, 1]
 
 
+def test_di_count_flags_bins_that_were_carried_forward(tmp_path):
+    """di_count means "measured here", not "inside this run's span".
+
+    The off-grid first-frozen rows that make alignment necessary sit *inside* both runs'
+    spans, so a span test would report full coverage exactly where a value was ffilled —
+    leaving the column unable to flag the one thing it exists to flag.
+    """
+    a = _write_frozen(
+        tmp_path,
+        "frozen_at_temp_reviewed_DI a 07.16.25.csv",
+        [[-4.0, 0, 0], [-4.1, 1, 0], [-4.5, 1, 1], [-5.0, 2, 1]],
+    )
+    b = _write_frozen(
+        tmp_path,
+        "frozen_at_temp_reviewed_DI b 07.16.25.csv",
+        [[-4.0, 0, 0], [-4.5, 0, 0], [-5.0, 1, 1], [-5.3, 2, 2]],
+    )
+    df = _read_combined(combine_di([a, b], "avg", tmp_path, "07.16.25", 32))
+    counts = dict(zip(df["degC"], df["di_count"], strict=True))
+    assert counts[-4.1] == 1  # run b carried forward
+    assert counts[-5.3] == 1  # run a carried forward
+    assert counts[-4.0] == counts[-4.5] == counts[-5.0] == 2
+
+
+def test_find_frozen_at_temp_ignores_a_stem_that_only_ends_the_same_way(tmp_path):
+    """Two DI files must not resolve to the same binned csv."""
+    di = tmp_path / "DI a 07.16.25.dat"
+    di.write_text("")
+    _write_frozen(tmp_path, "frozen_at_temp_reviewed_second DI a 07.16.25.csv", [[-20.0, 1, 2]])
+    assert find_frozen_at_temp(di) is None
+
+
+def test_combine_di_does_not_reuse_a_file_built_for_another_plate_size(tmp_path, two_di_frozen):
+    """di_wells is derived from wells_per_sample, so a different plate makes it stale."""
+    combine_di(two_di_frozen, "sum", tmp_path, "07.16.25", 32)
+    with pytest.warns(UserWarning, match="wells_per_sample"):
+        out = combine_di(two_di_frozen, "sum", tmp_path, "07.16.25", 96)
+    assert list(_read_combined(out)["di_wells"]) == [192, 192]
+
+
 def test_combine_di_writes_provenance_header(tmp_path, two_di_frozen):
     out = combine_di(two_di_frozen, "avg", tmp_path, "07.16.25", 32)
     text = out.read_text()
@@ -298,7 +339,7 @@ def test_combine_di_sum_denominator_covers_extrapolated_bins(tmp_path):
         tmp_path, "frozen_at_temp_reviewed_DI b 07.16.25.csv", [[-20.0, 3, 0], [-21.0, 9, 0]]
     )
     df = _read_combined(combine_di([a, b], "sum", tmp_path, "07.16.25", 32))
-    assert list(df["di_count"]) == [2, 2, 1]  # -21.0 measured by run b alone
+    assert list(df["di_count"]) == [2, 1, 1]  # -20.5 is run a alone, -21.0 run b alone
     assert list(df["di_wells"]) == [64, 64, 64]
     assert list(df["Sample_0"]) == [5, 7, 13]  # -21.0: run a carries 4 forward, + b's 9
 
@@ -328,6 +369,68 @@ def test_combine_di_does_not_reuse_a_file_built_from_other_inputs(tmp_path, two_
         out = combine_di([rerun, two_di_frozen[1]], "avg", tmp_path, "07.16.25", 32)
     assert list(_read_combined(out)["Sample_0"]) == [8, 10]
     assert len(list(tmp_path.glob("combined_DI_avg_*.csv"))) == 2
+
+
+def test_ensure_frozen_at_temp_destroys_its_review_root(tmp_path, monkeypatch):
+    """quit() leaves tkinter._default_root pinned; only destroy() clears it.
+
+    Without this the sample review that follows builds its PhotoImages in the DI's dead
+    interpreter and dies with `image "pyimageN" doesn't exist` on its very first photo —
+    on the first cold-plate run, which is the only run where the DI GUI opens at all.
+    """
+    di = tmp_path / "DI 07.16.25.dat"
+    di.write_text("")
+    events = []
+
+    class _FakeWindow:
+        def mainloop(self):
+            events.append("mainloop")
+
+        def destroy(self):
+            events.append("destroy")
+
+    def _fake_spaced(*args, **kwargs):
+        _write_frozen(tmp_path, "frozen_at_temp_reviewed_DI 07.16.25.csv", [[-20.0, 1, 2]])
+
+        class _Fake:
+            data_file = tmp_path / "reviewed_DI 07.16.25.dat"
+
+            def create_temp_csv(self, *a, **k):
+                return None
+
+        return _Fake()
+
+    monkeypatch.setattr(di_background.tk, "Tk", lambda *a, **k: _FakeWindow())
+    monkeypatch.setattr(di_background, "FreezingReviewer", lambda *a, **k: None)
+    monkeypatch.setattr(di_background, "SpacedTempCSV", _fake_spaced)
+
+    config = _cold_plate_config(tmp_path, ["DI 07.16.25.dat"])
+    di_background.ensure_frozen_at_temp(di, config)
+    assert events == ["mainloop", "destroy"]
+
+
+def test_ensure_frozen_at_temp_reports_a_review_closed_early(tmp_path, monkeypatch):
+    """DataHandler returns its FileNotFoundError instead of raising, so guard explicitly."""
+    di = tmp_path / "DI 07.16.25.dat"
+    di.write_text("")
+
+    class _FakeWindow:
+        def mainloop(self):
+            return None
+
+        def destroy(self):
+            return None
+
+    class _NoData:
+        data_file = None
+
+    monkeypatch.setattr(di_background.tk, "Tk", lambda *a, **k: _FakeWindow())
+    monkeypatch.setattr(di_background, "FreezingReviewer", lambda *a, **k: None)
+    monkeypatch.setattr(di_background, "SpacedTempCSV", lambda *a, **k: _NoData())
+
+    config = _cold_plate_config(tmp_path, ["DI 07.16.25.dat"])
+    with pytest.raises(FileNotFoundError, match="closed before the last image"):
+        di_background.ensure_frozen_at_temp(di, config)
 
 
 # -------------------------------------------------------------- resolve_di_background
