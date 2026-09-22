@@ -29,6 +29,20 @@ vol_susp = 10              # mL
 # One or more of: "base", "heat", "peroxide", "blank", "blank heat", "blank peroxide"
 treatment = ["base"]
 
+# --- Cold-plate only (instrument = "cold-plate") ---
+# A cold-plate sample plate has no DI column, so the DI (deionized water) background comes
+# from separate .dat file(s) in the data folder. Name them here; paths are relative to
+# data_folder unless absolute. Each is reviewed and temperature-binned on its own, then
+# combined. Both keys are rejected on a non-cold-plate run.
+#
+# di_files = ["RAM_CINC DI a 07.16.25.dat", "RAM_CINC DI b 07.16.25.dat"]
+#
+# How multiple DI runs combine, per temperature bin:
+#   "avg"    mean of the frozen well counts (denominator unchanged)
+#   "sum"    total frozen well counts
+#   "single" no combining; only valid with exactly one di_files entry (the default then)
+# di_combined = "avg"
+
 # Per-sample dilution factors. Use `inf` for the undiluted suspension (background).
 [dict_samples_to_dilution]
 Sample_0 = 1

@@ -14,6 +14,7 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
+from typing import Literal
 
 from pydantic import (
     BaseModel,
@@ -65,6 +66,12 @@ class MainConfig(BaseModel):
     optional: dict[str, float] = Field(default_factory=dict)
     freezing_point_depression_dict: dict[str, float] = Field(default_factory=dict)
 
+    # Cold-plate only: the DI (deionized water) background lives in separate .dat files in
+    # the data folder rather than in an `inf` dilution column of the sample plate. Paths are
+    # relative to data_folder unless absolute.
+    di_files: list[Path] = Field(default_factory=list)
+    di_combined: Literal["avg", "sum", "single"] | None = None
+
     @field_validator("treatment", mode="before")
     @classmethod
     def _coerce_treatment(cls, value: object) -> object:
@@ -98,6 +105,49 @@ class MainConfig(BaseModel):
         return self
 
     @model_validator(mode="after")
+    def _validate_cold_plate_di(self) -> MainConfig:
+        """Check the cold-plate DI declaration before any processing starts.
+
+        Cold-plate sample plates carry no DI column, so the DI background has to come from
+        separate .dat files. Those files are named in the config and their existence is
+        verified here: a missing DI is otherwise only discovered after the researcher has
+        already sat through the sample image review.
+        """
+        if not self.is_cold_plate:
+            if self.di_files or self.di_combined is not None:
+                raise ValueError(
+                    "di_files/di_combined only apply to cold-plate runs; "
+                    f'instrument is "{self.instrument}"'
+                )
+            return self
+
+        if not self.di_files:
+            raise ValueError(
+                "cold-plate runs need di_files: the .dat file(s) holding the DI background, "
+                "relative to data_folder — see configs/templates/main.example.toml"
+            )
+
+        missing = [str(p) for p in self.resolved_di_files if not p.is_file()]
+        if missing:
+            raise ValueError(f"di_files not found: {missing}")
+
+        if len(self.di_files) > 1:
+            if self.di_combined is None:
+                raise ValueError(
+                    f"{len(self.di_files)} di_files given; set di_combined to "
+                    '"avg" or "sum" to say how they combine'
+                )
+            if self.di_combined == "single":
+                raise ValueError(
+                    'di_combined = "single" combines nothing, but '
+                    f"{len(self.di_files)} di_files were given; "
+                    'list exactly one file or choose "avg"/"sum"'
+                )
+        elif self.di_combined is None:
+            self.di_combined = "single"
+        return self
+
+    @model_validator(mode="after")
     def _warn_on_soft_mismatches(self) -> MainConfig:
         """Reproduce the non-fatal sanity warnings from the original main.py."""
         if not all(str(t) in str(self.data_folder) for t in self.treatment):
@@ -113,6 +163,11 @@ class MainConfig(BaseModel):
                 stacklevel=2,
             )
         return self
+
+    @property
+    def resolved_di_files(self) -> list[Path]:
+        """``di_files`` resolved against ``data_folder`` (absolute entries pass through)."""
+        return [p if p.is_absolute() else self.data_folder / p for p in self.di_files]
 
     @property
     def is_cold_plate(self) -> bool:

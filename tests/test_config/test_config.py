@@ -282,6 +282,95 @@ def test_is_cold_plate_false_for_other_instruments(instrument):
     assert not MainConfig(**_main_data(instrument=instrument)).is_cold_plate
 
 
+# ----------------------------------------------------------------- cold-plate DI
+
+
+def _cold_plate_data(tmp_path, names=("DI 07.16.25.dat",), **overrides):
+    """A cold-plate config whose DI .dat files actually exist under ``tmp_path``."""
+    for name in names:
+        (tmp_path / name).write_text("")
+    overrides.setdefault("instrument", "cold-plate")
+    return _main_data(data_folder=tmp_path, di_files=list(names), **overrides)
+
+
+@pytest.mark.parametrize(
+    "instrument", ["cold-plate", "cold plate", "Cold_Plate", "coldplate", "COLD-PLATE"]
+)
+def test_is_cold_plate_accepts_spelling_variants(instrument, tmp_path):
+    config = MainConfig(**_cold_plate_data(tmp_path, instrument=instrument))
+    assert config.is_cold_plate
+
+
+def test_cold_plate_single_di_defaults_to_single(tmp_path):
+    config = MainConfig(**_cold_plate_data(tmp_path))
+    assert config.di_combined == "single"
+
+
+def test_cold_plate_missing_di_file_rejected(tmp_path):
+    data = _main_data(instrument="cold-plate", data_folder=tmp_path, di_files=["nope 07.16.25.dat"])
+    with pytest.raises(ValidationError, match="di_files not found"):
+        MainConfig(**data)
+
+
+def test_cold_plate_without_di_files_rejected(tmp_path):
+    with pytest.raises(ValidationError, match="need di_files"):
+        MainConfig(**_main_data(instrument="cold-plate", data_folder=tmp_path))
+
+
+def test_di_files_on_non_cold_plate_rejected(tmp_path):
+    (tmp_path / "DI 07.16.25.dat").write_text("")
+    data = _main_data(instrument="IS2", data_folder=tmp_path, di_files=["DI 07.16.25.dat"])
+    with pytest.raises(ValidationError, match="only apply to cold-plate"):
+        MainConfig(**data)
+
+
+def test_di_combined_on_non_cold_plate_rejected():
+    with pytest.raises(ValidationError, match="only apply to cold-plate"):
+        MainConfig(**_main_data(di_combined="avg"))
+
+
+def test_cold_plate_multiple_di_without_method_rejected(tmp_path):
+    names = ("DI a 07.16.25.dat", "DI b 07.16.25.dat")
+    with pytest.raises(ValidationError, match="set di_combined"):
+        MainConfig(**_cold_plate_data(tmp_path, names=names))
+
+
+def test_cold_plate_multiple_di_with_single_rejected(tmp_path):
+    names = ("DI a 07.16.25.dat", "DI b 07.16.25.dat")
+    with pytest.raises(ValidationError, match="combines nothing"):
+        MainConfig(**_cold_plate_data(tmp_path, names=names, di_combined="single"))
+
+
+@pytest.mark.parametrize("method", ["avg", "sum"])
+def test_cold_plate_multiple_di_accepted(tmp_path, method):
+    names = ("DI a 07.16.25.dat", "DI b 07.16.25.dat")
+    config = MainConfig(**_cold_plate_data(tmp_path, names=names, di_combined=method))
+    assert config.di_combined == method
+    assert len(config.resolved_di_files) == 2
+
+
+def test_di_combined_rejects_unknown_method(tmp_path):
+    with pytest.raises(ValidationError):
+        MainConfig(**_cold_plate_data(tmp_path, di_combined="median"))
+
+
+def test_resolved_di_files_handles_relative_and_absolute(tmp_path):
+    rel = tmp_path / "DI 07.16.25.dat"
+    rel.write_text("")
+    other = tmp_path / "elsewhere"
+    other.mkdir()
+    absolute = other / "DI b 07.16.25.dat"
+    absolute.write_text("")
+    data = _main_data(
+        instrument="cold-plate",
+        data_folder=tmp_path,
+        di_files=["DI 07.16.25.dat", str(absolute)],
+        di_combined="avg",
+    )
+    config = MainConfig(**data)
+    assert config.resolved_di_files == [rel, absolute]
+
+
 def test_main_to_header_tbs_adds_altitudes():
     config = MainConfig(
         **_main_data(
