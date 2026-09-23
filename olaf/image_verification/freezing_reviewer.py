@@ -129,8 +129,13 @@ class FreezingReviewer(ButtonHandler):
         Returns:
              None
         """
-        current_temp = self.data.loc[current_index, "Avg_Temp"]
-
+        # Look for "Avg_Temp" in INS/IS data files or "Sample_Temp" in cold plate files.
+        for col in ["Avg_Temp", "Sample_Temp"]:
+            if col in self.data.columns:
+                current_temp = self.data.loc[current_index, "Avg_Temp"]
+                break
+        else:
+            raise KeyError("Neither 'Avg_Temp' nor 'Sample_Temp' found in .dat file")
         # Create widgets only if they don't exist yet
         if self.temp_label is None:
             temp_text = "Current Temp (C)"
