@@ -143,7 +143,7 @@ class SpacedTempCSV(DataHandler):
 
             temp_frozen_df.loc[len(temp_frozen_df)] = new_row
 
-        temp_frozen_df["Avg_Temp"] = temp_frozen_df["Avg_Temp"].round(decimals=1)
+        temp_frozen_df[temp_col] = temp_frozen_df[temp_col].round(decimals=1)
 
         # Move columns affected by freezing point depression to the corrected
         # temperature indices
