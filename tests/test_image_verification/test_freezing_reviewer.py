@@ -158,3 +158,44 @@ class TestFreezingReviewer:
 
         deltas = ensure_list(change_row)
         assert deltas[0] == 1
+
+    @staticmethod
+    def _spread_images(reviewer, rise_row: int) -> None:
+        """Put images at rows 0, 10, 20 (real runs have many rows per image), select
+        image 2, and make Sample_0 read 1 until a rise to 2 at rise_row."""
+        assert len(reviewer.photos) >= 3
+        reviewer.data["Picture"] = None
+        for idx, photo in enumerate(reviewer.photos[:3]):
+            reviewer.data.loc[idx * 10, "Picture"] = photo.name
+        reviewer.current_photo_index = 2
+        reviewer.data["Sample_0"] = 1
+        reviewer.data.loc[rise_row:, "Sample_0"] = 2
+        reviewer.data["changes"] = [[0] * reviewer.num_samples for _ in range(len(reviewer.data))]
+
+    def test_minus_one_undoes_rise_after_previous_image(self, reviewer) -> None:
+        """
+        Given: a spurious rise at row 15, between image 1 (row 10) and image 2 (row 20).
+        When:  -1 is clicked on image 2.
+        Then:  only rows from the rise onwards drop back to 1; the changes column agrees.
+        Regression: the old code started at 20 - 14 = row 6, past the previous image.
+        """
+        from olaf.utils.type_utils import ensure_list
+
+        self._spread_images(reviewer, rise_row=15)
+        reviewer._update_image(sample=0, change=-1)
+
+        assert (reviewer.data["Sample_0"] == 1).all()
+        assert ensure_list(reviewer.data.loc[14, "changes"])[0] == 0
+        assert ensure_list(reviewer.data.loc[15, "changes"])[0] == -1
+
+    def test_minus_one_refused_when_previous_image_has_same_count(self, reviewer) -> None:
+        """
+        Given: the rise is at row 5, so image 1 (row 10) already shows the same count.
+        When:  -1 is clicked on image 2.
+        Then:  nothing changes; the researcher has to correct it on the earlier image.
+        """
+        self._spread_images(reviewer, rise_row=5)
+        before = reviewer.data["Sample_0"].copy()
+        reviewer._update_image(sample=0, change=-1)
+
+        assert reviewer.data["Sample_0"].equals(before)

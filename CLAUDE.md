@@ -283,7 +283,9 @@ a provenance copy of the config into the output folder. When making changes:
 - Blank correction uses RMS error propagation for confidence interval adjustment
 
 ### GUI Behavior
-- Clicking "-1" on a sample propagates backwards to when that well first froze (enforces monotonicity)
+- Clicking "-1" on a sample propagates backwards to where the count last went up (undoing that
+  rise). The previous image is assumed already checked: if it shows the same count, the -1 is
+  refused with a warning to correct it there; see `minus_one_start_row()`
 - Clicking "+1" on a sample applies change forward from current image
 - Wells are clamped between 0 and `wells_per_sample`
 - Changes are stored in a "changes" column for audit trail

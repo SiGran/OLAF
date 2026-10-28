@@ -89,6 +89,16 @@ Each test gets a body + golden file. Run `OLAF_REGEN_GOLDEN=1 pytest <test>` to 
 ## Human-Needs-To-Do
 Tasks the AI agent is NOT allowed to perform — must be done by the human.
 
+### GUI test fixture (from fix/gui-minus-one-range)
+
+- [ ] Rename `tests/test_data/goldens/inputs/sgp_2_21_24_base/dat_images/` to `dat_Images/`.
+      `DataLoader.load_photos` only accepts folders ending in `Images` (case-sensitive), so
+      every test in `tests/test_image_verification/test_freezing_reviewer.py` errors at setup
+      and the GUI regression tests for the -1 fix never run. Also change
+      `images_dir = sgp_golden_folder / "dat_images"` in that test file to match, or it will
+      skip instead. (Alternative without a rename: make the folder match case-insensitive
+      in `data_loader.py`.) Verified: with both changes, all 7 GUI tests pass.
+
 ### CI/CD modernization (from ci-modernize-consolidate-workflows branch)
 
 > **⚠️ Allowlist already configured** — `astral-sh/setup-uv@*` and `codecov/codecov-action@*` are in the allowlist; CI is green.

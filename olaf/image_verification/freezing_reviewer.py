@@ -1,9 +1,58 @@
 import tkinter as tk
+from collections.abc import Sequence
 from pathlib import Path
 
 from olaf.utils.type_utils import ensure_list
 
 from .button_handler import ButtonHandler
+
+
+def previous_image_row(
+    pictures: Sequence[object], photo_names: Sequence[str], photo_index: int
+) -> int | None:
+    """
+    Find the row of the nearest earlier image that appears in the data.
+    Args:
+        pictures: the "Picture" column, positional by row
+        photo_names: image file names in display order
+        photo_index: index of the current image in photo_names
+
+    Returns:
+        Positional row of that image, or None if no earlier image is in the data
+    """
+    first_row: dict[object, int] = {}
+    for row, picture in enumerate(pictures):
+        first_row.setdefault(picture, row)
+    for name in reversed(photo_names[:photo_index]):
+        if name in first_row:
+            return first_row[name]
+    return None
+
+
+def minus_one_start_row(
+    counts: Sequence[int], current_row: int, prev_row: int | None
+) -> int | None:
+    """
+    Find the first row a -1 correction applies to: the row where the count last rose to
+    its current value. The previous image is assumed checked and correct, so if it already
+    shows the current count the correction is refused (it would make the count drop as
+    temperature decreases).
+    Args:
+        counts: frozen well counts of one sample, positional by row
+        current_row: row of the image the correction is made on
+        prev_row: row of the previous image, None if there is none
+
+    Returns:
+        First row to decrement, or None if the previous image already has this count
+    """
+    target = counts[current_row]
+    if prev_row is not None and counts[prev_row] >= target:
+        return None
+    floor_row = 0 if prev_row is None else prev_row + 1
+    row = current_row
+    while row > floor_row and counts[row - 1] >= target:
+        row -= 1
+    return row
 
 
 class FreezingReviewer(ButtonHandler):
@@ -51,18 +100,26 @@ class FreezingReviewer(ButtonHandler):
         self._display_current_temp(current_index)
 
         # Apply change to current and later; keep the value between 0 and max wells_per_sample
-        if change < 0:  # go back to were this went last up
+        if change < 0:  # go back to where this last went up, after the previous image
             # Check if the change would go below 0
             if self.data.loc[current_index:, f"Sample_{sample}"].values[0] + change < 0:
                 print("Cannot decrease below 0!!")
                 return
-            # Go back from current index and find the first index were the
-            # current value, we're trying to change, was reached
-            current_val = self.data.loc[current_index, f"Sample_{sample}"]
-            for i in range(current_index, 0, -1):
-                if self.data.loc[i, f"Sample_{sample}"] == current_val - 1:
-                    current_index = current_index - i
-                    break
+            # Work in row positions so this doesn't depend on the index being a RangeIndex
+            pictures = self.data["Picture"].tolist()
+            counts = self.data[f"Sample_{sample}"].tolist()
+            current_row = pictures.index(picture_name)
+            prev_row = previous_image_row(
+                pictures, [p.name for p in self.photos], self.current_photo_index
+            )
+            start_row = minus_one_start_row(counts, current_row, prev_row)
+            if start_row is None:
+                print(
+                    f"Sample {sample} was already {counts[current_row]} at the previous image; "
+                    "go back and correct it there."
+                )
+                return
+            current_index = self.data.index[start_row]
 
         self.data.loc[current_index:, f"Sample_{sample}"] += change
         self.data.loc[current_index:, f"Sample_{sample}"] = self.data.loc[
