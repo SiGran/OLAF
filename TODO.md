@@ -98,6 +98,8 @@ Tasks the AI agent is NOT allowed to perform — must be done by the human.
       `images_dir = sgp_golden_folder / "dat_images"` in that test file to match, or it will
       skip instead. (Alternative without a rename: make the folder match case-insensitive
       in `data_loader.py`.) Verified: with both changes, all 7 GUI tests pass.
+- [x] Delete `tests/test_data/goldens/expected/test_click_replay/pc_line1_10_12_26.csv`
+      (never committed; first .csv version of the click-replay golden).
 
 ### CI/CD modernization (from ci-modernize-consolidate-workflows branch)
 

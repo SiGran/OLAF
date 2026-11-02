@@ -291,6 +291,8 @@ a provenance copy of the config into the output folder. When making changes:
   kept without the top cap, so a +1/-1 pair for a late-detected well near a full plate doesn't
   lose a well; only shown/saved counts are capped. Reopening a reviewed file starts from the
   capped counts, so finish such a pair in one session
+- Real click logs are replayed in `tests/test_image_verification/test_click_replay.py`: add a
+  folder with the raw `.dat` and a `clicks.toml` under `tests/test_data/goldens/inputs/`
 - Changes are stored in a "changes" column for audit trail: per row, one `(plus, minus)` tally per
   sample of the clicks that apply to that row, e.g. `[(3, -1), (0, 0), ...]` (see `tally_change()`)
 
