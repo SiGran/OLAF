@@ -287,7 +287,10 @@ a provenance copy of the config into the output folder. When making changes:
   rise). The previous image is assumed already checked: if it shows the same count, the -1 is
   refused with a warning to correct it there; see `minus_one_start_row()`
 - Clicking "+1" on a sample applies change forward from current image
-- Wells are clamped between 0 and `wells_per_sample`
+- Wells are clamped between 0 and `wells_per_sample`. Within a session the running count is
+  kept without the top cap, so a +1/-1 pair for a late-detected well near a full plate doesn't
+  lose a well; only shown/saved counts are capped. Reopening a reviewed file starts from the
+  capped counts, so finish such a pair in one session
 - Changes are stored in a "changes" column for audit trail
 
 ### Code Style

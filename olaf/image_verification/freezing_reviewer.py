@@ -2,6 +2,8 @@ import tkinter as tk
 from collections.abc import Sequence
 from pathlib import Path
 
+import pandas as pd
+
 from olaf.utils.type_utils import ensure_list
 
 from .button_handler import ButtonHandler
@@ -75,6 +77,8 @@ class FreezingReviewer(ButtonHandler):
         """
         self.dict_samples_to_dilution = dict_samples_to_dilution
         self.wells_per_sample = wells_per_sample
+        # Per-sample frozen counts before capping at wells_per_sample, filled on first edit
+        self._uncapped: dict[int, pd.Series] = {}
         # Initialize temperature display widget references
         self.temp_frame: tk.LabelFrame | None = None
         self.temp_label: tk.Label | None = None
@@ -121,10 +125,13 @@ class FreezingReviewer(ButtonHandler):
                 return
             current_index = self.data.index[start_row]
 
-        self.data.loc[current_index:, f"Sample_{sample}"] += change
-        self.data.loc[current_index:, f"Sample_{sample}"] = self.data.loc[
-            current_index:, f"Sample_{sample}"
-        ].clip(0, self.wells_per_sample)
+        # Keep a running count without the wells_per_sample cap and only cap what is shown/saved:
+        # a +1 for a well the camera saw late is later cancelled by a -1, and capping in between
+        # loses a well. The floor stays at 0, so noisy counts can't swallow a later +1
+        col = f"Sample_{sample}"
+        uncapped = self._uncapped.setdefault(sample, self.data[col].copy())
+        uncapped.loc[current_index:] = (uncapped.loc[current_index:] + change).clip(lower=0)
+        self.data[col] = uncapped.clip(0, self.wells_per_sample)
 
         # Update the changes column with the change
         # bug can occur that turns the "changes" column into a string
@@ -133,7 +140,7 @@ class FreezingReviewer(ButtonHandler):
         self.data.loc[current_index:, "changes"] = self.data.loc[current_index:, "changes"].apply(
             lambda x: [int(y) + change if i == sample else y for i, y in enumerate(x)]
         )
-        # NOTE: above line/column isn't corrected for clipping to (0, wells_per_sample)
+        # NOTE: like the uncapped count, this isn't clipped to (0, wells_per_sample)
         self._display_num_frozen(picture_name)
         return
 
