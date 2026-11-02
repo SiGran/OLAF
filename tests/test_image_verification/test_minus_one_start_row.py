@@ -9,7 +9,11 @@ refused (returns None) rather than making the count drop as temperature decrease
 
 from __future__ import annotations
 
-from olaf.image_verification.freezing_reviewer import minus_one_start_row, previous_image_row
+from olaf.image_verification.freezing_reviewer import (
+    minus_one_start_row,
+    previous_image_row,
+    tally_change,
+)
 
 
 def _run() -> list[int]:
@@ -68,3 +72,18 @@ class TestPreviousImageRow:
 
     def test_no_earlier_image_in_data(self) -> None:
         assert previous_image_row([None, "c.png"], ["a.png", "b.png", "c.png"], 2) is None
+
+
+class TestTallyChange:
+    def test_plus_and_minus_are_kept_apart(self) -> None:
+        """+1 +1 +1 -1 gives (3, -1), not the net 2."""
+        entry: tuple[int, int] = (0, 0)
+        for change in (1, 1, 1, -1):
+            entry = tally_change(entry, change)
+        assert entry == (3, -1)
+
+    def test_old_net_number_counts_as_all_plus_or_all_minus(self) -> None:
+        """Files reviewed before the split store one net number per sample."""
+        assert tally_change(2, -1) == (2, -1)
+        assert tally_change(-3, 1) == (1, -3)
+        assert tally_change(0, 1) == (1, 0)

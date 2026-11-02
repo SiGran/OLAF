@@ -57,6 +57,23 @@ def minus_one_start_row(
     return row
 
 
+def tally_change(entry: int | tuple[int, int], change: int) -> tuple[int, int]:
+    """
+    Add one click to a sample's (plus, minus) tally in the "changes" column.
+    Args:
+        entry: current (plus, minus) tally; files reviewed before the split hold one net number,
+            which counts as all plus or all minus
+        change: the click, +1 or -1
+
+    Returns:
+        Updated (plus, minus) tally
+    """
+    if isinstance(entry, int):
+        entry = (max(entry, 0), min(entry, 0))
+    plus, minus = entry
+    return plus + max(change, 0), minus + min(change, 0)
+
+
 class FreezingReviewer(ButtonHandler):
     def __init__(
         self,
@@ -136,9 +153,9 @@ class FreezingReviewer(ButtonHandler):
         # Update the changes column with the change
         # bug can occur that turns the "changes" column into a string
         self.data["changes"] = self.data["changes"].apply(ensure_list)
-        # Update the change from the click to the changes column
+        # Add the click to each later row's (plus, minus) tally for this sample
         self.data.loc[current_index:, "changes"] = self.data.loc[current_index:, "changes"].apply(
-            lambda x: [int(y) + change if i == sample else y for i, y in enumerate(x)]
+            lambda x: [tally_change(y, change) if i == sample else y for i, y in enumerate(x)]
         )
         # NOTE: like the uncapped count, this isn't clipped to (0, wells_per_sample)
         self._display_num_frozen(picture_name)

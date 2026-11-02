@@ -153,11 +153,11 @@ class TestFreezingReviewer:
         ].tolist()[0]
         reviewer._update_image(sample=0, change=1)
         change_row = reviewer.data.loc[current_idx, "changes"]
-        # changes column is a list-like of per-sample deltas
+        # changes column is a list of per-sample (plus, minus) tallies
         from olaf.utils.type_utils import ensure_list
 
         deltas = ensure_list(change_row)
-        assert deltas[0] == 1
+        assert deltas[0] == (1, 0)
 
     @staticmethod
     def _spread_images(reviewer, rise_row: int) -> None:
@@ -170,7 +170,9 @@ class TestFreezingReviewer:
         reviewer.current_photo_index = 2
         reviewer.data["Sample_0"] = 1
         reviewer.data.loc[rise_row:, "Sample_0"] = 2
-        reviewer.data["changes"] = [[0] * reviewer.num_samples for _ in range(len(reviewer.data))]
+        reviewer.data["changes"] = [
+            [(0, 0)] * reviewer.num_samples for _ in range(len(reviewer.data))
+        ]
 
     def test_minus_one_undoes_rise_after_previous_image(self, reviewer) -> None:
         """
@@ -185,8 +187,8 @@ class TestFreezingReviewer:
         reviewer._update_image(sample=0, change=-1)
 
         assert (reviewer.data["Sample_0"] == 1).all()
-        assert ensure_list(reviewer.data.loc[14, "changes"])[0] == 0
-        assert ensure_list(reviewer.data.loc[15, "changes"])[0] == -1
+        assert ensure_list(reviewer.data.loc[14, "changes"])[0] == (0, 0)
+        assert ensure_list(reviewer.data.loc[15, "changes"])[0] == (0, -1)
 
     def test_minus_one_refused_when_previous_image_has_same_count(self, reviewer) -> None:
         """
