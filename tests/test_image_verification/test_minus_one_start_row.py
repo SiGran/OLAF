@@ -9,7 +9,10 @@ refused (returns None) rather than making the count drop as temperature decrease
 
 from __future__ import annotations
 
+import numpy as np
+
 from olaf.image_verification.freezing_reviewer import (
+    apply_minus_one,
     minus_one_start_row,
     previous_image_row,
     tally_change,
@@ -87,3 +90,49 @@ class TestTallyChange:
         assert tally_change(2, -1) == (2, -1)
         assert tally_change(-3, 1) == (1, -3)
         assert tally_change(0, 1) == (1, 0)
+
+    def test_numpy_numbers_and_lists_are_accepted(self) -> None:
+        """Row deltas come from pandas as numpy ints; reloaded tallies can be lists."""
+        assert tally_change(np.int64(2), np.int64(-1)) == (2, -1)
+        assert tally_change([1, 0], 1) == (2, 0)
+        assert tally_change((1, -1), 0) == (1, -1)
+
+
+class TestApplyMinusOne:
+    def test_without_hidden_wells_undoes_the_rise(self) -> None:
+        """Below the cap this is the plain -1 from the rise on."""
+        assert apply_minus_one([0, 1, 1, 2, 2], cap=4, start_row=3, current_row=4) == [
+            0,
+            1,
+            1,
+            1,
+            1,
+        ]
+
+    def test_hidden_surplus_at_current_is_dropped_in_one_click(self) -> None:
+        """
+        Given: current row shows 4 (cap) with 2 hidden on top (6); a later row has 1 more.
+        Then:  current shows 3; the later row keeps its extra well (4).
+        """
+        assert apply_minus_one([3, 4, 6, 7], cap=4, start_row=1, current_row=2) == [3, 3, 3, 4]
+
+    def test_rows_between_rise_and_current_end_one_below_the_cap(self) -> None:
+        """Rows from the rise up to the current image show one less, never below the
+        previous image (row 0, showing 3)."""
+        assert apply_minus_one([3, 4, 4, 6], cap=4, start_row=1, current_row=3) == [3, 3, 3, 3]
+
+    def test_later_noisy_row_hidden_by_the_cap_drops_at_most_one(self) -> None:
+        """
+        Given: uncapped 0, 3, 5, 4, 5 (shown 0, 3, 4, 4, 4); row 3 is a noisy dip hidden by the cap.
+        Then:  a -1 on row 2 shows 0, 3, 3, 3, 3, not 0, 3, 3, 2, 3.
+        """
+        assert apply_minus_one([0, 3, 5, 4, 5], cap=4, start_row=2, current_row=2) == [
+            0,
+            3,
+            3,
+            3,
+            3,
+        ]
+
+    def test_never_below_zero(self) -> None:
+        assert apply_minus_one([0, 1, 1], cap=4, start_row=1, current_row=2) == [0, 0, 0]

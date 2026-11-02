@@ -283,18 +283,24 @@ a provenance copy of the config into the output folder. When making changes:
 - Blank correction uses RMS error propagation for confidence interval adjustment
 
 ### GUI Behavior
+- Every click changes the shown count on the current image by exactly 1, or is refused
 - Clicking "-1" on a sample propagates backwards to where the count last went up (undoing that
-  rise). The previous image is assumed already checked: if it shows the same count, the -1 is
-  refused with a warning to correct it there; see `minus_one_start_row()`
-- Clicking "+1" on a sample applies change forward from current image
+  rise); see `minus_one_start_row()` / `apply_minus_one()`. The previous image is assumed
+  already checked: if it shows the same count, a pop-up offers "Go to" the image where the
+  count rose (to correct it there) or "Acknowledged, proceed anyway" (lower it from the rise,
+  earlier image included); closing it cancels
+- Clicking "+1" on a sample applies change forward from current image; refused with a warning
+  on an image that already shows `wells_per_sample`
 - Wells are clamped between 0 and `wells_per_sample`. Within a session the running count is
   kept without the top cap, so a +1/-1 pair for a late-detected well near a full plate doesn't
-  lose a well; only shown/saved counts are capped. Reopening a reviewed file starts from the
-  capped counts, so finish such a pair in one session
+  lose a well; only shown/saved counts are capped. A -1 on a full image drops any hidden
+  surplus there, so it always shows one less. Reopening a reviewed file starts from the capped
+  counts, so finish such a pair in one session
 - Real click logs are replayed in `tests/test_image_verification/test_click_replay.py`: add a
   folder with the raw `.dat` and a `clicks.toml` under `tests/test_data/goldens/inputs/`
 - Changes are stored in a "changes" column for audit trail: per row, one `(plus, minus)` tally per
-  sample of the clicks that apply to that row, e.g. `[(3, -1), (0, 0), ...]` (see `tally_change()`)
+  sample of what the clicks changed on that row (uncapped), e.g. `[(3, -1), (0, 0), ...]`
+  (see `tally_change()`)
 
 ### Code Style
 - Line length: 100 characters (enforced by ruff)
