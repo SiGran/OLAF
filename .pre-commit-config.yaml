@@ -1,4 +1,5 @@
-exclude: ^\.idea/
+# Instrument .dat files are kept byte for byte (trailing tabs are empty Picture fields)
+exclude: ^(\.idea/|tests/test_data/.*\.dat$)
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.6.0
