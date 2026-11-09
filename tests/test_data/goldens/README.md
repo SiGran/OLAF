@@ -14,7 +14,7 @@ goldens/
 │   │   ├── frozen_at_temp_expected.csv     # golden: SpacedTempCSV output (verified)
 │   │   ├── frozen_at_temp_changed.csv      # alt golden: pre-verification output
 │   │   ├── inps_L_expected.csv             # golden: GraphDataCSV final INPs/L
-│   │   └── dat_images/                     # 3 images for FreezingReviewer GUI smoke
+│   │   └── dat_Images/                     # 3 images for FreezingReviewer GUI smoke
 │   ├── sgp_3_28_24_base/        # needs human curation — see .NEEDED.md
 │   ├── kcg_09_23_24_base/       # needs human curation — see .NEEDED.md
 │   ├── capek/                   # needs human curation — see .NEEDED.md

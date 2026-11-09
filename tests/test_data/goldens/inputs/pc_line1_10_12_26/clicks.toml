@@ -1,0 +1,13 @@
+# GUI clicks a researcher made while reviewing the raw .dat in this folder, replayed by
+# tests/test_image_verification/test_click_replay.py.
+# Source: researcher's change log for "10.12.26 0.2 um pc line 1", reported 2026-10.
+
+sample = 0             # which Sample_ column was corrected
+num_samples = 6        # num_samples from the run's config
+wells_per_sample = 32  # wells_per_sample from the run's config
+
+# [image number, change] in the order they were clicked
+clicks = [
+    [57, 1], [58, 1], [59, 1], [60, -1], [64, 1], [67, 1], [68, -1], [69, -1],
+    [71, -1], [73, 1], [76, -1], [77, -1], [80, 1], [82, 1], [83, 1], [85, 1],
+]

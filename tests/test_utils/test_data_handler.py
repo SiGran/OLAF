@@ -112,11 +112,11 @@ class TestGetDataFile:
         assert "Date" in handler.data.columns
         assert "Time" in handler.data.columns
         assert "changes" in handler.data.columns
-        # changes column is a list of zeros (freshly added for raw .dat)
+        # changes column is a list of (plus, minus) zero tallies (freshly added for raw .dat)
         first_changes = handler.data["changes"].iloc[0]
         assert isinstance(first_changes, list)
         assert len(first_changes) == 6
-        assert all(v == 0 for v in first_changes)
+        assert all(v == (0, 0) for v in first_changes)
 
 
 class TestSaveToNewFile:

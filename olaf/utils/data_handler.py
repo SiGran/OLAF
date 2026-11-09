@@ -86,8 +86,9 @@ class DataHandler:
         if "Time" in data.columns and "Unnamed: 1" in data.columns and date_col == "Time":
             # rename automatically split datetime column
             data.rename(columns={"Time": "Date", "Unnamed: 1": "Time"}, inplace=True)
-            # Add a column to capture changes to the number of frozen wells
-            data["changes"] = [[0] * self.num_samples for _ in range(len(data))]
+            # Add a column to capture changes to the number of frozen wells: per sample, the
+            # (plus, minus) clicks that apply to this row
+            data["changes"] = [[(0, 0)] * self.num_samples for _ in range(len(data))]
         if data.empty or data_file.name == "":
             raise FileNotFoundError("No .dat file found in the folder")
 

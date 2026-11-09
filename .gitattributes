@@ -1,0 +1,2 @@
+# Instrument and reviewed .dat files are test data: store them byte for byte (CRLF, trailing tabs)
+tests/test_data/**/*.dat -text
