@@ -52,10 +52,10 @@ pytestmark = [
 def reviewer(sgp_golden_folder, sample_dilution_dict_a):
     """Build a FreezingReviewer against the SGP golden folder.
 
-    Skips when the dat_images/ directory is missing. Yields the app and tears
+    Skips when the dat_Images/ directory is missing. Yields the app and tears
     down the tk root afterwards.
     """
-    images_dir = sgp_golden_folder / "dat_images"
+    images_dir = sgp_golden_folder / "dat_Images"
     if not images_dir.exists():
         pytest.skip(f"Real fixture missing: {images_dir}")
 
@@ -80,6 +80,9 @@ def reviewer(sgp_golden_folder, sample_dilution_dict_a):
         for idx, photo in enumerate(app.photos):
             if idx < len(app.data):
                 app.data.loc[idx, "Picture"] = photo.name
+        # Modal windows would wait for a click forever
+        app._warn = lambda *_: None
+        app._ask_minus_one_conflict = lambda *_: "cancel"
         yield app
     finally:
         window.destroy()
@@ -90,7 +93,7 @@ class TestFreezingReviewer:
 
     def test_instantiation_loads_data_and_images(self, reviewer) -> None:
         """
-        Given: SGP golden folder with reviewed.dat + dat_images/
+        Given: SGP golden folder with reviewed.dat + dat_Images/
         When:  FreezingReviewer is constructed.
         Then:  self.data is a non-empty DataFrame; self.photos list non-empty.
         """
@@ -122,7 +125,7 @@ class TestFreezingReviewer:
         ).all() or reviewer.data.loc[current_idx:, "Sample_0"].max() <= reviewer.wells_per_sample
 
     def test_update_image_clamps_at_wells_per_sample(self, reviewer) -> None:
-        """+1 beyond wells_per_sample is clamped (no overflow)."""
+        """+1 on a full image is refused (no overflow)."""
         reviewer.current_photo_index = 0
         current_idx = reviewer.data.index[
             reviewer.data["Picture"] == reviewer.photos[0].name
@@ -134,7 +137,7 @@ class TestFreezingReviewer:
         assert reviewer.data.loc[current_idx, "Sample_0"] == reviewer.wells_per_sample
 
     def test_update_image_negative_clamps_at_zero(self, reviewer) -> None:
-        """-1 from 0 is a no-op and prints a warning instead of going negative."""
+        """-1 from 0 is a no-op and warns instead of going negative."""
         reviewer.current_photo_index = 0
         current_idx = reviewer.data.index[
             reviewer.data["Picture"] == reviewer.photos[0].name
@@ -190,11 +193,11 @@ class TestFreezingReviewer:
         assert ensure_list(reviewer.data.loc[14, "changes"])[0] == (0, 0)
         assert ensure_list(reviewer.data.loc[15, "changes"])[0] == (0, -1)
 
-    def test_minus_one_refused_when_previous_image_has_same_count(self, reviewer) -> None:
+    def test_minus_one_cancelled_when_previous_image_has_same_count(self, reviewer) -> None:
         """
         Given: the rise is at row 5, so image 1 (row 10) already shows the same count.
-        When:  -1 is clicked on image 2.
-        Then:  nothing changes; the researcher has to correct it on the earlier image.
+        When:  -1 is clicked on image 2 and the pop-up is closed.
+        Then:  nothing changes.
         """
         self._spread_images(reviewer, rise_row=5)
         before = reviewer.data["Sample_0"].copy()

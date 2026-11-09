@@ -91,29 +91,34 @@ Tasks the AI agent is NOT allowed to perform — must be done by the human.
 
 ### GUI test fixture (from fix/gui-minus-one-range)
 
-- [ ] Rename `tests/test_data/goldens/inputs/sgp_2_21_24_base/dat_images/` to `dat_Images/`.
+- [x] Rename `tests/test_data/goldens/inputs/sgp_2_21_24_base/dat_images/` to `dat_Images/`.
       `DataLoader.load_photos` only accepts folders ending in `Images` (case-sensitive), so
-      every test in `tests/test_image_verification/test_freezing_reviewer.py` errors at setup
-      and the GUI regression tests for the -1 fix never run. Also change
+  every test in `tests/test_image_verification/test_freezing_reviewer.py` errors at setup
+  and the GUI regression tests for the -1 fix never run. Also change
       `images_dir = sgp_golden_folder / "dat_images"` in that test file to match, or it will
-      skip instead. (Alternative without a rename: make the folder match case-insensitive
-      in `data_loader.py`.) Verified: with both changes, all 7 GUI tests pass.
+  skip instead. (Alternative without a rename: make the folder match case-insensitive
+  in `data_loader.py`.) Verified: with both changes, all 7 GUI tests pass.
 - [x] Delete `tests/test_data/goldens/expected/test_click_replay/pc_line1_10_12_26.csv`
       (never committed; first .csv version of the click-replay golden).
-- [ ] Scientist sign-off on the click-replay golden
+- [x] Scientist sign-off on the click-replay golden
       `tests/test_data/goldens/expected/test_click_replay/reviewed_10.12.26 0.2 um pc line 1 sus immediately after sampling 7 mL base.dat`
       (agent-generated with OLAF_REGEN_GOLDEN=1). Check Sample_0 per image against the
       researcher's change log; the +1s at images 83 and 85 are refused (already full, 32).
       Note: the `changes` tallies record what each row's (uncapped) count changed by, not a
       click count, so one -1 on a full image can log more than -1.
-- [ ] Manually try the GUI -1 pop-up on a real run: on an image whose previous image shows the
+- [x] Manually try the GUI -1 pop-up on a real run: on an image whose previous image shows the
       same count, click -1 and try "Go to", "Acknowledged, proceed anyway" and closing it;
       click +1 on a full image and check the warning.
-- [ ] Decide whether reviewed_*.dat should also store the uncapped running count. It is only
+- [x] Decide whether reviewed_*.dat should also store the uncapped running count. It is only
       kept in memory, so a +1/-1 pair near a full plate split across two GUI sessions can
       still lose a well (documented in CLAUDE.md "GUI Behavior").
       Related: the uncapped count keeps raw camera noise above the cap (e.g. 5, 5, 4 hidden
       under 4, 4, 4), so a plain -1 there lowers those noisy rows too.
+      **Decision: don't store it.** Reviewers finish a review in one session, and the count is
+      already stored indirectly: per row, raw `.dat` count + plus + minus from `changes` =
+      uncapped count (checked on all 5702 rows of the click-replay run). This needs the raw
+      `.dat`, holds for a single session only, and gives the result of the clicks, not the
+      clicks themselves.
 
 ### CI/CD modernization (from ci-modernize-consolidate-workflows branch)
 
@@ -166,7 +171,7 @@ The agent must never delete files. The following pre-existing files need manual 
 - [ ] Tag `pre-bugfix-snapshot` before merging Phase 3 PR for easy rollback.
 - [ ] Verify `tests/test_data/test_project/` and `tests/test_data/capek/` are committed (large folders; check `.gitignore`).
 - [ ] **Curate `tests/test_data/goldens/inputs/capek/` per its `.NEEDED.md`** to unlock the 4 skipped real-data tests in `test_blank_correction.py` (copy blank + sample subfolders from raw `tests/test_data/capek/`).
-- [ ] **Optional**: copy `dat_images/*.png` (3 files, ~8 MB total) into `tests/test_data/goldens/inputs/sgp_2_21_24_base/dat_images/` and `git add` only when Phase 2.e (GUI tests) gets implemented — they were intentionally left out of the Phase 2.c commit to keep repo size down.
+- [ ] **Optional**: copy `dat_images/*.png` (3 files, ~8 MB total) into `tests/test_data/goldens/inputs/sgp_2_21_24_base/dat_Images` and `git add` only when Phase 2.e (GUI tests) gets implemented — they were intentionally left out of the Phase 2.c commit to keep repo size down.
 
 ### Decisions reserved for human
 - [ ] Approve any breaking API changes (e.g., `DataHandler.get_data_file` raising instead of returning a tuple — bug #9 fix).

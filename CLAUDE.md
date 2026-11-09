@@ -300,7 +300,8 @@ a provenance copy of the config into the output folder. When making changes:
   folder with the raw `.dat` and a `clicks.toml` under `tests/test_data/goldens/inputs/`
 - Changes are stored in a "changes" column for audit trail: per row, one `(plus, minus)` tally per
   sample of what the clicks changed on that row (uncapped), e.g. `[(3, -1), (0, 0), ...]`
-  (see `tally_change()`)
+  (see `tally_change()`). The uncapped count isn't saved as its own column: for a review done
+  in one session, raw `.dat` count + plus + minus gives it back per row
 
 ### Code Style
 - Line length: 100 characters (enforced by ruff)
