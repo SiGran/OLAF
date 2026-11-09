@@ -25,15 +25,17 @@ goldens/
 │   │   ├── frozen_at_temp_changed.csv      referenced by no test
 │   │   ├── inps_L_expected.csv             used only as a header-parsing fixture in
 │   │   │                                   test_df_utils, NOT as a numerical golden
-│   │   └── dat_images/                     3 images for the FreezingReviewer GUI smoke test
+│   │   └── dat_Images/                     3 images for the FreezingReviewer GUI smoke test
 │   ├── sgp_3_28_24_base/        ✅ curated (reviewed.dat + frozen_at_temp_expected.csv)
 │   ├── kcg_09_23_24_base/       ✅ curated (all 4 files present and in use)
 │   ├── capek/                   ✅ curated — blanks + base/heat/peroxide; final_files/ EMPTY
+│   ├── pc_line1_10_12_26/       ✅ raw .dat + clicks.toml, a researcher's real GUI clicks
 │   └── test_project/            ❌ EMPTY — nothing curated yet
 └── expected/
     ├── test_spaced_temp_csv/    3 goldens
     ├── test_blank_correction/   2 goldens
     ├── test_develop_parity/     5 goldens (generated from develop — see below)
+    ├── test_click_replay/       1 golden (scientist-approved reviewed .dat)
     └── test_final_file_creation/ ❌ does not exist; stage 3 has no golden coverage
 ```
 
