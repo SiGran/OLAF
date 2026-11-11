@@ -139,8 +139,33 @@ Add `--verbose` to watch it work through each file.
   never change anything — the code discards those rows before the correction runs. No action
   needed unless someone asks.
 
+**Second part: reviews saved with the old GUI (PR #58).** After the spectrum checks, the scan
+compares every `reviewed_*.dat` with the raw `.dat` beside it, and ends with its own
+`RESULT (review)` line. The GUI fixes in #58 don't change how existing files are processed,
+but reviews made *before* them can hold wrong well counts. Each finding names the file,
+sample and row:
+
+- `erased-freeze`: a -1 made on a late image was applied from far earlier in the run
+  (GUI versions from March 2025 on), so earlier rows lost a frozen well.
+- `minus-drop`: a -1 was applied only from the clicked image (GUI before March 2025), so the
+  count drops as temperature falls and earlier rows keep the extra well.
+- `lost-well`: a +1/-1 pair near a full plate removed a real well.
+- `misplaced-harmless` (informational): a misplaced -1 that only crossed an empty plate; no
+  count changed.
+
+Any of the first three means: re-review that file from its raw `.dat` with the current GUI
+and reprocess it. Reviewed files with no raw `.dat` beside them are listed but can't be
+checked. To run only this part: add `--only review` (or `--only numerical` for the first).
+
 **Sanity check.** `uv run python scripts/scan_trigger_conditions.py --self-test` confirms the
-detector still detects; it should print five `[ok ]` lines.
+detectors still detect; it should print eleven `[ok ]` lines.
+
+- [ ] **Decide what to do with the old-GUI review findings in the committed test data.**
+  `--root tests/test_data --only review` (2026-11-09) gives 42 findings in 16 reviewed files
+  (7 erased-freeze, 23 minus-drop, 12 lost-well): capek, test_project, SGP 2.21.24 `test1_`,
+  KCG 09.23.24 and its golden copy `goldens/inputs/kcg_09_23_24_base/reviewed.dat`. Goldens
+  computed from these reviews pin numbers built on those counts. Re-reviewing is a
+  scientist's call; regenerating goldens afterwards is human-only.
 
 ### GUI test fixture (from fix/gui-minus-one-range)
 
