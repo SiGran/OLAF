@@ -1,0 +1,428 @@
+import operator
+from datetime import datetime
+from pathlib import Path
+from typing import cast
+
+import numpy as np
+import pandas as pd
+
+from olaf.CONSTANTS import AGRESTI_COULL_UNCERTAIN_VALUES, NUM_TO_REPLACE_D1, VOL_WELL, Z
+from olaf.utils.data_handler import DataHandler
+from olaf.utils.df_utils import header_to_dict
+from olaf.utils.plot_utils import plot_INPS_L
+
+
+def _select_blended_value(
+    prev_inp: float,
+    prev_upper_err: float,
+    curr_inp: float,
+    curr_lower: float,
+    curr_upper: float,
+    curr_dil_upper_at_i: float,
+    next_inp: float,
+    next_lower: float,
+    next_upper: float,
+) -> tuple[float, float, float] | None:
+    """Decide which INP/L value to keep at an overlapping temperature.
+
+    Called only when both the currently-selected dilution (``curr_*``) and the next, more
+    dilute candidate (``next_*``) exceed the previous temperature's value — i.e. the
+    spectrum would rise as temperature drops. Both candidates are compared against an upper
+    bound derived from the previous temperature, ``prev_inp + prev_upper_err``:
+
+    1. Both within the bound -> keep whichever has the smaller upper CI at this temperature
+       (``curr_dil_upper_at_i`` vs ``next_upper``).
+    2. Only the current within the bound -> keep current.
+    3. Only the next within the bound -> take next.
+    4. Neither within the bound -> average the two, propagating the CIs as
+       ``sqrt(a**2 + b**2) / 2``.
+
+    Invariants: this only ever adopts a value that is CI-bounded by the previous temperature
+    or the average of the two candidates, preserving the monotonic (non-rising with falling
+    temperature) selection the caller enforces.
+
+    Args:
+        prev_inp: INP/L selected at the previous temperature (i-1).
+        prev_upper_err: upper-CI magnitude of the previous temperature's dilution at i-1.
+        curr_inp, curr_lower, curr_upper: the currently-selected INP/L and its CIs at i.
+        curr_dil_upper_at_i: upper-CI magnitude of the current dilution at i.
+        next_inp, next_lower, next_upper: the next dilution's INP/L and CIs at i.
+
+    Returns:
+        ``None`` to keep the current selection, or the ``(INPS_L, lower_CI, upper_CI)``
+        triple to adopt from the next dilution. When a triple is returned the caller also
+        switches the row's dilution label to the next dilution.
+    """
+    prev_bound = prev_inp + prev_upper_err
+    if prev_bound > curr_inp and prev_bound > next_inp:
+        # Both within the previous value's error range: keep the lower-error one.
+        if curr_dil_upper_at_i < next_upper:
+            return None
+        return next_inp, next_lower, next_upper
+    if prev_bound > curr_inp:
+        # Only the current candidate is within range.
+        return None
+    if prev_bound > next_inp:
+        # Only the next candidate is within range.
+        return next_inp, next_lower, next_upper
+    # Both outside the range: average them, propagating the CIs with RMS.
+    return (
+        (curr_inp + next_inp) / 2,
+        np.sqrt(curr_lower**2 + next_lower**2) / 2,
+        np.sqrt(curr_upper**2 + next_upper**2) / 2,
+    )
+
+
+class GraphDataCSV(DataHandler):
+    """
+    This class is called after the last image is reviewed in the GUI closes,
+    and after the .csv file with the temperature ranges and frozen wells is created.
+    It has a function that reads in an above-mentioned .csv file and calculates the
+    INPs/L to use per temperature over all the dilutions for the experiment.
+
+    """
+
+    def __init__(
+        self,
+        folder_path: Path,
+        num_samples,
+        sample_type: str,
+        vol_air_filt: float,
+        wells_per_sample: int,
+        filter_used: float,
+        vol_susp: float,
+        dict_samples_to_dilution: dict,
+        suffix: str = ".csv",
+        includes: tuple = ("base",),
+        excludes: tuple = ("INPs_L", "dict"),
+        date_col=False,
+    ) -> None:
+        # Add class specific includes to make sure we get the right file
+        includes = (*includes, "frozen_at_temp", "reviewed")
+        super().__init__(
+            folder_path,
+            num_samples,
+            suffix=suffix,
+            includes=includes,
+            excludes=excludes,
+            date_col=date_col,
+            sep=",",
+        )
+        self.sample_type = sample_type.lower()
+        self.vol_air_filt = vol_air_filt
+        self.wells_per_sample = wells_per_sample
+        self.filter_used = filter_used
+        self.vol_susp = vol_susp
+        self.dict_to_samples_dilution = dict_samples_to_dilution
+        # change the headers of the data from samples to dilution factor
+        try:
+            # Store original column names for verification
+            original_columns = set(self.data.columns)
+
+            # Drop columns that are not in dict_samples_to_dilution keys, except for 'degC'
+            cols_to_keep = {"degC"}.union(dict_samples_to_dilution.keys())
+            self.data = self.data[self.data.columns.intersection(list(cols_to_keep))]
+
+            # Attempt to rename
+            self.data.rename(columns=dict_samples_to_dilution, inplace=True)
+
+            # Verify the renaming - modified to match the filtering logic
+            expected_new_columns = {"degC"}.union(
+                set(
+                    value
+                    for key, value in dict_samples_to_dilution.items()
+                    if key in original_columns
+                )
+            )
+            if set(self.data.columns) != expected_new_columns:
+                raise ValueError("Column renaming did not produce expected results")
+
+        except Exception as e:
+            raise ValueError(f"Failed to rename columns: {e!s}") from e
+        return
+
+    def convert_INPs_L(self, header: str, save=True, show_plot=False) -> pd.DataFrame:
+        """
+        Convert from # frozen wells at temperature for certain dilution to INPs/L.
+        The steps involved in this function are:
+        1. Separate the temperature and # frozen well values.
+        2. Create a column with the total number of wells per temperature
+        as affected by the background.
+        3. Calculate the INPs/L and the confidence intervals. It does this by using the
+        number of wells frozen compared to the possible total number of wells.
+        With the formula from <insert reference>:
+        (INP/mL) = =(-LN((Dx-Ex)/Dx)/(Cx/1000))*Fx
+        Dx = total number of wells minus the background
+        Ex = number of frozen wells
+        Cx = vol/well (microLiter)
+        Fx = dilution factor
+        4. Prune the data by removing the INF's and values that correspond with frozen wells
+        This will allow for the logic in step 5 to function properly.
+        5. Combine the data into one dataframe, using logic that makes decisions comparing
+        the last 4 values of a dilution before it has more than 29/32 wells frozen.
+        The logic for this is:
+            <insert logic>
+        6. Save and return the data.
+        The result is a dataframe with the temperature, dilution factor, INPs/L, and the
+        lower and upper confidence intervals.
+
+        args:
+            save: whether to save the data to a .csv file (default: True)
+
+        Returns: the data as a pandas DataFrame
+
+        """
+
+        "--------- Step 1: Separate temperature and # frozen well values -----------"
+
+        # Take out temperature
+        temps = self.data.pop("degC")
+        # Sort the columns by dilution
+        samples = self.data.reindex(sorted(self.data.columns), axis=1)
+
+        "-------------- Step 2: Background column creation: N_total ---------------"
+        most_diluted_value = max(
+            v for v in self.dict_to_samples_dilution.values() if v != float("inf")
+        )
+        # check if any dilution is less than the background and take that instead
+        dilution_v_background_df = samples[float("inf")] > samples[most_diluted_value]
+        # if more than NUM_TO_REPLACE_D1 samples in the highest dilutions are smaller
+        # than the background
+        # to create N_total df --> one column
+        print(
+            f"DI background found to be higher than {most_diluted_value} dilution "
+            f"{dilution_v_background_df.sum()} times."
+        )
+        if dilution_v_background_df.sum() < NUM_TO_REPLACE_D1:
+            N_total_series = self.wells_per_sample - samples[float("inf")]
+            adjusted_samples = samples.apply(lambda col: col - samples[float("inf")])
+        else:  # use the background
+            N_total_series = self.wells_per_sample - samples[most_diluted_value]
+            adjusted_samples = samples.apply(lambda col: col - samples[most_diluted_value])
+            print(
+                f"DI found to be higher than the {most_diluted_value} diltuion on "
+                f"{dilution_v_background_df.sum()} occasions. "
+                f"{most_diluted_value} dilution used for background in place of DI."
+            )
+
+        "--------------- Step 3: INP/L calc + Confidence Intervals ----------------------"
+        # With the samples columns and the N_total column, we can calculate the INPs/L.
+        # The log is only defined where the fraction of still-liquid wells
+        # (N_total - col) / N_total is strictly positive, i.e. both the numerator and the
+        # denominator are > 0. Mask everything else to NaN explicitly here rather than
+        # letting np.log emit -inf/NaN warnings and cleaning them up downstream.
+        INPs_p_mL_test_water = adjusted_samples.apply(
+            lambda col: self._inp_per_ml(col, N_total_series)
+        )
+        all_INPs_p_L = self._INP_ml_to_L(INPs_p_mL_test_water)
+        lower_INPS_p_L, upper_INPS_p_L = self._error_calc(
+            adjusted_samples, N_total_series, VOL_WELL, samples.columns
+        )
+
+        "-------------------------- Step 4: Pruning the data --------------------------"
+        # Turn the values that correspond with frozen wells (in samples) of 30 or higher into NaN's
+        # if we ever want to modify this we can make it a CONSTANT. As seen below:
+        max_allowable_wells_used = self.wells_per_sample - AGRESTI_COULL_UNCERTAIN_VALUES
+        all_INPs_p_L[samples >= max_allowable_wells_used] = np.nan
+        lower_INPS_p_L[samples >= max_allowable_wells_used] = np.nan
+        upper_INPS_p_L[samples >= max_allowable_wells_used] = np.nan
+
+        " -------------------------- Step 5: Combining into one -------------------------- "
+        # initialize the results df with the first dilution
+        result_df = pd.concat(
+            [
+                pd.Series([all_INPs_p_L.columns[0]] * len(all_INPs_p_L)),
+                all_INPs_p_L.iloc[:, 0],
+                lower_INPS_p_L.iloc[:, 0],
+                upper_INPS_p_L.iloc[:, 0],
+            ],
+            axis=1,
+        )  # Rename the columns
+        result_df.columns = ["dilution", "INPS_L", "lower_CI", "upper_CI"]
+
+        # iterate over all consequent dilutions | skip the background | apply the logics
+        for col_name, next_dilution_INP in all_INPs_p_L.iloc[:, 1:-1].items():
+            # Take last 4 real values of current result_df["INPS_L"]
+            last_4_i = result_df["INPS_L"].dropna().tail(4).index
+            going_down = False
+            # Bug #2: guard against an empty last_4_i (every accumulated value pruned to
+            # NaN). Initialising i = -1 keeps the post-loop fill (result_df.iloc[i + 1 :])
+            # well-defined — the next dilution replaces the whole column — instead of
+            # raising UnboundLocalError.
+            i = -1
+            for i in last_4_i:
+                if (
+                    result_df.loc[i, "INPS_L"] < result_df.loc[i - 1, "INPS_L"] or going_down
+                ):  # If value is going down
+                    going_down = True
+                    prev_val = result_df["INPS_L"][i - 1]
+                    # Bug #1: `== np.nan` is always False (NaN != NaN); use pd.isna so a
+                    # pruned (NaN) previous value correctly falls back to the one before it.
+                    # The i-2 label access is safe on the integer RangeIndex: going_down is
+                    # only seeded where result_df.loc[o] < result_df.loc[o-1] (so o >= 1),
+                    # and this runs at i > o, hence i >= 2. Keep that invariant if the
+                    # going_down seeding is ever refactored.
+                    if pd.isna(prev_val):
+                        prev_val = result_df["INPS_L"][i - 2]
+                    if pd.isna(prev_val):
+                        print(
+                            f"Dilution transition error going to dilution {col_name}; "
+                            f"check frozen_at_temp file!"
+                        )
+
+                    # Check if both options are smaller, constrained by lower bound
+                    prev_val_ci = prev_val - result_df["lower_CI"][i]
+                    if result_df["INPS_L"][i] < prev_val_ci and next_dilution_INP[i] < prev_val_ci:
+                        # throw them out/error, no value for that temperature, whatever
+                        result_df.loc[i, :] = np.nan
+                        # Both are bigger:
+                    elif result_df["INPS_L"][i] > prev_val and next_dilution_INP[i] > prev_val:
+                        # Both candidates exceed the previous value: defer the CI-bounded
+                        # selection/averaging to the pure module-level helper.
+                        curr_dilution = result_df.loc[i - 1, "dilution"]
+                        selection = _select_blended_value(
+                            prev_inp=result_df["INPS_L"][i - 1],
+                            prev_upper_err=upper_INPS_p_L[curr_dilution][i - 1],
+                            curr_inp=result_df.loc[i, "INPS_L"],
+                            curr_lower=result_df.loc[i, "lower_CI"],
+                            curr_upper=result_df.loc[i, "upper_CI"],
+                            curr_dil_upper_at_i=upper_INPS_p_L[curr_dilution][i],
+                            next_inp=next_dilution_INP[i],
+                            next_lower=lower_INPS_p_L[col_name][i],
+                            next_upper=upper_INPS_p_L[col_name][i],
+                        )
+                        if selection is not None:
+                            result_df.loc[i, "dilution"] = col_name
+                            result_df.loc[i, "INPS_L"] = selection[0]
+                            result_df.loc[i, "lower_CI"] = selection[1]
+                            result_df.loc[i, "upper_CI"] = selection[2]
+
+                    # If only current dilution is bigger, take that one
+                    elif result_df["INPS_L"][i] >= prev_val_ci:
+                        continue  # current one already selected
+                    # If only next dilution is bigger, take that one
+                    elif next_dilution_INP[i] >= prev_val_ci:
+                        result_df.loc[i, "dilution"] = col_name
+                        result_df.loc[i, "INPS_L"] = next_dilution_INP[i]
+                        result_df.loc[i, "lower_CI"] = lower_INPS_p_L[col_name][i]
+                        result_df.loc[i, "upper_CI"] = upper_INPS_p_L[col_name][i]
+                else:
+                    continue
+            # After checking the 4 overlapping values, we need to add the rest of the next dilution
+            result_df.iloc[i + 1 :, 0] = col_name
+            result_df.iloc[i + 1 :, 1] = next_dilution_INP[i + 1 :]
+            result_df.iloc[i + 1 :, 2] = lower_INPS_p_L[col_name][i + 1 :]
+            result_df.iloc[i + 1 :, 3] = upper_INPS_p_L[col_name][i + 1 :]
+        # Add the temperature back as first column
+        result_df.insert(0, "degC", temps)
+
+        "---------------------- Step 6: Save and return the data ----------------------"
+        if save:
+            self.save_to_new_file(result_df, prefix="INPs_L", header=header)
+
+        # Plotting option
+        if show_plot:
+            header_dict = header_to_dict(header)
+            current_time = datetime.now().strftime("%Y%m%d_%H%M%S")
+            save_path = self.folder_path / (
+                f"plot_{header_dict['site']}_{header_dict['start_time'][:10]}_"
+                f"{header_dict['treatment']}_INPs_L_generated-{current_time}.png"
+            )
+            plot_INPS_L(result_df, save_path, header_dict)
+
+        return result_df
+
+    @staticmethod
+    def _inp_per_ml(col: pd.Series, n_total: pd.Series) -> pd.Series:
+        """INPs/mL for a single dilution column, masking invalid log inputs to NaN.
+
+        ``INP/mL = -ln((N_total - col) / N_total) / (VOL_WELL / 1000) * dilution_factor``.
+
+        The log is only evaluated where the still-liquid fraction ``(N_total - col) /
+        N_total`` is strictly positive — i.e. both ``N_total - col > 0`` and ``N_total > 0``
+        — and only for a finite dilution factor (the ``inf`` background column can never
+        yield a real INP). Everything else is NaN. This matches the previous behaviour,
+        which produced ``+/-inf`` in those cells and replaced it with NaN downstream, but
+        avoids the ``RuntimeWarning``s from evaluating ``log`` on non-positive inputs.
+        """
+        # Column labels are dilution factors (numeric or inf); cast for the type checker.
+        dilution = float(cast(float, col.name))
+        numerator = n_total - col
+        valid = (numerator > 0) & (n_total > 0) & np.isfinite(dilution)
+        result = pd.Series(np.nan, index=col.index, dtype="float64")
+        ratio = numerator[valid] / n_total[valid]
+        result[valid] = (-np.log(ratio) / (VOL_WELL / 1000)) * dilution
+        return result
+
+    def _error_calc(self, n_frozen, n_total, vol_well: int | float, dilution, z: float = Z):
+        """
+        Calculate the error of the INP/L
+        The formula used is in (2) from: Agresti, A., & Coull, B. A. (1998). Approximate is
+        better than "exact" for interval estimation of binomial proportions.
+        The American Statistician, 52(2), 119-126. https://doi.org/10.2307/2685469
+        The formula is split up in three segments
+        1. The plus/minus part to differentiate between the upper and lower confidence interval
+        2. The remaining part of the numenator formula
+        3. The denominator of the remaining part
+
+        this calculates the values in INPs/mL and the typical conversion from mL to L
+        applies for the errors too.
+        Args:
+            n_frozen: number of frozen wells measured; single value or pandas df
+            n_total: total number of wells; single value or pandas series
+            vol_well: volume of each well; single value
+            dilution: dilution (-fold); single value or pandas series
+            z: z-value of the normal distribution, float
+        Returns:
+            error of the INP/L
+        """
+        if isinstance(n_frozen, pd.DataFrame):  # dealing with a dataframes
+            plus_min_part = n_frozen.apply(
+                lambda col: z
+                * np.sqrt((col / n_total * (1 - col / n_total) + z**2 / (4 * n_total)) / n_total)
+            )
+            rem_num = n_frozen.apply(lambda col: (col / n_total) + z**2 / (2 * n_total))
+            denom = 1 + z**2 / n_total
+        else:  # We're dealing with a single value
+            plus_min_part = z * np.sqrt(
+                (n_frozen / n_total * (1 - n_frozen / n_total) + z**2 / (4 * n_total)) / n_total
+            )
+            rem_num = (n_frozen / n_total) + z**2 / (2 * n_total)
+            denom = 1 + z**2 / n_total
+        conf_intervals = []
+        for op in [operator.sub, operator.add]:
+            if isinstance(dilution, int | float):  # dealing with a single value
+                limit_wells = (op(rem_num, plus_min_part) / denom) * n_total
+                limit_INPS_ml = (
+                    dilution / (vol_well / 1000) * (n_frozen - limit_wells) / (n_total - n_frozen)
+                )
+            else:  # We're dealing with matrices/dfs so dilution is the column names
+                limit_wells = rem_num.apply(
+                    lambda col, op=op: (op(col, plus_min_part[col.name]) / denom) * n_total
+                )
+                limit_INPS_ml = limit_wells.apply(
+                    lambda col: col.name
+                    / (vol_well / 1000)
+                    * abs(n_frozen[col.name] - col)
+                    / (n_total - n_frozen[col.name])
+                )
+            limit_INPS_L = self._INP_ml_to_L(limit_INPS_ml)
+            conf_intervals.append(limit_INPS_L)
+
+        return conf_intervals
+
+    def _INP_ml_to_L(self, ml_df):
+        """
+        Convert the INPs/mL to INPs/L, using the formula::
+        INPs/L = (INPs/mL * vol_susp) / (vol_air_filt * filter_used)
+        with vol_susp = volume used for suspension
+        vol_air_filt = volume of air filtered
+        filter_used = proportion of filter used
+        Args:
+            ml_df: dataframe containing the INPs/mL values. Could also be a single
+            value or series
+
+        Returns: same format as input, but with INPs/L values
+
+        """
+        return (ml_df * self.vol_susp) / (self.vol_air_filt * self.filter_used)

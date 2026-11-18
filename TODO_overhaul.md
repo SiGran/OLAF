@@ -49,19 +49,62 @@ Make the two calculation engines pure, testable, and correct; fold in the parked
       Behaviour-preserving (output byte-identical) and removes the numpy `RuntimeWarning`s.
 
 ### A.2 `blank_correction.py`
-- [ ] Fix `bug #3`: `df_corrected["qc_flag"] = int` (assigns the type) → `= 0` with integer dtype
-      (line ~393); currently writes `<class 'int'>` into ARM files for uncorrected rows.
-- [ ] Fix `bug #4`: rewrite the pathological chained comparison (lines ~402–409) as explicit `and`s.
-- [ ] Fix `bug #5`: the ERROR_SIGNAL walk-back at line ~411 is dead code (unreachable given the
-      current condition) and decrements a float temp label — make it reachable and index-based.
-- [ ] Fix the all-wells-frozen division-by-zero in the error/CI calculation (`_error_calc`).
+- [x] Fix `bug #3`: `df_corrected["qc_flag"] = int` → `= 0` with integer dtype. qc_flag is now
+      a plain int64 0/1 column. Output-affecting only in dtype/formatting, not in values;
+      goldens that pin the legacy 5-col schema still need human regeneration (A.3).
+- [x] Fix `bug #4`: chained comparison rewritten as explicit reads + comparisons.
+      Behaviour-preserving (the chain was semantically equivalent, just unreadable).
+- [x] Fix `bug #5`: walk-back is now reachable and index-based — it skips ERROR_SIGNAL rows by
+      position to compare against the last usable value, so an ERROR_SIGNAL gap no longer hides
+      a non-monotonic drop. **Output-affecting** for spectra with ERROR_SIGNAL gaps: such drops
+      are now corrected (INPS_L replaced, qc_flag=1, CIs propagated) where they were silently
+      kept before. Covered by test_error_signal_gap_does_not_hide_non_monotonic_drop.
+- [x] Fix the all-wells-frozen division-by-zero in `_error_calc`: rows with no liquid wells
+      left get NaN CIs (scalar path no longer raises ZeroDivisionError). Pipeline output
+      unchanged — Step 4 already pruned those rows to NaN downstream.
 
 ### A.3 Structure & fixtures
-- [ ] Separate calculation from I/O and plotting: engines return DataFrames; a thin caller does file
-      writes and `plot_INPS_L`. Reuse `math_utils.rms`, `df_utils.read_with_flexible_header`.
-- [ ] **(Human)** Re-curate golden fixtures that currently pin buggy output (e.g. `qc_flag`,
+**OPEN SCIENTIFIC QUESTION — error-combination formula (raised 2026-09-17, deferred).**
+Two different error-combination conventions coexist in the pipeline:
+- Blank subtraction (`_blank_correct_file`) propagates as root-**sum**-square:
+  `sqrt(sample² + blank²)`.
+- The monotonicity correction (`_final_check`) uses `math_utils.rms`, root-**mean**-square:
+  `sqrt((a² + b²)/2)` — i.e. the RSS value divided by sqrt(2), about 29 % narrower.
+The scientist reviewed this on 2026-09-17, deferred a ruling, and flagged it as something
+that "might be an issue indeed". Evidence it is not hypothetical: in
+`SGP 6.20.24 base redo`, the corrected row at -16.5 degC comes out with `upper_CI`
+(0.149757) *smaller* than `lower_CI` (0.169566), because the `rms` combination shrank the
+upper half-width below the lower one. Any golden curated before this is settled may need
+regenerating if the formula changes. Decide before the next data release.
+
+Follow-ups from the 2026-09-17 A.3 science review (non-blocking):
+- [ ] Asymmetric CI-propagation guard in `_blank_correct_file`: it checks `lower_CI` on the
+  sample but `upper_CI` on the blanks; a frame with one but not the other silently skips
+  propagation or KeyErrors. Decide the intended contract and make the check symmetric.
+- [ ] Extrapolation gate/action mismatch: the gate tests the warm end
+  (`max(missing) > max(blank_temps)`) but `_extrapolate_blanks` only extends the cold end.
+  Pre-existing; documented in `_blank_correct_file`'s docstring. Scientist to confirm intent.
+- [ ] Add a test pinning cross-folder `df_blanks` threading: two sample folders in one blank
+  window where the first forces extrapolation and the second asserts the extended range is
+  reused rather than re-extrapolated.
+
+- [x] Separate calculation from I/O and plotting: `GraphDataCSV.compute_INPs_L()` is the pure
+      engine, `convert_INPs_L()` a thin save/plot wrapper; `BlankCorrector.apply_blanks()` is a
+      thin orchestrator over `_blank_correct_file()` (pure per-file correction),
+      `_select_sample_file()` and `_corrected_save_path()`. `read_with_flexible_header` reused;
+      `math_utils.rms` deliberately NOT substituted into the blank CI propagation — that formula
+      is root-SUM-square (rms would shrink CIs by sqrt(2)). Two behavior fixes: apply_blanks
+      with save=False no longer writes extrapolated-blank CSVs, and a filename with more than
+      one "(" now skips with a message instead of crashing on an unbound variable (a fully
+      covered extrapolation no longer crashes min() on an empty set either).
+- [ ] **(Human)** Re-curate goldens — full protocol in
+      `tests/test_data/goldens/REGENERATION.md` (run it together with a scientist; Part 1
+      lists the five behavior questions that need their ruling before regenerating).
+      Re-curate golden fixtures that currently pin buggy output (e.g. `qc_flag`,
       `capek_combined_blank.csv` tuple cells — `bug #17`) to correct values via
       `OLAF_REGEN_GOLDEN=1` + review. Agent writes tests; human confirms the numbers.
+      The stage-1 gap is now CLOSED: `tests/test_integration/test_develop_parity.py` pins
+      `convert_INPs_L` output for two committed fixtures, generated from develop's engines.
 
 ---
 

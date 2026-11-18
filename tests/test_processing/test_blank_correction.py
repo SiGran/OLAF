@@ -1,8 +1,8 @@
 """Tests for olaf.processing.blank_correction (Phase 2.c).
-Bugs covered (current behavior pinned):
-    #3  qc_flag = int (class, not 0)               (blank_correction.py:393)
-    #4  Chained comparison (smell, mostly benign)  (blank_correction.py:402-410)
-    #5  prev_temp -= 1 walk-back is dead code      (blank_correction.py:411)
+Bugs covered (fixed in Milestone A.2; tests assert the corrected behavior):
+    #3  qc_flag column is integer 0/1 (was the `int` class with object dtype)
+    #4  Non-monotonic check written as explicit comparisons (was a chained comparison)
+    #5  ERROR_SIGNAL walk-back is reachable and index-based (was dead code)
 """
 
 from __future__ import annotations
@@ -290,14 +290,12 @@ def _final_check_inputs(inps_l, lower_ci=None, upper_ci=None, corrected=None):
 
 
 class TestFinalCheck:
-    def test_qc_flag_column_dtype_pins_current_behavior(self, tmp_path: Path) -> None:
-        """BUG #3: `df_corrected["qc_flag"] = int` assigns the int CLASS to all rows.
-        Loop overwrites every row to 0 or 1 but dtype stays 'object'.
-        """
+    def test_qc_flag_column_is_integer(self, tmp_path: Path) -> None:
+        """BUG #3 (fixed): qc_flag is a plain integer 0/1 column, not object dtype."""
         bc = _empty_corrector(tmp_path)
         df_c, df_i = _final_check_inputs([10.0, 20.0, 40.0, 80.0, 160.0])
         result = bc._final_check(df_c, df_i)
-        assert result["qc_flag"].dtype == object
+        assert pd.api.types.is_integer_dtype(result["qc_flag"])
         assert set(result["qc_flag"].unique()).issubset({0, 1})
 
     def test_monotonic_input_yields_all_zero_qc(self, tmp_path: Path) -> None:
@@ -319,9 +317,9 @@ class TestFinalCheck:
         assert result.iloc[2]["INPS_L"] == 50.0
         assert result.iloc[2]["qc_flag"] == 1
 
-    def test_prev_temp_decrement_with_error_signal_pins_behavior(self, tmp_path: Path) -> None:
-        """BUG #5: when prev row is ERROR_SIGNAL, chained cmp short-circuits and
-        the walk-back loop is unreachable. Current row stays untouched.
+    def test_error_signal_gap_does_not_hide_non_monotonic_drop(self, tmp_path: Path) -> None:
+        """BUG #5 (fixed): the walk-back skips ERROR_SIGNAL rows by position, so a drop
+        across an ERROR_SIGNAL gap is still corrected against the last usable value.
         """
         bc = _empty_corrector(tmp_path)
         df_c, df_i = _final_check_inputs(
@@ -329,9 +327,48 @@ class TestFinalCheck:
             corrected=[10.0, 50.0, ERROR_SIGNAL, 30.0, 160.0],
         )
         result = bc._final_check(df_c, df_i)
+        # The gap row itself is untouched and unflagged
         assert result.iloc[2]["INPS_L"] == ERROR_SIGNAL
-        assert result.iloc[3]["INPS_L"] == 30.0
+        assert result.iloc[2]["qc_flag"] == 0
+        # 30.0 < 50.0 (last value before the gap) -> replaced and flagged
+        assert result.iloc[3]["INPS_L"] == 50.0
+        assert result.iloc[3]["qc_flag"] == 1
+        # CI adjustments come from the walked-back row, like any other correction
+        assert result.iloc[3]["lower_CI"] == df_i.iloc[1]["lower_CI"]
+
+    def test_error_signal_row_is_never_corrected(self, tmp_path: Path) -> None:
+        """An ERROR_SIGNAL current row stays ERROR_SIGNAL and is never monotonicity-corrected."""
+        bc = _empty_corrector(tmp_path)
+        df_c, df_i = _final_check_inputs(
+            inps_l=[10.0, 50.0, 50.0, 60.0, 160.0],
+            corrected=[10.0, 50.0, ERROR_SIGNAL, 60.0, 160.0],
+        )
+        result = bc._final_check(df_c, df_i)
+        assert result.iloc[2]["INPS_L"] == ERROR_SIGNAL
+        assert result.iloc[2]["qc_flag"] == 0
+        # 60.0 > 50.0: monotonic across the gap, no correction
+        assert result.iloc[3]["INPS_L"] == 60.0
         assert result.iloc[3]["qc_flag"] == 0
+
+    def test_walk_back_skips_zero_rows_like_error_signal(self, tmp_path: Path) -> None:
+        """A zero row carries no usable value, so the walk-back steps over it exactly as
+        it steps over ERROR_SIGNAL (scientist ruling, 2026-09-17). Here the walk crosses
+        both a zero and an ERROR_SIGNAL row to reach the last real value."""
+        bc = _empty_corrector(tmp_path)
+        # lower_CI chosen so the 0.0 row is NOT below (inps - lower_CI) and therefore
+        # survives the threshold check as a genuine zero row in the walk-back path.
+        df_c, df_i = _final_check_inputs(
+            inps_l=[10.0, 50.0, 4.0, 5.0, 160.0],
+            corrected=[10.0, ERROR_SIGNAL, 0.0, 5.0, 160.0],
+            lower_ci=[5.0, 25.0, 4.0, 2.5, 80.0],
+        )
+        result = bc._final_check(df_c, df_i)
+        # The zero row itself is left alone and never flagged
+        assert result.iloc[2]["INPS_L"] == 0.0
+        assert result.iloc[2]["qc_flag"] == 0
+        # 5.0 < 10.0 (last usable value, two unusable rows back) -> corrected
+        assert result.iloc[3]["INPS_L"] == 10.0
+        assert result.iloc[3]["qc_flag"] == 1
 
 
 def _blank_df(temps, inps, lower=None, upper=None):
@@ -395,3 +432,48 @@ class TestExtrapolateBlanks:
         assert len(artifacts) == 1
         df_read = pd.read_csv(artifacts[0])
         assert len(df_read) == 6
+
+
+class TestIOSeparation:
+    """A.3: apply_blanks is a thin I/O orchestrator over pure computation."""
+
+    def test_apply_blanks_save_false_writes_nothing(self, synthetic_blank_folder) -> None:
+        df = pd.DataFrame(
+            {
+                "degC": [-20.0, -21.0, -22.0],
+                "dilution": [1, 1, 1],
+                "INPS_L": [10.0, 20.0, 40.0],
+                "lower_CI": [5.0, 10.0, 20.0],
+                "upper_CI": [15.0, 30.0, 60.0],
+            }
+        )
+        project = synthetic_blank_folder(
+            num_blanks=1, num_samples=1, blank_inps_df=df, sample_inps_df=df
+        )
+        bc = BlankCorrector(
+            project_folder=project,
+            blank_includes=("INPs_L",),
+            blank_excludes=("blank_corrected",),
+            sample_excludes=(),
+        )
+        bc.average_blanks(save=False)
+        before = sorted(p.name for p in project.rglob("*") if p.is_file())
+        bc.apply_blanks(save=False, only_within_dates=False)
+        after = sorted(p.name for p in project.rglob("*") if p.is_file())
+        assert before == after
+
+    def test_corrected_save_path_plain_name(self, tmp_path: Path) -> None:
+        result = BlankCorrector._corrected_save_path(tmp_path / "INPs_L_run.csv")
+        assert result is not None
+        assert result.name.startswith("blank_corrected_")
+        assert result.name.endswith("INPs_L_run.csv")
+
+    def test_corrected_save_path_collapses_version_suffix(self, tmp_path: Path) -> None:
+        result = BlankCorrector._corrected_save_path(tmp_path / "INPs_L_run(3).csv")
+        assert result is not None
+        assert "(3)" not in result.name
+        assert result.name.endswith("INPs_L_run.csv")
+
+    def test_corrected_save_path_multi_paren_returns_none(self, tmp_path: Path) -> None:
+        """Previously this branch left save_file unbound and crashed with NameError."""
+        assert BlankCorrector._corrected_save_path(tmp_path / "INPs_L_a(1)(2).csv") is None
